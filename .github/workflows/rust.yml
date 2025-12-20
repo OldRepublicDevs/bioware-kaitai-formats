@@ -1,0 +1,100 @@
+name: Generate and Publish Rust Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/rust.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/rust.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Rust code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh rust generated/rust
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/rust)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Cargo package structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/rust/src
+          cp -r generated/rust/* dist/rust/src/
+
+          # Create Cargo.toml
+          cat > dist/rust/Cargo.toml << 'EOF'
+          [package]
+          name = "bioware-kaitai-formats"
+          version = "0.1.0"
+          edition = "2021"
+          description = "BioWare game engine file format parsers generated from Kaitai Struct definitions"
+          license = "MIT"
+          repository = "https://github.com/${{ github.repository }}"
+          keywords = ["bioware", "kotor", "kaitai", "file-format", "parser", "are", "bif", "cnv", "eclipse", "odyssey", "thesithlords", "aurora", "bwm", "wok", "gff", "utc", "utd", "ute", "uti", "utm", "utp", "uts", "utt", "utw", "mdl", "mdx", "ssf", "talktable", "tlk"]
+
+          [dependencies]
+          kaitai-struct = "0.9"
+          EOF
+
+          # Create lib.rs
+          cat > dist/rust/src/lib.rs << 'EOF'
+          // BioWare Kaitai Formats - Auto-generated from Kaitai Struct definitions
+          pub mod formats;
+          EOF
+
+          cp README.md dist/rust/
+          cp LICENSE dist/rust/
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/rust
+          git commit -m "chore: regenerate Rust code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Publish to crates.io
+        if: steps.check_changes.outputs.changed == 'true' && github.event_name == 'push'
+        run: |
+          cd dist/rust
+          cargo publish --token ${{ secrets.CARGO_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+

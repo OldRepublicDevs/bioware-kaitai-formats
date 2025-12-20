@@ -1,0 +1,112 @@
+name: Generate and Publish PHP Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/php.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/php.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate PHP code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh php generated/php
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/php)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Composer package structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/php/src
+          cp -r generated/php/* dist/php/src/
+
+          # Create composer.json
+          cat > dist/php/composer.json << 'EOF'
+          {
+            "name": "bioware/kaitai-formats",
+            "description": "BioWare game engine file format parsers generated from Kaitai Struct definitions",
+            "type": "library",
+            "license": "MIT",
+            "authors": [
+              {
+                "name": "Andastra Contributors"
+              }
+            ],
+            "require": {
+              "php": ">=7.4",
+              "kaitai-io/kaitai_struct_php_runtime": "^0.9"
+            },
+            "autoload": {
+              "psr-4": {
+                "BioWare\\KaitaiFormats\\": "src/"
+              }
+            },
+            "keywords": [
+              "bioware",
+              "kotor",
+              "kaitai",
+              "file-format",
+              "parser"
+            ]
+          }
+          EOF
+
+          cp README.md dist/php/
+          cp LICENSE dist/php/
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/php
+          git commit -m "chore: regenerate PHP code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Note about Packagist publishing
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "Packagist packages are typically auto-updated via GitHub webhooks"
+          echo "Register the repository at: https://packagist.org/packages/submit"
+          echo "Or use GitHub Actions with: https://github.com/vierbergenlars/gh-action-push-to-packagist"
+

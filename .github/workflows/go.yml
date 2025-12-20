@@ -1,0 +1,88 @@
+name: Generate and Publish Go Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/go.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/go.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Go code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh go generated/go
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/go)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Go module structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/go
+          cp -r generated/go/* dist/go/
+
+          # Create go.mod
+          cat > dist/go/go.mod << EOF
+          module github.com/${{ github.repository }}/generated/go
+
+          go 1.21
+
+          require github.com/kaitai-io/kaitai_struct_go_runtime v0.9.0
+          EOF
+
+          cp README.md dist/go/
+          cp LICENSE dist/go/
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/go
+          git commit -m "chore: regenerate Go code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Go modules are published via git tags
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "Go modules are automatically available via GitHub once committed"
+          echo "Users can import with: go get github.com/${{ github.repository }}/generated/go"
+

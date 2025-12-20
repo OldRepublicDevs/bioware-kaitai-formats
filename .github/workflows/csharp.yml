@@ -1,0 +1,107 @@
+name: Generate and Publish C# Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/csharp.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/csharp.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # For NuGet publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate C# code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh csharp generated/csharp
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/csharp)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup .NET project structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/csharp
+          cp -r generated/csharp/* dist/csharp/
+
+          # Create .csproj file
+          cat > dist/csharp/BioWareKaitaiFormats.csproj << 'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>netstandard2.0</TargetFramework>
+              <LangVersion>7.3</LangVersion>
+              <PackageId>BioWareKaitaiFormats</PackageId>
+              <Version>0.1.0</Version>
+              <Authors>Andastra Contributors</Authors>
+              <Description>BioWare game engine file format parsers generated from Kaitai Struct definitions</Description>
+              <PackageLicenseExpression>MIT</PackageLicenseExpression>
+              <RepositoryUrl>https://github.com/${{ github.repository }}</RepositoryUrl>
+              <PackageTags>bioware;kotor;kaitai;file-format;parser</PackageTags>
+            </PropertyGroup>
+
+            <ItemGroup>
+              <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9" />
+            </ItemGroup>
+          </Project>
+          EOF
+
+          cp README.md dist/csharp/
+          cp LICENSE dist/csharp/
+
+      - name: Build and pack NuGet package
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          cd dist/csharp
+          dotnet pack -c Release
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/csharp
+          git commit -m "chore: regenerate C# code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Publish to NuGet
+        if: steps.check_changes.outputs.changed == 'true' && github.event_name == 'push'
+        run: |
+          cd dist/csharp
+          dotnet nuget push bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+

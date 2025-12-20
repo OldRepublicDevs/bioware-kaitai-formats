@@ -1,0 +1,121 @@
+name: Generate and Publish Ruby Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/ruby.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/ruby.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # For RubyGems publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Ruby code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh ruby generated/ruby
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/ruby)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup gem structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/ruby/lib/bioware_kaitai_formats
+          cp -r generated/ruby/* dist/ruby/lib/bioware_kaitai_formats/
+
+          # Create gemspec
+          cat > dist/ruby/bioware-kaitai-formats.gemspec << 'EOF'
+          Gem::Specification.new do |spec|
+            spec.name          = "bioware-kaitai-formats"
+            spec.version       = "0.1.0"
+            spec.authors       = ["Andastra Contributors"]
+            spec.email         = [""]
+
+            spec.summary       = "BioWare game engine file format parsers generated from Kaitai Struct definitions"
+            spec.description   = "BioWare game engine file format parsers generated from Kaitai Struct definitions"
+            spec.homepage      = "https://github.com/${{ github.repository }}"
+            spec.license       = "MIT"
+
+            spec.files         = Dir["lib/**/*"] + ["README.md", "LICENSE"]
+            spec.require_paths = ["lib"]
+
+            spec.add_dependency "kaitai-struct-visualizer", "~> 0.9"
+            spec.add_dependency "kaitai-struct-ruby-runtime", "~> 0.9"
+
+            spec.required_ruby_version = ">= 2.5.0"
+          end
+          EOF
+
+          # Create lib file
+          cat > dist/ruby/lib/bioware_kaitai_formats.rb << 'EOF'
+          require "kaitai/struct/stream"
+
+          module BioWareKaitaiFormats
+            VERSION = "0.1.0"
+          end
+          EOF
+
+          cp README.md dist/ruby/
+          cp LICENSE dist/ruby/
+
+      - name: Build gem
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          cd dist/ruby
+          gem build bioware-kaitai-formats.gemspec
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/ruby
+          git commit -m "chore: regenerate Ruby code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Publish to RubyGems
+        if: steps.check_changes.outputs.changed == 'true' && github.event_name == 'push'
+        run: |
+          cd dist/ruby
+          gem push *.gem --key github --host https://rubygems.org
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+

@@ -1,0 +1,84 @@
+# Generated code directories
+generated/
+*.generated.*
+*.ksy-generated/
+
+# Kaitai Struct compiler cache
+.ksc/
+
+# Language-specific build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.dylib
+*.dll
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+.idea/
+
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+test_files/
+*.utc
+*.uti
+*.dlg
+*.are
+*.bif
+*.erf
+*.rim
+*.mdl
+*.tpc
+*.2da
+*.tlk
+*.ncs
+*.wav
+
+# CI/CD artifacts
+dist/
+build/
+*.egg-info/
+

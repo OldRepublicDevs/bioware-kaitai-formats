@@ -1,0 +1,125 @@
+name: Generate and Publish Perl Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/perl.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/perl.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.36'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Perl code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh perl generated/perl
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/perl)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup CPAN distribution structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/perl/lib/BioWare/Kaitai/Formats
+          cp -r generated/perl/* dist/perl/lib/BioWare/Kaitai/Formats/
+
+          # Create Makefile.PL
+          cat > dist/perl/Makefile.PL << 'EOF'
+          use 5.010000;
+          use ExtUtils::MakeMaker;
+
+          WriteMakefile(
+            NAME              => 'BioWare::Kaitai::Formats',
+            VERSION_FROM      => 'lib/BioWare/Kaitai/Formats.pm',
+            PREREQ_PM         => {
+              'Kaitai::Struct::Runtime' => '0.9',
+            },
+            ABSTRACT_FROM     => 'lib/BioWare/Kaitai/Formats.pm',
+            AUTHOR            => 'Andastra Contributors',
+            LICENSE           => 'mit',
+            MIN_PERL_VERSION  => '5.010000',
+          );
+          EOF
+
+          # Create main module file
+          cat > dist/perl/lib/BioWare/Kaitai/Formats.pm << 'EOF'
+          package BioWare::Kaitai::Formats;
+
+          use 5.010000;
+          use strict;
+          use warnings;
+
+          our $VERSION = '0.1.0';
+
+          1;
+
+          __END__
+
+          =head1 NAME
+
+          BioWare::Kaitai::Formats - BioWare game engine file format parsers
+
+          =head1 DESCRIPTION
+
+          BioWare game engine file format parsers generated from Kaitai Struct definitions
+
+          =head1 LICENSE
+
+          MIT License
+
+          =cut
+          EOF
+
+          cp README.md dist/perl/
+          cp LICENSE dist/perl/
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/perl
+          git commit -m "chore: regenerate Perl code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Note about CPAN publishing
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "CPAN packages are typically published using: cpan-upload --user \$CPAN_USER --password \$CPAN_PASSWORD"
+

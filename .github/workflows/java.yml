@@ -1,0 +1,145 @@
+name: Generate and Publish Java Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/java.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/java.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # For Maven Central publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Java code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh java generated/java
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/java)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Maven project structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/java/src/main/java/com/bioware/kaitai
+          cp -r generated/java/* dist/java/src/main/java/com/bioware/kaitai/
+          
+          # Create pom.xml
+          cat > dist/java/pom.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                   http://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            
+            <groupId>com.bioware</groupId>
+            <artifactId>kaitai-formats</artifactId>
+            <version>0.1.0</version>
+            <packaging>jar</packaging>
+            
+            <name>BioWare Kaitai Formats</name>
+            <description>BioWare game engine file format parsers generated from Kaitai Struct definitions</description>
+            <url>https://github.com/${{ github.repository }}</url>
+            
+            <licenses>
+              <license>
+                <name>MIT License</name>
+                <url>https://opensource.org/licenses/MIT</url>
+              </license>
+            </licenses>
+            
+            <properties>
+              <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+              <maven.compiler.source>8</maven.compiler.source>
+              <maven.compiler.target>8</maven.compiler.target>
+            </properties>
+            
+            <dependencies>
+              <dependency>
+                <groupId>io.kaitai</groupId>
+                <artifactId>kaitai-struct-runtime</artifactId>
+                <version>0.9</version>
+              </dependency>
+            </dependencies>
+            
+            <build>
+              <plugins>
+                <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-compiler-plugin</artifactId>
+                  <version>3.11.0</version>
+                  <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                  </configuration>
+                </plugin>
+              </plugins>
+            </build>
+          </project>
+          EOF
+          
+          cp README.md dist/java/
+          cp LICENSE dist/java/
+
+      - name: Build Java package
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          cd dist/java
+          mvn clean package
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/java
+          git commit -m "chore: regenerate Java code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Publish to Maven Central
+        if: steps.check_changes.outputs.changed == 'true' && github.event_name == 'push'
+        run: |
+          cd dist/java
+          mvn deploy
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+

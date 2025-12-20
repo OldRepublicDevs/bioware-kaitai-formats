@@ -1,0 +1,116 @@
+name: Generate and Publish Python Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/python.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/python.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # For PyPI publishing with trusted publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Python code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh python generated/python
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/python)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup package structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/python/bioware_kaitai_formats
+          cp -r generated/python/* dist/python/bioware_kaitai_formats/
+
+          # Create __init__.py files
+          find dist/python/bioware_kaitai_formats -type d -exec touch {}/__init__.py \;
+
+          # Create setup.py
+          cat > dist/python/setup.py << 'EOF'
+          from setuptools import setup, find_packages
+
+          setup(
+              name="bioware-kaitai-formats",
+              version="0.1.0",
+              description="BioWare game engine file format parsers generated from Kaitai Struct definitions",
+              long_description=open("README.md").read(),
+              long_description_content_type="text/markdown",
+              author="Andastra Contributors",
+              url="https://github.com/${{ github.repository }}",
+              packages=find_packages(),
+              install_requires=[
+                  "kaitaistruct>=0.9",
+              ],
+              python_requires=">=3.7",
+              classifiers=[
+                  "Development Status :: 4 - Beta",
+                  "Intended Audience :: Developers",
+                  "License :: OSI Approved :: MIT License",
+                  "Programming Language :: Python :: 3",
+                  "Programming Language :: Python :: 3.7",
+                  "Programming Language :: Python :: 3.8",
+                  "Programming Language :: Python :: 3.9",
+                  "Programming Language :: Python :: 3.10",
+                  "Programming Language :: Python :: 3.11",
+                  "Programming Language :: Python :: 3.12",
+              ],
+          )
+          EOF
+
+          cp README.md dist/python/
+          cp LICENSE dist/python/
+
+      - name: Build Python package
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          cd dist/python
+          python -m pip install build
+          python -m build
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/python
+          git commit -m "chore: regenerate Python code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Publish to PyPI
+        if: steps.check_changes.outputs.changed == 'true' && github.event_name == 'push'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/python/dist/

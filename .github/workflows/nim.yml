@@ -1,0 +1,94 @@
+name: Generate and Publish Nim Package
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/nim.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'formats/**/*.ksy'
+      - '.github/workflows/nim.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Nim
+        uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: '2.0'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kaitai Struct Compiler
+        run: |
+          pip install kaitai-struct-compiler==0.11
+
+      - name: Generate Nim code
+        run: |
+          chmod +x scripts/generate_code.sh
+          ./scripts/generate_code.sh nim generated/nim
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain generated/nim)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Nimble package structure
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p dist/nim/src
+          cp -r generated/nim/* dist/nim/src/
+
+          # Create .nimble file
+          cat > dist/nim/bioware_kaitai_formats.nimble << 'EOF'
+          # Package
+
+          version       = "0.1.0"
+          author        = "Andastra Contributors"
+          description   = "BioWare game engine file format parsers generated from Kaitai Struct definitions"
+          license       = "MIT"
+          srcDir        = "src"
+
+          # Dependencies
+          requires "nim >= 1.0.0"
+          requires "kaitai_struct_nim_runtime >= 0.9"
+          EOF
+
+          cp README.md dist/nim/
+          cp LICENSE dist/nim/
+
+      - name: Commit generated code
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add generated/nim
+          git commit -m "chore: regenerate Nim code from Kaitai Struct definitions" || exit 0
+          git push
+
+      - name: Note about Nimble publishing
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "Nimble packages are published using: nimble publish"
+          echo "Requires nimble login and proper git tags"
+
