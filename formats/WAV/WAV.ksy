@@ -8,24 +8,61 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/wav/
     reone: vendor/reone/src/libs/audio/format/wavreader.cpp
     xoreos: vendor/xoreos/src/sound/decoders/wave.cpp
+    sithcodec: vendor/SithCodec
+    swkotor_audio: vendor/SWKotOR-Audio-Encoder
     wiki: vendor/PyKotor/wiki/WAV-File-Format.md
 doc: |
   WAV (Waveform Audio Format) files used in KotOR. KotOR stores both standard WAV voice-over lines
   and Bioware-obfuscated sound-effect files. Voice-over assets are regular RIFF containers with PCM
   headers, while SFX assets prepend a 470-byte custom block before the RIFF data.
 
-  Format Types:
-  - VO (Voice-over): Plain RIFF/WAVE PCM files readable by any media player
-  - SFX (Sound effects): Contains a Bioware 470-byte obfuscation header followed by RIFF data
-  - MP3-in-WAV: Special RIFF container with MP3 data (RIFF size = 50)
+  File Types:
+  - VO (Voice-over): Dialogue lines (*.wav referenced by TLK StrRefs). Plain RIFF/WAVE PCM files
+    readable by any media player. Most dialogue is 16-bit mono PCM at 44100 Hz.
+  - SFX (Sound effects): Combat, UI, ambience, *.wav files under StreamSounds/SFX. Contains a
+    Bioware 470-byte obfuscation header followed by the same RIFF data. PyKotor exposes these via
+    the WAVType enum (VO vs SFX) so tools know whether to insert/remove the proprietary header.
+
+  Format Variants:
+  - Standard RIFF/WAVE: Canonical RIFF chunk order with "RIFF" header, "WAVE" format tag, "fmt "
+    chunk, and "data" chunk. May include optional "fact" chunk for compressed formats.
+  - MP3-in-WAV: Special RIFF container with MP3 data (RIFF size = 50). Used for some compressed
+    audio assets. Detected when RIFF size field equals 50.
+
+  Standard RIFF/WAVE Structure:
+  - Offset 0x00: "RIFF" chunk ID (4 bytes)
+  - Offset 0x04: File size minus 8 (uint32)
+  - Offset 0x08: "WAVE" format tag (4 bytes)
+  - Offset 0x0C: "fmt " chunk ID (4 bytes)
+  - Offset 0x10: Format chunk size (uint32, usually 0x10 for PCM)
+  - Format chunk body: audio_format, channels, sample_rate, bytes_per_sec, block_align, bits_per_sample
+  - Optional "fact" chunk: Sample count for compressed formats (KotOR voice-over WAVs add this)
+  - "data" chunk: Chunk ID, size, and raw audio data
+
+  Encoding Details:
+  - PCM (audio_format = 0x0001): Most dialogue is 16-bit mono PCM, which streams directly through
+    the engine mixer. Typically 44100 Hz for VO, 22050 Hz for SFX.
+  - IMA ADPCM (audio_format = 0x0011): Some ambient SFX use compressed ADPCM frames. When present,
+    the fmt chunk includes the extra coefficient block defined by the WAV spec.
+  - KotOR requires block_align and bytes_per_sec to match the values implied by the codec.
+    Mismatched headers can crash the in-engine decoder.
+
+  KotOR SFX Header:
+  - SFX assets start with 470 bytes of obfuscated metadata (magic numbers plus filler 0x55).
+  - After this header, the file resumes at the "RIFF" signature described above.
+  - When exporting SFX, PyKotor recreates the header verbatim so the game recognizes the asset.
 
   Note: This Kaitai Struct definition documents the core RIFF/WAVE structure. SFX and VO headers
   (470-byte and 20-byte prefixes respectively) are handled by application-level deobfuscation.
 
   References:
-  - vendor/PyKotor/wiki/WAV-File-Format.md
-  - vendor/reone/src/libs/audio/format/wavreader.cpp:30-56
-  - vendor/xoreos/src/sound/decoders/wave.cpp:34-84
+  - vendor/PyKotor/wiki/WAV-File-Format.md - Complete KotOR WAV format documentation
+  - vendor/reone/src/libs/audio/format/wavreader.cpp:30-56 - Complete C++ WAV reader implementation
+  - vendor/xoreos/src/sound/decoders/wave.cpp:34-84 - Generic Aurora WAV decoder
+  - vendor/SithCodec - Encoding/decoding utility for KotOR audio
+  - vendor/SWKotOR-Audio-Encoder - Audio encoding tool for KotOR
+  - Libraries/PyKotor/src/pykotor/resource/formats/wav/io_wav.py:52-121 - PyKotor binary reader/writer
+  - Libraries/PyKotor/src/pykotor/resource/formats/wav/wav_data.py - WAV data model
 
 seq:
   - id: riff_header

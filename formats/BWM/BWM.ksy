@@ -40,10 +40,12 @@ doc: |
   - Perimeters Array: Array of edge indices (WOK only)
 
   References:
-  - vendor/PyKotor/wiki/BWM-File-Format.md
-  - vendor/reone/src/libs/graphics/format/bwmreader.cpp:27-171
-  - vendor/xoreos/src/engines/kotorbase/path/walkmeshloader.cpp:73-248
-  - vendor/KotOR.js/src/odyssey/OdysseyWalkMesh.ts:452-473
+  - vendor/PyKotor/wiki/BWM-File-Format.md - Complete BWM format documentation
+  - vendor/reone/src/libs/graphics/format/bwmreader.cpp:27-171 - Complete C++ BWM reader implementation
+  - vendor/xoreos/src/engines/kotorbase/path/walkmeshloader.cpp:73-248 - KotOR-specific walkmesh loader
+  - vendor/KotOR.js/src/odyssey/OdysseyWalkMesh.ts:452-473 - TypeScript walkmesh parser
+  - Libraries/PyKotor/src/pykotor/resource/formats/bwm/io_bwm.py - PyKotor binary reader/writer
+  - Libraries/PyKotor/src/pykotor/resource/formats/bwm/bwm_data.py - BWM data model and pathfinding
 
 seq:
   - id: header

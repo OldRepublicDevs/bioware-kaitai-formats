@@ -8,6 +8,13 @@ meta:
     pykotor: Libraries/PyKotor/src/pykotor/resource/formats/gff/
     reone: vendor/reone/src/libs/resource/format/gffreader.cpp
     xoreos: vendor/xoreos/src/aurora/gff3file.cpp
+    kotor_js: vendor/KotOR.js/src/resource/GFFObject.ts
+    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/GFFObject.cs
+    kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorGFF/
+    wiki: vendor/PyKotor/wiki/GFF-File-Format.md
+    bioware_aurora: vendor/PyKotor/wiki/Bioware-Aurora-GFF.md
+    torlack: vendor/xoreos-docs/specs/torlack/itp.html
+    holopatcher: vendor/PyKotor/wiki/TSLPatcher-GFFList-Syntax.md
 doc: |
   GFF (Generic File Format) is BioWare's universal container format for structured game data.
   It is used by many KotOR file types including UTC (creature), UTI (item), DLG (dialogue),
@@ -17,10 +24,43 @@ doc: |
   nested structs, or lists of structs. The format supports version V3.2 (KotOR) and later
   versions (V3.3, V4.0, V4.1) used in other BioWare games.
 
+  Binary Format Structure:
+  - File Header (56 bytes): File type signature (FourCC), version, counts, and offsets to all
+    data tables (structs, fields, labels, field_data, field_indices, list_indices)
+  - Label Array: Array of 16-byte null-padded field name labels
+  - Struct Array: Array of struct entries (12 bytes each) - struct_id, data_or_offset, field_count
+  - Field Array: Array of field entries (12 bytes each) - field_type, label_index, data_or_offset
+  - Field Data: Storage area for complex field types (strings, binary, vectors, etc.)
+  - Field Indices Array: Array of field index arrays (used when structs have multiple fields)
+  - List Indices Array: Array of list entry structures (count + struct indices)
+
+  Field Types:
+  - Simple types (0-5, 8): Stored inline in data_or_offset (uint8, int8, uint16, int16, uint32,
+    int32, float)
+  - Complex types (6-7, 9-13, 16-17): Offset to field_data section (uint64, int64, double, string,
+    resref, localized_string, binary, vector4, vector3)
+  - Struct (14): Struct index stored inline (nested struct)
+  - List (15): Offset to list_indices_array (list of structs)
+
+  Struct Access Pattern:
+  1. Root struct is always at struct_array index 0
+  2. If struct.field_count == 1: data_or_offset contains direct field index
+  3. If struct.field_count > 1: data_or_offset contains offset into field_indices_array
+  4. Use field_index to access field_array entry
+  5. Use field.label_index to get field name from label_array
+  6. Use field.data_or_offset based on field_type (inline, offset, struct index, list offset)
+
   References:
-  - vendor/PyKotor/wiki/GFF-File-Format.md
-  - vendor/xoreos-docs/specs/torlack/itp.html (Tim Smith/Torlack's GFF/ITP documentation)
-  - vendor/reone/src/libs/resource/format/gffreader.cpp
+  - vendor/PyKotor/wiki/GFF-File-Format.md - Complete GFF format documentation
+  - vendor/PyKotor/wiki/Bioware-Aurora-GFF.md - Official BioWare Aurora GFF specification
+  - vendor/xoreos-docs/specs/torlack/itp.html - Tim Smith/Torlack's GFF/ITP documentation
+  - vendor/reone/src/libs/resource/format/gffreader.cpp - Complete C++ GFF reader implementation
+  - vendor/xoreos/src/aurora/gff3file.cpp - Generic Aurora GFF implementation (shared format)
+  - vendor/KotOR.js/src/resource/GFFObject.ts - TypeScript GFF parser
+  - vendor/KotOR-Unity/Assets/Scripts/FileObjects/GFFObject.cs - C# Unity GFF loader
+  - vendor/Kotor.NET/Kotor.NET/Formats/KotorGFF/ - .NET GFF reader/writer
+  - Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff.py - PyKotor binary reader/writer
+  - Libraries/PyKotor/src/pykotor/resource/formats/gff/gff_data.py - GFF data model
 
 seq:
   - id: header
@@ -81,7 +121,7 @@ types:
         doc: |
           File format version. Must be "V3.2" for KotOR games.
           Later BioWare games use "V3.3", "V4.0", or "V4.1".
-        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+          Valid values: "V3.2" (KotOR), "V3.3", "V4.0", "V4.1" (other BioWare games)
 
       - id: struct_offset
         type: u4
@@ -332,8 +372,11 @@ types:
         doc: Array of language-specific string substrings
     instances:
       string_ref_value:
-        value: string_ref == 0xFFFFFFFF ? -1 : string_ref
-        doc: String reference as signed integer (-1 if none)
+        value: string_ref
+        doc: |
+          String reference value. Application code should convert 0xFFFFFFFF to -1.
+          Note: Kaitai Struct expressions don't support ternary operators, so the conversion
+          must be done in application code: if string_ref == 0xFFFFFFFF then -1 else string_ref
 
   localized_substring:
     seq:
@@ -367,39 +410,21 @@ types:
 enums:
   gff_field_type:
     0: uint8
-    doc: 8-bit unsigned integer (byte)
     1: int8
-    doc: 8-bit signed integer (char)
     2: uint16
-    doc: 16-bit unsigned integer (word)
     3: int16
-    doc: 16-bit signed integer (short)
     4: uint32
-    doc: 32-bit unsigned integer (dword)
     5: int32
-    doc: 32-bit signed integer (int)
     6: uint64
-    doc: 64-bit unsigned integer (stored in field_data)
     7: int64
-    doc: 64-bit signed integer (stored in field_data)
     8: single
-    doc: 32-bit floating point (float)
     9: double
-    doc: 64-bit floating point (stored in field_data)
     10: string
-    doc: Null-terminated string (CExoString, stored in field_data)
     11: resref
-    doc: Resource reference (ResRef, max 16 chars, stored in field_data)
     12: localized_string
-    doc: Localized string (CExoLocString, stored in field_data)
     13: binary
-    doc: Binary data blob (Void, stored in field_data)
     14: struct
-    doc: Nested struct (struct index stored inline)
     15: list
-    doc: List of structs (offset to list_indices stored inline)
     16: vector4
-    doc: Quaternion/Orientation (4×float, stored in field_data as Vector4)
     17: vector3
-    doc: 3D vector (3×float, stored in field_data)
 
