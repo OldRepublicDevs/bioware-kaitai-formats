@@ -9,70 +9,21 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/tpc/
     reone: vendor/reone/src/libs/graphics/format/tpcreader.cpp
     xoreos: vendor/xoreos/src/graphics/images/tpc.cpp
-    kotor_js: vendor/KotOR.js/src/resource/TPCObject.ts
-    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/TextureResource.cs
-    northernlights: vendor/NorthernLights/src/Graphics/Textures/TPC.cs
-    tga2tpc: vendor/tga2tpc
-    xoreos_tools: vendor/xoreos-tools/src/images/tpc.cpp
     wiki: vendor/PyKotor/wiki/TPC-File-Format.md
 doc: |
   TPC (Texture Pack Container) is KotOR's native texture format. It supports paletteless RGB/RGBA,
   greyscale, and block-compressed DXT1/DXT3/DXT5 data, optional mipmaps, cube maps, and flipbook
   animations controlled by companion TXI files.
 
-  File Structure:
-  - Offset 0x00 (4 bytes): data_size (0 for uncompressed RGB; compressed textures store total bytes)
-  - Offset 0x04 (4 bytes): alpha_test/threshold (float)
-  - Offset 0x08 (2 bytes): Width (uint16)
-  - Offset 0x0A (2 bytes): Height (uint16)
-  - Offset 0x0C (1 byte): Pixel encoding flag
-  - Offset 0x0D (1 byte): Mipmap count
-  - Offset 0x0E (114 bytes): Reserved/padding
-  - Offset 0x80: Texture data (per layer, per mipmap)
-  - Optional: ASCII TXI footer
-
-  This layout is identical across PyKotor, Reone, Xoreos, KotOR.js, and the original Bioware tools;
-  KotOR-Unity and NorthernLights consume the same header.
-
-  Pixel Formats:
-  TPC supports the following encodings:
-  - 0x01 (Greyscale): 8-bit luminance, stored as linear bytes
-  - 0x02 (RGB): 24-bit RGB, linear bytes, may be swizzled on Xbox
-  - 0x04 (RGBA): 32-bit RGBA, linear bytes
-  - 0x0C (BGRA): 32-bit BGRA swizzled, Xbox-specific swizzle; PyKotor deswizzles on load
-  - DXT1: Block-compressed (4×4 blocks, 8 bytes), detected via data_size and encoding flags
-  - DXT3/DXT5: Block-compressed (4×4 blocks, 16 bytes), chosen based on pixel_type and compression flag
-
-  Mipmaps, Layers, and Animation:
-  - Each texture can have multiple layers (used for cube maps or animated flipbooks)
-  - Every layer stores mipmap_count levels. For uncompressed textures, each level's size equals
-    width × height × bytes_per_pixel; for DXT formats it equals the block size calculation
-  - Animated textures rely on TXI fields (proceduretype cycle, numx, numy, fps). PyKotor splits
-    the sprite sheet into layers and recalculates mip counts per frame
-
-  Cube Maps:
-  - Detected when the stored height is exactly six times the width for compressed textures (DXT1/DXT5)
-  - PyKotor normalizes cube faces after reading (deswizzle + rotation) so that face ordering matches
-    the high-level texture API
-  - Reone and KotOR.js use the same inference logic
-
-  TXI Metadata:
-  - If bytes remain after the texture payload, they are treated as ASCII TXI content
-  - TXI commands drive animations, environment mapping, font metrics, downsampling directives, etc.
-  - PyKotor automatically parses the TXI footer and exposes TPC.txi plus convenience flags
-    (is_animated, is_cube_map)
+  Binary Format Structure:
+  - Header (128 bytes): data_size, alpha_test, width, height, pixel_encoding, mipmap_count, reserved
+  - Texture Data: Per layer, per mipmap compressed/uncompressed pixel data
+  - Optional TXI Footer: ASCII text metadata appended after texture data
 
   References:
-  - vendor/PyKotor/wiki/TPC-File-Format.md - Complete TPC format documentation
-  - vendor/reone/src/libs/graphics/format/tpcreader.cpp - Complete C++ TPC decoder with DXT decompression
-  - vendor/xoreos/src/graphics/images/tpc.cpp - Generic Aurora TPC implementation (shared format)
-  - vendor/KotOR.js/src/resource/TPCObject.ts - TypeScript TPC loader with WebGL texture upload
-  - vendor/KotOR-Unity/Assets/Scripts/FileObjects/TextureResource.cs - C# Unity TPC loader with cube map support
-  - vendor/NorthernLights/src/Graphics/Textures/TPC.cs - .NET TPC reader with animation support
-  - vendor/tga2tpc - Standalone TGA to TPC conversion tool
-  - vendor/xoreos-tools/src/images/tpc.cpp - Command-line TPC extraction and conversion
-  - Libraries/PyKotor/src/pykotor/resource/formats/tpc/io_tpc.py:112-167 - PyKotor binary reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/tpc/tpc_data.py:54-178 - TPC data model & conversion utilities
+  - vendor/PyKotor/wiki/TPC-File-Format.md
+  - vendor/reone/src/libs/graphics/format/tpcreader.cpp
+  - vendor/xoreos/src/graphics/images/tpc.cpp
 
 seq:
   - id: header

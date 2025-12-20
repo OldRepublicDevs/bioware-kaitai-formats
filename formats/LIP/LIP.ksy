@@ -15,22 +15,19 @@ doc: |
   Each file contains a compact series of keyframes that map timestamps to discrete viseme
   (mouth shape) indices so that the engine can interpolate character lip movement while
   playing the companion WAV audio line.
-
+  
   LIP files are always binary and contain only animation data. They are paired with WAV
   voice-over resources of identical duration; the LIP length field must match the WAV
   playback time for glitch-free animation.
-
+  
   Keyframes are sorted chronologically and store a timestamp (float seconds) plus a
   1-byte viseme index (0-15). The format uses the 16-shape Preston Blair phoneme set.
-
+  
   References:
-  - vendor/PyKotor/wiki/LIP-File-Format.md - Complete LIP format documentation
-  - vendor/reone/src/libs/graphics/format/lipreader.cpp:27-42 - Complete C++ LIP reader implementation
-  - vendor/xoreos/src/graphics/aurora/lipfile.cpp - Generic Aurora LIP implementation
-  - vendor/KotOR.js/src/resource/LIPObject.ts:93-146 - TypeScript LIP parser
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorLIP/LIP.cs - .NET LIP reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/lip/io_lip.py - PyKotor binary reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/lip/lip_data.py - LIP data model
+  - vendor/PyKotor/wiki/LIP-File-Format.md
+  - vendor/reone/src/libs/graphics/format/lipreader.cpp:27-42
+  - vendor/xoreos/src/graphics/aurora/lipfile.cpp
+  - vendor/KotOR.js/src/resource/LIPObject.ts:93-146
 
 seq:
   - id: file_type
@@ -38,25 +35,25 @@ seq:
     encoding: ASCII
     size: 4
     doc: File type signature. Must be "LIP " (space-padded) for LIP files.
-
+  
   - id: file_version
     type: str
     encoding: ASCII
     size: 4
     doc: File format version. Must be "V1.0" for LIP files.
-
+  
   - id: length
     type: f4
     doc: |
       Duration in seconds. Must equal the paired WAV file playback time for
       glitch-free animation. This is the total length of the lip sync animation.
-
+  
   - id: num_keyframes
     type: u4
     doc: |
       Number of keyframes immediately following. Each keyframe contains a timestamp
       and a viseme shape index. Keyframes should be sorted ascending by timestamp.
-
+  
   - id: keyframes
     type: keyframe_entry
     repeat: expr
@@ -77,14 +74,14 @@ types:
         doc: |
           Seconds from animation start. Must be >= 0 and <= length.
           Keyframes should be sorted ascending by timestamp.
-
+      
       - id: shape
         type: u1
         enum: lip_shapes
         doc: |
           Viseme index (0-15) indicating which mouth shape to use at this timestamp.
           Uses the 16-shape Preston Blair phoneme set. See lip_shapes enum for details.
-
+    
 enums:
   lip_shapes:
     0: neutral

@@ -9,85 +9,30 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/tlk/
     reone: vendor/reone/src/libs/resource/format/tlkreader.cpp
     xoreos: vendor/xoreos/src/aurora/talktable.cpp
-    kotor_js: vendor/KotOR.js/src/resource/TLKObject.ts
-    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/TLKObject.cs
-    kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorTLK/
-    xoreos_tools: vendor/xoreos-tools/src/aurora/talktable.cpp
-    tslpatcher: vendor/TSLPatcher/lib/site/Bioware/TLK.pm
     wiki: vendor/PyKotor/wiki/TLK-File-Format.md
 doc: |
   TLK (Talk Table) files contain all text strings used in the game, both written and spoken.
   They enable easy localization by providing a lookup table from string reference numbers (StrRef)
   to localized text and associated voice-over audio files.
 
-  The game loads dialog.tlk at startup and references strings throughout the game using StrRef numbers
-  (array indices). TLK files are referenced by GFF files (especially DLG dialogue files), 2DA files
-  for item names and descriptions, and SSF files for character sound sets.
-
   Binary Format Structure:
-  - File Header (20 bytes): File type signature ("TLK "), version ("V3.0" for KotOR, "V4.0" for Jade
-    Empire), language ID, string count, entries offset
-  - String Data Table (40 bytes per entry): Metadata for each string entry (flags, sound ResRef,
-    volume/pitch variance, text offset, text length, sound length)
+  - File Header (20 bytes): File type signature, version, language ID, string count, entries offset
+  - String Data Table (40 bytes per entry): Metadata for each string entry (flags, sound ResRef, offsets, lengths)
   - String Entries (variable size): Sequential null-terminated text strings starting at entries_offset
 
   The format uses a two-level structure:
   1. String Data Table: Contains metadata (flags, sound filename, text offset/length) for each entry
   2. String Entries: Actual text data stored sequentially, referenced by offsets in the data table
 
-  String References (StrRef):
-  - StrRef 0: First entry in the TLK file
-  - StrRef -1: No string reference (used to indicate missing/empty strings)
-  - StrRef N: Nth entry (0-based indexing)
-  - The game uses StrRef values throughout GFF files, scripts, and other resources to reference
-    localized text. When displaying text, the game looks up the StrRef in dialog.tlk and displays
-    the corresponding text.
-
-  Flag Bits:
-  - bit 0 (0x0001): Text present - string has text content
-  - bit 1 (0x0002): Sound present - string has associated voice-over audio
-  - bit 2 (0x0004): Sound length present - sound length field is valid
-
-  Common flag combinations:
-  - 0x0001: Text only (menu options, item descriptions, non-voiced dialog)
-  - 0x0003: Text + Sound (voiced dialog lines, most common for party/NPC speech)
-  - 0x0007: Text + Sound + Length (fully voiced with duration data, cutscenes, important dialog)
-  - 0x0000: Empty entry (unused StrRef slots)
-
-  Localization:
-  TLK files support multiple languages through the Language ID field:
-  - 0: English (Windows-1252)
-  - 1: French (Windows-1252)
-  - 2: German (Windows-1252)
-  - 3: Italian (Windows-1252)
-  - 4: Spanish (Windows-1252)
-  - 5: Polish (Windows-1250)
-  - 6: Korean (UTF-8)
-  - 7: Chinese (UTF-8)
-  - 8: Japanese (UTF-8)
-
-  Note: KotOR games typically ignore the Language ID field and always use dialog.tlk. The field is
-  primarily used by modding tools to identify language.
-
-  Custom TLK Files:
-  Mods can add custom TLK files to extend available strings. Base game dialog.tlk has ~50,000-100,000
-  entries. Custom content uses dialogf.tlk or custom TLK files placed in override. StrRef ranges:
-  - 0 to ~50,000: Base game strings (varies by language)
-  - 16,777,216 (0x01000000) and above: Custom TLK range (TSLPatcher convention)
-  - Negative values: Invalid/missing references
+  String references (StrRef) are 0-based indices into the string_data_table array. StrRef 0 refers to
+  the first entry, StrRef 1 to the second, etc. StrRef -1 indicates no string reference.
 
   References:
-  - vendor/PyKotor/wiki/TLK-File-Format.md - Complete TLK format documentation
-  - vendor/reone/src/libs/resource/format/tlkreader.cpp:31-84 - Complete C++ TLK reader implementation
-  - vendor/xoreos/src/aurora/talktable.cpp:42-176 - Generic Aurora Talk Table implementation (shared format)
-  - vendor/KotOR.js/src/resource/TLKObject.ts - TypeScript TLK parser with localization support
-  - vendor/KotOR-Unity/Assets/Scripts/FileObjects/TLKObject.cs - C# Unity TLK loader
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorTLK/TLKBinaryStructure.cs:57-90 - .NET TLK reader/writer
-  - vendor/xoreos-tools/src/aurora/talktable.cpp - Command-line TLK extraction and editing tools
-  - vendor/TSLPatcher/lib/site/Bioware/TLK.pm:31-123 - Original Perl TLK implementation from TSLPatcher
-  - Libraries/PyKotor/src/pykotor/resource/formats/tlk/io_tlk.py:19-115 - PyKotor binary reader
-  - Libraries/PyKotor/src/pykotor/resource/formats/tlk/io_tlk.py:117-178 - PyKotor binary writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/tlk/tlk_data.py:56-291 - TLK class implementation
+  - vendor/PyKotor/wiki/TLK-File-Format.md
+  - vendor/reone/src/libs/resource/format/tlkreader.cpp:31-84
+  - vendor/xoreos/src/aurora/talktable.cpp:42-176
+  - vendor/TSLPatcher/lib/site/Bioware/TLK.pm:1-533
+  - vendor/Kotor.NET/Kotor.NET/Formats/KotorTLK/TLKBinaryStructure.cs:11-132
 
 seq:
   - id: header
@@ -277,6 +222,6 @@ types:
         value: 40
         doc: |
           Size of each string_data_entry in bytes.
-          Breakdown: flags (4) + sound_resref (16) + volume_variance (4) + pitch_variance (4) +
+          Breakdown: flags (4) + sound_resref (16) + volume_variance (4) + pitch_variance (4) + 
           text_offset (4) + text_length (4) + sound_length (4) = 40 bytes total.
 

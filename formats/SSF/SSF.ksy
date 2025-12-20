@@ -6,50 +6,41 @@ meta:
   file-extension: ssf
   xref:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ssf/
-    reone: vendor/reone/src/libs/resource/format/ssfreader.cpp
-    xoreos: vendor/xoreos/src/aurora/ssffile.cpp
-    kotor_js: vendor/KotOR.js/src/resource/SSFObject.ts
-    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/SSFObject.cs
-    kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorSSF/
     wiki: vendor/PyKotor/wiki/SSF-File-Format.md
-    bioware_aurora: vendor/PyKotor/wiki/Bioware-Aurora-SSF.md
 doc: |
-  SSF (Sound Set File) files define a set of sound effects that creatures can play during various
-  game events (battle cries, pain grunts, selection sounds, etc.). The StrRefs point to entries in
-  dialog.tlk which contain the actual WAV file references.
+  SSF (Sound Set File) files store sound string references (StrRefs) for character voice sets.
+  Each SSF file contains exactly 28 sound slots, mapping to different game events and actions.
 
-  Format Overview:
-  - SSF files are binary format files with a fixed structure
-  - Each SSF file contains exactly 28 sound slots
-  - Each slot maps to a specific game event or action
-  - Slots store StrRefs (string references) into dialog.tlk
-  - Value -1 (0xFFFFFFFF) indicates no sound for that event type
-
-  Binary Format Structure:
-  - File Header (12 bytes): File type signature ("SSF "), version ("V1.1"), and offset to sounds array
-  - Sound Table (112 bytes): Array of 28 uint32 StrRef values (4 bytes × 28 = 112 bytes)
-  - Padding (12 bytes): 3 uint32 values of 0xFFFFFFFF (reserved/unused, for format compatibility)
+  Binary Format:
+  - Header (12 bytes): File type signature, version, and offset to sounds array
+  - Sounds Array (112 bytes): 28 uint32 values representing StrRefs (0xFFFFFFFF = -1 = no sound)
+  - Padding (12 bytes): 3 uint32 values of 0xFFFFFFFF (reserved/unused)
 
   Total file size: 136 bytes (12 + 112 + 12)
 
-  Note: KotOR SSF format differs from Neverwinter Nights SSF format. KotOR uses a simplified
-  format with only StrRefs, while NWN includes ResRefs (sound filenames) and StringRefs.
-  This KSY definition documents the KotOR-specific format.
-
-  Sound Event Types (28 total, in array order):
-  The sound slots are fixed indices that map to specific game events. The game engine uses
-  these indices to look up the appropriate StrRef from the sounds array.
+  Sound Slots (in order):
+  0-5: Battle Cry 1-6
+  6-8: Select 1-3
+  9-11: Attack Grunt 1-3
+  12-13: Pain Grunt 1-2
+  14: Low Health
+  15: Dead
+  16: Critical Hit
+  17: Target Immune
+  18: Lay Mine
+  19: Disarm Mine
+  20: Begin Stealth
+  21: Begin Search
+  22: Begin Unlock
+  23: Unlock Failed
+  24: Unlock Success
+  25: Separated From Party
+  26: Rejoined Party
+  27: Poisoned
 
   References:
-  - vendor/PyKotor/wiki/SSF-File-Format.md - Complete KotOR SSF format documentation
-  - vendor/PyKotor/wiki/Bioware-Aurora-SSF.md - Official BioWare Aurora SSF specification (NWN format, for reference)
-  - vendor/reone/src/libs/resource/format/ssfreader.cpp:31 - Complete C++ SSF reader implementation
-  - vendor/xoreos/src/aurora/ssffile.cpp - Generic Aurora SSF implementation (shared format)
-  - vendor/KotOR.js/src/resource/SSFObject.ts - TypeScript SSF parser
-  - vendor/KotOR-Unity/Assets/Scripts/FileObjects/SSFObject.cs - C# Unity SSF loader
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorSSF/ - .NET SSF reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/ssf/io_ssf.py - PyKotor binary reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_data.py:50-258 - SSF data model
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_binary_reader.py
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_binary_writer.py
 
 seq:
   - id: file_type
@@ -96,40 +87,28 @@ types:
         repeat-expr: 28
         doc: |
           Array of exactly 28 sound entries, one for each SSFSound enum value.
-          Each entry is a uint32 representing a StrRef (string reference) into dialog.tlk.
+          Each entry is a uint32 representing a StrRef (string reference).
           Value 0xFFFFFFFF (4294967295) represents -1 (no sound assigned).
 
-          Entry indices map to SSFSound enum values (0-based):
-          - 0: BATTLE_CRY_1 - First battle cry
-          - 1: BATTLE_CRY_2 - Second battle cry
-          - 2: BATTLE_CRY_3 - Third battle cry
-          - 3: SELECT_1 - First selection sound (when character is selected)
-          - 4: SELECT_2 - Second selection sound
-          - 5: SELECT_3 - Third selection sound
-          - 6: ATTACK_1 - First attack grunt sound
-          - 7: ATTACK_2 - Second attack grunt sound
-          - 8: ATTACK_3 - Third attack grunt sound
-          - 9: PAIN_1 - First pain grunt sound
-          - 10: PAIN_2 - Second pain grunt sound
-          - 11: PAIN_3 - Third pain grunt sound
-          - 12: LOW_HEALTH - Low health warning sound
-          - 13: DEAD - Death sound effect
-          - 14: CRITICAL_HIT - Critical hit sound
-          - 15: IMMUNE - Target immune to attack sound
-          - 16: LAYING_MINE - Laying mine sound
-          - 17: DISARM_MINE - Disarming mine sound
-          - 18: STUN - Stunned sound
-          - 19: UNLOCK_DOOR - Unlocking door sound
-          - 20: LOCK_DOOR - Locking door sound
-          - 21: UNLOCK_CONTAINER - Unlocking container sound
-          - 22: LOCK_CONTAINER - Locking container sound
-          - 23: UNLOCKABLE - Unlockable object sound
-          - 24: LOCKED - Locked object sound
-          - 25: ELEVATOR_MOVING - Elevator moving sound
-          - 26: WHIRL_WIND - Whirlwind sound
-          - 27: POISONED - Poisoned sound
-
-          Reference: Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_data.py:50-258
+          Entry indices map to SSFSound enum:
+          - 0-5: Battle Cry 1-6
+          - 6-8: Select 1-3
+          - 9-11: Attack Grunt 1-3
+          - 12-13: Pain Grunt 1-2
+          - 14: Low Health
+          - 15: Dead
+          - 16: Critical Hit
+          - 17: Target Immune
+          - 18: Lay Mine
+          - 19: Disarm Mine
+          - 20: Begin Stealth
+          - 21: Begin Search
+          - 22: Begin Unlock
+          - 23: Unlock Failed
+          - 24: Unlock Success
+          - 25: Separated From Party
+          - 26: Rejoined Party
+          - 27: Poisoned
 
   sound_entry:
     seq:

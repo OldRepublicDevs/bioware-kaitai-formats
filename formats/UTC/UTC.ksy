@@ -12,10 +12,10 @@ doc: |
   UTC (Creature Template) files are GFF-based format files that store creature definitions
   including stats, appearance, inventory, feats, and script hooks. UTC files are used to
   define NPCs, party members, enemies, and the player character in Knights of the Old Republic.
-
+  
   UTC files follow the standard GFF (Generic File Format) structure with file type signature
   "UTC " and contain a hierarchical structure of structs and fields defining creature properties.
-
+  
   The root struct (struct index 0) contains all creature data fields including:
   - Core identity: TemplateResRef, Tag, FirstName, LastName, Comment
   - Appearance: Appearance_Type, PortraitId, Gender, Race, BodyVariation, TextureVar
@@ -26,50 +26,49 @@ doc: |
   - Inventory: ItemList (list of inventory items)
   - Equipment: Equip_ItemList (list of equipped items with slots)
   - Scripts: ScriptAttacked, ScriptDamaged, ScriptDeath, ScriptHeartbeat, etc.
-
+  
   References:
-  - vendor/PyKotor/wiki/Bioware-Aurora-Creature.md - Complete UTC/Creature format documentation
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/utc.py - PyKotor UTC parser
-  - vendor/reone/src/libs/resource/parser/gff/utc.cpp - Complete C++ UTC parser implementation
-  - vendor/reone/include/reone/resource/parser/gff/utc.h - UTC parser header
-  - vendor/xoreos/src/aurora/gff3file.cpp - Generic Aurora GFF implementation
-  - Libraries/PyKotor/src/pykotor/resource/formats/gff/ - GFF format implementation (UTC uses GFF)
+  - vendor/PyKotor/wiki/GFF-UTC.md
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/utc.py
+  - vendor/reone/src/libs/resource/parser/gff/utc.cpp
+  - vendor/reone/include/reone/resource/parser/gff/utc.h
+  - vendor/xoreos/src/aurora/gff3file.cpp
 
 seq:
   - id: header
     type: gff_header
     doc: GFF file header (56 bytes total). Must have file_type "UTC ".
-
+  
   - id: label_array
     type: label_array
     if: header.label_count > 0
     pos: header.label_offset
     doc: Array of 16-byte null-padded field name labels
-
+  
   - id: struct_array
     type: struct_array
     if: header.struct_count > 0
     pos: header.struct_offset
     doc: Array of struct entries (12 bytes each). Struct 0 is the root UTC struct.
-
+  
   - id: field_array
     type: field_array
     if: header.field_count > 0
     pos: header.field_offset
     doc: Array of field entries (12 bytes each)
-
+  
   - id: field_data
     type: field_data
     if: header.field_data_count > 0
     pos: header.field_data_offset
     doc: Storage area for complex field types (strings, binary, vectors, etc.)
-
+  
   - id: field_indices_array
     type: field_indices_array
     if: header.field_indices_count > 0
     pos: header.field_indices_offset
     doc: Array of field index arrays (used when structs have multiple fields)
-
+  
   - id: list_indices_array
     type: list_indices_array
     if: header.list_indices_count > 0
@@ -87,7 +86,7 @@ types:
           File type signature. Must be "UTC " for UTC (Creature Template) files.
           This is a space-padded FourCC identifier.
         valid: "UTC "
-
+      
       - id: file_version
         type: str
         encoding: ASCII
@@ -95,56 +94,56 @@ types:
         doc: |
           File format version. Must be "V3.2" for KotOR games.
           Later BioWare games use "V3.3", "V4.0", or "V4.1".
-          Valid values: "V3.2" (KotOR), "V3.3", "V4.0", "V4.1" (other BioWare games)
-
+        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+      
       - id: struct_offset
         type: u4
         doc: Byte offset to struct array from beginning of file
-
+      
       - id: struct_count
         type: u4
         doc: Number of struct entries in struct array
-
+      
       - id: field_offset
         type: u4
         doc: Byte offset to field array from beginning of file
-
+      
       - id: field_count
         type: u4
         doc: Number of field entries in field array
-
+      
       - id: label_offset
         type: u4
         doc: Byte offset to label array from beginning of file
-
+      
       - id: label_count
         type: u4
         doc: Number of labels in label array
-
+      
       - id: field_data_offset
         type: u4
         doc: Byte offset to field data section from beginning of file
-
+      
       - id: field_data_count
         type: u4
         doc: Size of field data section in bytes
-
+      
       - id: field_indices_offset
         type: u4
         doc: Byte offset to field indices array from beginning of file
-
+      
       - id: field_indices_count
         type: u4
         doc: Number of field indices (total count across all structs with multiple fields)
-
+      
       - id: list_indices_offset
         type: u4
         doc: Byte offset to list indices array from beginning of file
-
+      
       - id: list_indices_count
         type: u4
         doc: Number of list indices entries
-
+  
   label_array:
     seq:
       - id: labels
@@ -152,7 +151,7 @@ types:
         repeat: expr
         repeat-expr: _root.header.label_count
         doc: Array of label entries (16 bytes each)
-
+  
   label_entry:
     seq:
       - id: name
@@ -166,7 +165,7 @@ types:
       name_trimmed:
         value: name.rstrip('\x00')
         doc: Label name with trailing nulls removed
-
+  
   struct_array:
     seq:
       - id: entries
@@ -174,7 +173,7 @@ types:
         repeat: expr
         repeat-expr: _root.header.struct_count
         doc: Array of struct entries (12 bytes each). Entry 0 is the root UTC struct.
-
+  
   struct_entry:
     seq:
       - id: struct_id
@@ -189,13 +188,13 @@ types:
           - Equip_ItemList entries: Struct ID is the equipment slot (e.g., 0x00001 for Head)
           - SkillList entries: Struct ID 0
           - KnownList0 entries (powers): Struct ID 3
-
+      
       - id: data_or_offset
         type: u4
         doc: |
           Field index (if field_count == 1) or byte offset to field indices array (if field_count > 1).
           If field_count == 0, this value is unused.
-
+      
       - id: field_count
         type: u4
         doc: |
@@ -218,7 +217,7 @@ types:
         value: data_or_offset
         if: has_multiple_fields
         doc: Byte offset into field_indices_array when struct has multiple fields
-
+  
   field_array:
     seq:
       - id: entries
@@ -226,7 +225,7 @@ types:
         repeat: expr
         repeat-expr: _root.header.field_count
         doc: Array of field entries (12 bytes each)
-
+  
   field_entry:
     seq:
       - id: field_type
@@ -238,11 +237,11 @@ types:
           - 6-7, 9-13, 16-17: Complex types (offset to field_data in data_or_offset)
           - 14: Struct (struct index in data_or_offset)
           - 15: List (offset to list_indices_array in data_or_offset)
-
+      
       - id: label_index
         type: u4
         doc: Index into label_array for field name
-
+      
       - id: data_or_offset
         type: u4
         doc: |
@@ -283,7 +282,7 @@ types:
         value: _root.header.list_indices_offset + data_or_offset
         if: is_list_type
         doc: Absolute file offset to list indices for list type fields
-
+  
   field_data:
     seq:
       - id: raw_data
@@ -300,7 +299,7 @@ types:
           - Binary: 4-byte length + binary bytes
           - Vector3: 12 bytes (3×float)
           - Vector4: 16 bytes (4×float)
-
+  
   field_indices_array:
     seq:
       - id: indices
@@ -311,7 +310,7 @@ types:
           Array of field indices. When a struct has multiple fields, it stores an offset
           into this array, and the next N consecutive u4 values (where N = struct.field_count)
           are the field indices for that struct.
-
+  
   list_indices_array:
     seq:
       - id: entries
@@ -324,7 +323,7 @@ types:
     doc: |
       Note: This is a simplified representation. In practice, list entries are accessed
       via offsets stored in list-type field entries, not as a sequential array.
-
+  
   list_entry:
     seq:
       - id: count
@@ -335,9 +334,9 @@ types:
         repeat: expr
         repeat-expr: count
         doc: Array of struct indices (indices into struct_array)
-
+  
   # UTC-specific field data types (used when accessing field_data section)
-
+  
   localized_string_data:
     seq:
       - id: total_size
@@ -345,17 +344,17 @@ types:
         doc: |
           Total size of this LocalizedString structure in bytes (not including this count).
           Used for skipping over the structure, but can be calculated from the data.
-
+      
       - id: string_ref
         type: u4
         doc: |
           String reference ID (StrRef) into dialog.tlk file.
           Value 0xFFFFFFFF indicates no string reference (-1).
-
+      
       - id: string_count
         type: u4
         doc: Number of language-specific string substrings
-
+      
       - id: substrings
         type: localized_substring
         repeat: expr
@@ -363,12 +362,9 @@ types:
         doc: Array of language-specific string substrings
     instances:
       string_ref_value:
-        value: string_ref
-        doc: |
-          String reference value. Application code should convert 0xFFFFFFFF to -1.
-          Note: Kaitai Struct expressions don't support ternary operators, so the conversion
-          must be done in application code: if string_ref == 0xFFFFFFFF then -1 else string_ref
-
+        value: string_ref == 0xFFFFFFFF ? -1 : string_ref
+        doc: String reference as signed integer (-1 if none)
+  
   localized_substring:
     seq:
       - id: string_id
@@ -378,11 +374,11 @@ types:
           - Bits 0-7: Gender (0 = Male, 1 = Female)
           - Bits 8-15: Language ID (see Language enum)
           - Bits 16-31: Reserved/unused
-
+      
       - id: string_length
         type: u4
         doc: Length of string data in bytes
-
+      
       - id: string_data
         type: str
         size: string_length
@@ -397,7 +393,7 @@ types:
       gender_id:
         value: string_id & 0xFF
         doc: Gender ID (0 = Male, 1 = Female)
-
+  
   resref_data:
     seq:
       - id: length
@@ -408,7 +404,7 @@ types:
         size: length
         encoding: ASCII
         doc: ResRef string data (ASCII, null-padded to 16 bytes in some contexts)
-
+  
   string_data:
     seq:
       - id: length
@@ -423,22 +419,40 @@ types:
 enums:
   gff_field_type:
     0: uint8
+    doc: 8-bit unsigned integer (byte) - Used for: Gender, SubraceIndex, PerceptionRange, BodyVariation, TextureVar, NaturalAC, GoodEvil, etc.
     1: int8
+    doc: 8-bit signed integer (char)
     2: uint16
+    doc: 16-bit unsigned integer (word) - Used for: PortraitId, Race, SoundSetFile, FactionID, etc.
     3: int16
+    doc: 16-bit signed integer (short) - Used for: HitPoints, MaxHitPoints, CurrentHitPoints, ForcePoints, CurrentForce, ClassLevel, refbonus, willbonus, fortbonus, etc.
     4: uint32
+    doc: 32-bit unsigned integer (dword) - Used for: Appearance_Type, Experience, etc.
     5: int32
+    doc: 32-bit signed integer (int) - Used for: WalkRate, Class, etc.
     6: uint64
+    doc: 64-bit unsigned integer (stored in field_data)
     7: int64
+    doc: 64-bit signed integer (stored in field_data)
     8: single
+    doc: 32-bit floating point (float) - Used for: ChallengeRating, BlindSpot
     9: double
+    doc: 64-bit floating point (stored in field_data)
     10: string
+    doc: Null-terminated string (CExoString, stored in field_data) - Used for: Tag, Comment, Deity, Subrace
     11: resref
+    doc: Resource reference (ResRef, max 16 chars, stored in field_data) - Used for: TemplateResRef, Conversation, Portrait, ScriptAttacked, ScriptDamaged, etc.
     12: localized_string
+    doc: Localized string (CExoLocString, stored in field_data) - Used for: FirstName, LastName, Description
     13: binary
+    doc: Binary data blob (Void, stored in field_data)
     14: struct
+    doc: Nested struct (struct index stored inline)
     15: list
+    doc: List of structs (offset to list_indices stored inline) - Used for: ClassList, FeatList, SkillList, ItemList, Equip_ItemList, SpecialAbilityList
     16: vector4
+    doc: Quaternion/Orientation (4×float, stored in field_data as Vector4)
     17: vector3
+    doc: 3D vector (3×float, stored in field_data)
 
 
