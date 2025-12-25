@@ -51,7 +51,7 @@ obj/
 *.dll
 *.so
 *.dylib
-vendor/
+# vendor/ - Removed to allow git submodules in vendor/
 
 # IDE
 .vscode/
