@@ -147,7 +147,7 @@ instances:
     doc: Array of field entries (12 bytes each)
   
   field_data:
-    type: field_data_section
+    type: field_data_section_section
     if: gff_header.field_data_count > 0
     pos: gff_header.field_data_offset
     doc: Field data section for complex types (strings, ResRefs, LocalizedStrings, etc.)
@@ -182,14 +182,14 @@ types:
         encoding: ASCII
         size: 4
         doc: |
-          File format version. Typically "V3.2" for KotOR.
-          Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
+          File format version. Typically V3.2 for KotOR.
+          Other versions: V3.3, V4.0, V4.1 for other BioWare games.
         valid:
           any-of:
-            - "'V3.2'"
-            - "'V3.3'"
-            - "'V4.0'"
-            - "'V4.1'"
+            - V3.2
+            - V3.3
+            - V4.0
+            - V4.1
       
       - id: struct_array_offset
         type: u4
@@ -267,10 +267,8 @@ types:
           "OnSpellCastAt", "OnTrapTriggered", "OnUnlock", "OnUserDefined", "TrapDetectable",
           "TrapDetectDC", "TrapDisarmable", "DisarmDC", "TrapFlag", "TrapOneShot", "TrapType",
           "LoadScreenID", "LinkedTo", "LinkedToFlags", "LinkedToModule", "TransitionDestin".
-    instances:
-      name_trimmed:
-        value: name.rstrip('\x00')
-        doc: "Label name with trailing nulls removed"
+    # NOTE: Avoid string trimming helpers here — Kaitai 0.11 does not support Python-style
+    # `.rstrip()` on parsed strings in all backends. Consumers can trim `\0` externally if needed.
   
   # Struct Array
   struct_array:
