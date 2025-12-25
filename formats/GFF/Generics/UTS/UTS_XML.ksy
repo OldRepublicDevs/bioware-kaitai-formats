@@ -5,10 +5,22 @@ meta:
   endian: le
   file-extension: uts.xml
   encoding: UTF-8
+  xref:
+    binary_format: ../uts/uts
+    gff_xml_schema: ../../xml/gff_xml
+    pykotor_wiki_gff_uts: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTS.md
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+  imports:
+    - ../../gff/gff
+    - ../../xml/gff_xml
 doc: |
-  UTS XML format is a human-readable XML representation of UTS (Sound) binary files.
-  Uses GFF XML structure with root element <gff3> containing <struct> elements.
-  Each field has a label attribute and appropriate type element (byte, uint32, exostring, etc.).
+  Human-readable XML representation of UTS (Sound Template) binary files.
+  Uses GFF XML structure with <gff3> root element.
+  
+  Binary format reference: ../uts/uts.ksy
+  
+  References:
+  - PyKotor wiki (GFF-UTS.md, GFF-File-Format.md)
 
 seq:
   - id: xml_content
@@ -16,4 +28,3 @@ seq:
     size-eos: true
     encoding: UTF-8
     doc: XML document content as UTF-8 text
-
