@@ -103,7 +103,7 @@ All GFF generics use the base `GFF.ksy` format with FileType signature in the he
 | **UTI** (Item Template) | `formats/GFF/Generics/UTI/UTI.ksy` | ✅ Complete | ✅ UTIKaitaiCompilerTests.cs | Item definitions |
 | **UTI XML** | `formats/GFF/Generics/UTI/UTI_XML.ksy` | ✅ Complete | ❌ Missing | XML variant |
 | **UTM** (Store Template) | `formats/GFF/Generics/UTM/UTM.ksy` | ✅ Complete | ✅ UTMKaitaiCompilerTests.cs | Store/merchant definitions |
-| **UTP** (Placeable Template) | ❌ **MISSING** | ❌ Missing | ❌ Missing | **Placeable blueprints** |
+| **UTP** (Placeable Template) | `formats/GFF/Generics/UTP/UTP.ksy` | ✅ Complete | ❌ Missing | **Placeable blueprints** |
 | **UTS** (Sound Template) | `formats/GFF/Generics/UTS/UTS.ksy` | ✅ Complete | ✅ UTSKaitaiCompilerTests.cs | Sound object definitions |
 | **UTS XML** | `formats/GFF/Generics/UTS/UTS_XML.ksy` | ✅ Complete | ❌ Missing | XML variant |
 | **UTT** (Trigger Template) | `formats/GFF/Generics/UTT/UTT.ksy` | ✅ Complete | ✅ UTTKaitaiCompilerTests.cs | Trigger definitions |
@@ -123,20 +123,20 @@ All GFF generics use the base `GFF.ksy` format with FileType signature in the he
 ### High Priority
 
 1. **GFF-UTP.ksy** - Placeable template format
-   - **Location:** Should be `formats/GFF/Generics/UTP/UTP.ksy`
+   - **Location:** `formats/GFF/Generics/UTP/UTP.ksy`
    - **Documentation:** `vendor/PyKotor/wiki/GFF-UTP.md`
    - **Reference:** `vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/utp.py`
    - **Similar to:** UTD.ksy (Door format), UTS.ksy (Sound format)
-   - **Status:** ❌ Missing
+   - **Status:** ✅ Complete
 
 ### Low Priority
 
 1. **PLT.ksy** - Palette texture format
-   - **Location:** Should be `formats/PLT/PLT.ksy`
+   - **Location:** `formats/PLT/PLT.ksy`
    - **Documentation:** `vendor/PyKotor/wiki/PLT-File-Format.md`
    - **Reference:** `vendor/xoreos-docs/specs/torlack/plt.html`
    - **Note:** NWN-specific, not used in KotOR but documented for completeness
-   - **Status:** ❌ Missing
+   - **Status:** ✅ Complete
 
 2. **ITP.ksy** - Palette format (base binary)
    - **Location:** Should be `formats/GFF/Generics/ITP/ITP.ksy`
