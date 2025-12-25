@@ -441,8 +441,9 @@ types:
   field_data_section:
     seq:
       - id: data
-        type: str
-        size: _root.gff_header.field_data_count
+        type: u1
+        repeat: expr
+        repeat-expr: _root.gff_header.field_data_count
         doc: |
           Raw field data bytes for complex types. Individual field data entries are accessed via
           field_entry.field_data_offset_value offsets. The structure of each entry depends on the field_type:
