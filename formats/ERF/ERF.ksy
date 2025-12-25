@@ -185,7 +185,7 @@ types:
 
     instances:
       is_save_file:
-        value: file_type == "MOD " and description_strref == 0
+        value: file_type == "MOD " && description_strref == 0
         doc: |
           Heuristic to detect save game files.
           Save games use MOD signature but typically have description_strref = 0.
@@ -285,6 +285,7 @@ types:
 
     instances:
       data:
+        type: str
         pos: offset_to_data
         size: resource_size
         doc: Raw binary data for this resource
