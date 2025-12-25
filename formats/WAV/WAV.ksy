@@ -48,8 +48,8 @@ types:
         type: str
         encoding: ASCII
         size: 4
-        doc: RIFF chunk ID: "RIFF"
-        valid: "RIFF"
+        doc: "RIFF chunk ID: \"RIFF\""
+        valid: "'RIFF'"
 
       - id: riff_size
         type: u4
@@ -62,8 +62,8 @@ types:
         type: str
         encoding: ASCII
         size: 4
-        doc: Format tag: "WAVE"
-        valid: "WAVE"
+        doc: "Format tag: \"WAVE\""
+        valid: "'WAVE'"
 
     instances:
       is_mp3_in_wav:
@@ -91,17 +91,15 @@ types:
           Reference: vendor/xoreos/src/sound/decoders/wave.cpp:66
 
       - id: body
-        type: chunk_body
+        type:
+          switch-on: id
+          cases:
+            '"fmt "': format_chunk_body
+            '"data"': data_chunk_body
+            '"fact"': fact_chunk_body
+            _: unknown_chunk_body
         doc: Chunk body (content depends on chunk ID)
 
-  chunk_body:
-    switch-on: _parent.id
-    cases:
-      '"fmt "': format_chunk_body
-      '"data"': data_chunk_body
-      '"fact"': fact_chunk_body
-      _: unknown_chunk_body
-    doc: Chunk body type depends on chunk ID
 
   format_chunk_body:
     seq:
@@ -158,6 +156,7 @@ types:
 
       - id: extra_format_bytes
         type: str
+        encoding: ASCII
         size: _parent.size - 16
         if: _parent.size > 16
         doc: |
@@ -184,6 +183,7 @@ types:
     seq:
       - id: data
         type: str
+        encoding: ASCII
         size: _parent.size
         doc: |
           Raw audio data (PCM samples or compressed audio)
@@ -202,6 +202,7 @@ types:
     seq:
       - id: data
         type: str
+        encoding: ASCII
         size: _parent.size
         doc: |
           Unknown chunk body (skip for compatibility)
