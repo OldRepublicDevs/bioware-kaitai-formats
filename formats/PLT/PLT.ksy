@@ -62,7 +62,7 @@ types:
         doc: |
           File signature. Must be "PLT " (space-padded).
           This identifies the file as a PLT palette texture.
-        valid: "PLT "
+        valid: "'PLT '"
       
       - id: version
         type: str
@@ -71,7 +71,7 @@ types:
         doc: |
           File format version. Must be "V1  " (space-padded).
           This is the only known version of the PLT format.
-        valid: "V1  "
+        valid: "'V1  '"
       
       - id: unknown1
         type: u4
