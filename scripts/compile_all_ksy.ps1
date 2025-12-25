@@ -1,59 +1,225 @@
-# Compile all .ksy files to Python
+<#
+.SYNOPSIS
+    Compiles all Kaitai Struct (.ksy) format definition files to target programming languages.
 
-$ErrorActionPreference = "Continue"
-$outputDir = "src/python/kaitai_generated"
+.DESCRIPTION
+    This script recursively finds all .ksy files in the formats directory and compiles them
+    to the specified target language using the Kaitai Struct compiler. It provides detailed
+    progress reporting and error handling.
 
-# Create output directory
-New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+.PARAMETER TargetLanguage
+    The target programming language to compile to. Supported languages include:
+    python, javascript, java, go, rust, cpp_stl, csharp, ruby, php, lua, perl, nim, swift.
 
-# Find all .ksy files
-$ksyFiles = Get-ChildItem -Path "formats" -Filter "*.ksy" -Recurse | Sort-Object FullName
+.PARAMETER OutputDirectory
+    The directory where compiled files will be placed. Defaults to "src/<language>/kaitai_generated".
 
-Write-Host "Found $($ksyFiles.Count) .ksy files"
-Write-Host ("=" * 80)
+.PARAMETER FormatsDirectory
+    The directory containing .ksy files to compile. Defaults to "formats".
 
-$successes = 0
-$failures = 0
-$failedFiles = @()
+.PARAMETER Force
+    Overwrite existing output directory without prompting.
 
-foreach ($file in $ksyFiles) {
-    $relPath = $file.FullName.Replace("$PWD\formats\", "")
-    Write-Host "Compiling: $relPath... " -NoNewline
-    
-    $output = & kaitai-struct-compiler -t python -d $outputDir $file.FullName 2>&1
-    
-    if ($LASTEXITCODE -eq 0) {
-        if ($output) {
-            Write-Host "OK (with warnings)" -ForegroundColor Yellow
-        } else {
-            Write-Host "OK" -ForegroundColor Green
+.EXAMPLE
+    .\compile_all_ksy.ps1 -TargetLanguage python
+
+    Compiles all .ksy files to Python in the default output directory.
+
+.EXAMPLE
+    .\compile_all_ksy.ps1 -TargetLanguage csharp -OutputDirectory "src/csharp" -Force
+
+    Compiles all .ksy files to C# with a custom output directory, overwriting any existing files.
+
+.EXAMPLE
+    .\compile_all_ksy.ps1 -TargetLanguage java -FormatsDirectory "custom_formats" -Verbose
+
+    Compiles .ksy files from a custom directory to Java with verbose output.
+#>
+
+[CmdletBinding(SupportsShouldProcess = $true)]
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [ValidateSet('python', 'javascript', 'java', 'go', 'rust', 'cpp_stl', 'csharp', 'ruby', 'php', 'lua', 'perl', 'nim', 'swift')]
+    [string]$TargetLanguage,
+
+    [Parameter()]
+    [ValidateScript({
+        if ([string]::IsNullOrWhiteSpace($_)) {
+            throw "OutputDirectory cannot be null or empty."
         }
-        $successes++
-    } else {
-        Write-Host "FAILED" -ForegroundColor Red
-        $failures++
-        $failedFiles += [PSCustomObject]@{
-            File = $relPath
-            Output = $output -join "`n"
+        $true
+    })]
+    [string]$OutputDirectory,
+
+    [Parameter()]
+    [ValidateScript({
+        if (-not (Test-Path $_ -PathType Container)) {
+            throw "FormatsDirectory '$_' does not exist or is not a directory."
         }
+        $true
+    })]
+    [string]$FormatsDirectory = "formats",
+
+    [Parameter()]
+    [switch]$Force
+)
+
+begin {
+    # Set default output directory based on target language
+    if (-not $OutputDirectory) {
+        $OutputDirectory = "src/$TargetLanguage/kaitai_generated"
+    }
+
+    # Validate that kaitai-struct-compiler is available
+    try {
+        $compilerCommand = Get-Command 'kaitai-struct-compiler' -ErrorAction Stop
+        Write-Verbose "Found Kaitai Struct compiler at: $($compilerCommand.Source)"
+    }
+    catch {
+        throw "kaitai-struct-compiler is not installed or not in PATH. Please install it first."
+    }
+
+    # Resolve paths to absolute paths
+    $formatsDir = Resolve-Path $FormatsDirectory
+    $outputDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
+
+    Write-Verbose "Formats directory: $formatsDir"
+    Write-Verbose "Output directory: $outputDir"
+    Write-Verbose "Target language: $TargetLanguage"
+
+    # Initialize counters
+    $script:successCount = 0
+    $script:failureCount = 0
+    $script:failedFiles = @()
+    $script:processedCount = 0
+}
+
+process {
+    try {
+        # Find all .ksy files
+        Write-Verbose "Searching for .ksy files in $formatsDir"
+        $ksyFiles = Get-ChildItem -Path $formatsDir -Filter "*.ksy" -Recurse -File | Sort-Object FullName
+
+        if ($ksyFiles.Count -eq 0) {
+            Write-Warning "No .ksy files found in $formatsDir"
+            return
+        }
+
+        Write-Host "Found $($ksyFiles.Count) .ksy files to compile" -ForegroundColor Cyan
+        Write-Host ("=" * 80) -ForegroundColor Cyan
+
+        # Create output directory
+        if ($Force -or -not (Test-Path $outputDir)) {
+            if ($PSCmdlet.ShouldProcess($outputDir, "Create output directory")) {
+                New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+                Write-Verbose "Created output directory: $outputDir"
+            }
+        }
+        elseif (-not $Force) {
+            $existingFiles = Get-ChildItem -Path $outputDir -File -Recurse
+            if ($existingFiles.Count -gt 0) {
+                if (-not $PSCmdlet.ShouldContinue(
+                    "Output directory '$outputDir' already exists and contains $($existingFiles.Count) files. Continue?",
+                    "Output Directory Exists")) {
+                    return
+                }
+            }
+        }
+
+        # Process each file
+        foreach ($file in $ksyFiles) {
+            $script:processedCount++
+            $relativePath = $file.FullName.Replace("$formatsDir\", "").Replace("$formatsDir/", "")
+
+            Write-Progress -Activity "Compiling Kaitai Struct files" `
+                          -Status "Processing: $relativePath" `
+                          -PercentComplete (($script:processedCount / $ksyFiles.Count) * 100)
+
+            Write-Host "Compiling: $relativePath... " -NoNewline
+
+            if ($PSCmdlet.ShouldProcess($relativePath, "Compile to $TargetLanguage")) {
+                try {
+                    # Execute compiler with error handling
+                    $process = Start-Process -FilePath 'kaitai-struct-compiler' `
+                                           -ArgumentList "-t", $TargetLanguage, "-d", $outputDir, $file.FullName `
+                                           -NoNewWindow `
+                                           -Wait `
+                                           -RedirectStandardOutput "$env:TEMP\ksc_stdout.txt" `
+                                           -RedirectStandardError "$env:TEMP\ksc_stderr.txt" `
+                                           -PassThru
+
+                    $stdout = Get-Content "$env:TEMP\ksc_stdout.txt" -Raw -ErrorAction SilentlyContinue
+                    $stderr = Get-Content "$env:TEMP\ksc_stderr.txt" -Raw -ErrorAction SilentlyContinue
+                    $output = ($stdout + $stderr).Trim()
+
+                    # Clean up temp files
+                    Remove-Item "$env:TEMP\ksc_stdout.txt", "$env:TEMP\ksc_stderr.txt" -ErrorAction SilentlyContinue
+
+                    if ($process.ExitCode -eq 0) {
+                        if ([string]::IsNullOrWhiteSpace($output)) {
+                            Write-Host "OK" -ForegroundColor Green
+                        }
+                        else {
+                            Write-Host "OK (with warnings)" -ForegroundColor Yellow
+                            Write-Verbose "Compiler output for $relativePath`: $output"
+                        }
+                        $script:successCount++
+                    }
+                    else {
+                        Write-Host "FAILED" -ForegroundColor Red
+                        $script:failureCount++
+                        $script:failedFiles += [PSCustomObject]@{
+                            File = $relativePath
+                            Output = $output
+                            ExitCode = $process.ExitCode
+                        }
+                        Write-Verbose "Compiler failed for $relativePath with exit code $($process.ExitCode)"
+                    }
+                }
+                catch {
+                    Write-Host "ERROR" -ForegroundColor Red
+                    $script:failureCount++
+                    $script:failedFiles += [PSCustomObject]@{
+                        File = $relativePath
+                        Output = $_.Exception.Message
+                        ExitCode = -1
+                    }
+                    Write-Verbose "Exception occurred compiling $relativePath`: $($_.Exception.Message)"
+                }
+            }
+        }
+
+        Write-Progress -Activity "Compiling Kaitai Struct files" -Completed
+    }
+    catch {
+        Write-Error "An error occurred during compilation: $($_.Exception.Message)"
+        throw
     }
 }
 
-# Print summary
-Write-Host ("=" * 80)
-Write-Host "`nSummary: $successes succeeded, $failures failed"
+end {
+    # Print summary
+    Write-Host ("=" * 80) -ForegroundColor Cyan
+    Write-Host "Summary: $($script:successCount) succeeded, $($script:failureCount) failed" -ForegroundColor Cyan
 
-# Print failures
-if ($failures -gt 0) {
-    Write-Host "`n$("=" * 80)"
-    Write-Host "FAILURES:"
-    Write-Host ("=" * 80)
-    foreach ($failed in $failedFiles) {
-        Write-Host "`n$($failed.File):"
-        Write-Host $failed.Output
+    # Print failures if any
+    if ($script:failureCount -gt 0) {
+        Write-Host ("=" * 80) -ForegroundColor Red
+        Write-Host "FAILURES:" -ForegroundColor Red
+        Write-Host ("=" * 80) -ForegroundColor Red
+
+        foreach ($failed in $script:failedFiles) {
+            Write-Host "`n$($failed.File) (Exit Code: $($failed.ExitCode)):" -ForegroundColor Red
+            Write-Host $failed.Output
+        }
+
+        # Set exit code for CI/CD
+        $global:LASTEXITCODE = 1
+        exit 1
     }
-    exit 1
-}
 
-exit 0
+    Write-Host "`nCompilation completed successfully!" -ForegroundColor Green
+    $global:LASTEXITCODE = 0
+    exit 0
+}
 
