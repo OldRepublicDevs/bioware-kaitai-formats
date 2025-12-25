@@ -20,10 +20,10 @@ This document provides a comprehensive overview of all BioWare file format parse
 - **Missing Formats:** 1 identified (ITP base binary)
 - **Test Coverage:** 33 formats have tests (41 test files)
 - **Compilation Status:** 
-  - ✅ GFF.ksy compiles successfully
-  - ✅ Fixed: ARE, UTD, CNV, DLG (5/22 formats)
-  - ⚠️ Needs fixing: 17 GFF generic formats (pos: syntax issue)
-  - See `docs/fix_progress.md` for detailed fix status
+  - ✅ Core formats compiling: GFF, ARE, CNV, UTD, ERF, TwoDA, BIF, TLK, SSF, LIP
+  - ✅ Fixed compilation errors: ARE, CNV, UTD, ERF, TwoDA (valid syntax, enum operators, raw data types)
+  - ⚠️ Needs fixing: Remaining GFF generic formats (DLG, FAC, GIT, GUI, etc.) - pos: syntax and valid expression syntax
+  - See `docs/compilation_fix_log.md` and `docs/fix_progress.md` for detailed fix status
 
 ---
 
