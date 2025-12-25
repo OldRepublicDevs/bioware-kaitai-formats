@@ -469,10 +469,8 @@ types:
           Common UTD strings: Tag (door tag for scripting), Comment (developer notes),
           KeyName (tag of required KEY item), LinkedTo (destination module tag).
           Note: To extract the actual string value, trim trailing null bytes from 'data'.
-    instances:
-      data_trimmed:
-        value: data.rstrip('\x00')
-        doc: "String data with trailing nulls removed"
+    # TODO: Kaitai Struct 0.11 doesn't support Python-style .rstrip() in all backends
+    # Application code should trim trailing nulls from string data when needed
   
   # Field Indices Array (MultiMap)
   field_indices_array:
