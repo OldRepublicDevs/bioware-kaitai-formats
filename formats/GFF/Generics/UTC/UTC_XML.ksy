@@ -12,6 +12,10 @@ meta:
     xoreos_library_utc_binary: https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
     pykotor_wiki_gff_utc: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTC.md
     pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+  imports:
+    - ../../GFF/gff
+    - ../../XML/gff_xml
+    - ../UTC/utc
 doc: |
   UTC XML format is a human-readable XML representation of UTC (Creature) binary files.
   Uses GFF XML structure with root element <gff3> containing <struct> elements.
@@ -30,4 +34,6 @@ seq:
     size-eos: true
     encoding: UTF-8
     doc: XML document content as UTF-8 text
+
+
 
