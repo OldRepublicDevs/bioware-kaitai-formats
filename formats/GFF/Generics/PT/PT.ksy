@@ -154,9 +154,10 @@ types:
   label_entry:
     seq:
       - id: name
-        type: strz
+        type: str
         encoding: ASCII
         size: 16
+        terminator: 0
         doc: |
           Field name label (null-terminated string, up to 16 bytes).
           Common PT field names: "PT_PCNAME", "PT_GOLD", "PT_XP_POOL", "PT_PLAYEDSECONDS",
