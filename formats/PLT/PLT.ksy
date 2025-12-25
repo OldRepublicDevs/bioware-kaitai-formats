@@ -134,7 +134,4 @@ types:
           7 = Leather 2 (pal_leath01.jpg)
           8 = Tattoo 1 (pal_tattoo01.jpg)
           9 = Tattoo 2 (pal_tattoo01.jpg)
-        
-        valid: {min: 0, max: 9}
-    instances:
 
