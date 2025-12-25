@@ -2,21 +2,28 @@
 
 ## Position-based Reading (`pos:` key)
 
-Many GFF format files use the `pos:` key for position-based reading of file sections. However, the `pos:` key appears to not be supported in Kaitai Struct 0.11 compiler.
+The `pos:` key is valid in Kaitai Struct, but only in `instances:` blocks, not in `seq:` blocks.
 
-**Affected Files:**
-- All GFF format files (GFF.ksy and all GFF generic formats)
-- Some other format files that use position-based reading
+**Fix:** Move position-based fields from `seq:` to `instances:` blocks.
 
-**Status:** Needs investigation - either:
-1. These files were written for an older version of Kaitai Struct
-2. Position-based reading needs to be implemented differently in 0.11
-3. These files need to be refactored to use a different approach
+**Example:**
+```yaml
+# WRONG (in seq:)
+seq:
+  - id: label_array
+    type: label_array
+    pos: header.label_offset
 
-**Workaround:** These formats may still work if they were compiled with an older version of the compiler, or if the generated code is manually maintained.
+# CORRECT (in instances:)
+seq:
+  - id: header
+    type: gff_header
 
-**Next Steps:**
-- Research correct syntax for position-based reading in Kaitai Struct 0.11
-- Consider refactoring to use `_io.seek()` in instances or other approaches
-- Test compilation with different compiler versions
+instances:
+  label_array:
+    type: label_array
+    pos: header.label_offset
+```
+
+**Status:** ✅ Fixed in GFF.ksy - needs to be applied to all GFF generic format files
 
