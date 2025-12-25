@@ -1,7 +1,7 @@
 # BioWare Kaitai Formats - Progress Roadmap
 
 **Last Updated:** 2025-01-27  
-**Status:** Comprehensive audit completed
+**Status:** Comprehensive audit in progress - systematically testing all formats
 
 **See also:**
 - `docs/comprehensive_findings.md` - Detailed technical findings
