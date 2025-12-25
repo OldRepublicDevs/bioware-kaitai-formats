@@ -13,7 +13,11 @@ This document provides a comprehensive overview of all BioWare file format parse
 - **GFF Variants Implemented:** 22/23 (95.7%) - UTP created, ITP base binary missing
 - **Missing Formats:** 1 identified (ITP base binary)
 - **Test Coverage:** 33 formats have tests (41 test files)
-- **Compilation Status:** GFF.ksy compiles successfully; all GFF generics need pos: fix
+- **Compilation Status:** 
+  - ✅ GFF.ksy compiles successfully
+  - ✅ Fixed: ARE, UTD, CNV, DLG (5/22 formats)
+  - ⚠️ Needs fixing: 17 GFF generic formats (pos: syntax issue)
+  - See `docs/fix_progress.md` for detailed fix status
 
 ---
 
