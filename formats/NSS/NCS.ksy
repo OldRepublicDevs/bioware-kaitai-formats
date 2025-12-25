@@ -5,8 +5,8 @@ meta:
   endian: be
   file-extension: ncs
   xref:
-    pykotor: vendor/PyKotor/wiki/NCS-File-Format.md
-    wiki: vendor/PyKotor/wiki/NCS-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/NCS-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/NCS-File-Format.md
 doc: |
   NCS (NWScript Compiled) files contain compiled NWScript bytecode used in KotOR and TSL.
   Scripts run inside a stack-based virtual machine shared across Aurora engine games.

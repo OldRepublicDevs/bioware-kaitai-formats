@@ -5,8 +5,8 @@ meta:
   endian: le
   file-extension: mdx
   xref:
-    pykotor: vendor/PyKotor/wiki/MDL-MDX-File-Format.md
-    wiki: vendor/PyKotor/wiki/MDL-MDX-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 doc: |
   MDX (Model Extension) files contain vertex data for MDL models. MDX files work in tandem
   with MDL files which define the model structure, hierarchy, and metadata. The MDX file

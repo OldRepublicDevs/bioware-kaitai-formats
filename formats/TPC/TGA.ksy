@@ -7,8 +7,8 @@ meta:
     - tga
     - targa
   xref:
-    pykotor: vendor/PyKotor/wiki/TPC-File-Format.md
-    wiki: vendor/PyKotor/wiki/TPC-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/TPC-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/TPC-File-Format.md
 doc: |
   TGA (Targa) is an uncompressed raster image format used in KotOR for textures.
   TGA files support RGB, RGBA, and greyscale formats with optional RLE compression.

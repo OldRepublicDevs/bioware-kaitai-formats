@@ -5,8 +5,8 @@ meta:
   endian: le
   file-extension: dds
   xref:
-    pykotor: vendor/PyKotor/wiki/DDS-File-Format.md
-    wiki: vendor/PyKotor/wiki/DDS-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/DDS-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/DDS-File-Format.md
 doc: |
   DDS (DirectDraw Surface) files appear in two variants in KotOR:
   
