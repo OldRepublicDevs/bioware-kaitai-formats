@@ -5,10 +5,10 @@ meta:
   endian: le
   file-extension: wav
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/wav/
-    reone: vendor/reone/src/libs/audio/format/wavreader.cpp
-    xoreos: vendor/xoreos/src/sound/decoders/wave.cpp
-    wiki: vendor/PyKotor/wiki/WAV-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/wav/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/audio/format/wavreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp
+    pykotor_wiki_wav: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 doc: |
   WAV (Waveform Audio Format) files used in KotOR. KotOR stores both standard WAV voice-over lines
   and Bioware-obfuscated sound-effect files. Voice-over assets are regular RIFF containers with PCM
@@ -23,9 +23,9 @@ doc: |
   (470-byte and 20-byte prefixes respectively) are handled by application-level deobfuscation.
 
   References:
-  - vendor/PyKotor/wiki/WAV-File-Format.md
-  - vendor/reone/src/libs/audio/format/wavreader.cpp:30-56
-  - vendor/xoreos/src/sound/decoders/wave.cpp:34-84
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/audio/format/wavreader.cpp:30-56
+  - https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:34-84
 
 seq:
   - id: riff_header
@@ -39,7 +39,7 @@ seq:
     doc: |
       RIFF chunks in sequence (fmt, fact, data, etc.)
       Parsed until end of file
-      Reference: vendor/xoreos/src/sound/decoders/wave.cpp:46-55
+      Reference: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:46-55
 
 types:
   riff_header:
@@ -56,7 +56,7 @@ types:
         doc: |
           File size minus 8 bytes (RIFF_ID + RIFF_SIZE itself)
           For MP3-in-WAV format, this is 50
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: wave_id
         type: str
@@ -70,7 +70,7 @@ types:
         value: riff_size == 50
         doc: |
           MP3-in-WAV format detected when RIFF size = 50
-          Reference: vendor/PyKotor/src/pykotor/resource/formats/wav/wav_obfuscation.py:60-64
+          Reference: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/wav/wav_obfuscation.py:60-64
 
   chunk:
     seq:
@@ -81,14 +81,14 @@ types:
         doc: |
           Chunk ID (4-character ASCII string)
           Common values: "fmt ", "data", "fact", "LIST", etc.
-          Reference: vendor/xoreos/src/sound/decoders/wave.cpp:58-72
+          Reference: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:58-72
 
       - id: size
         type: u4
         doc: |
           Chunk size in bytes (chunk data only, excluding ID and size fields)
           Chunks are word-aligned (even byte boundaries)
-          Reference: vendor/xoreos/src/sound/decoders/wave.cpp:66
+          Reference: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:66
 
       - id: body
         type:
@@ -113,7 +113,7 @@ types:
           - 0x0007 = μ-Law companded
           - 0x0011 = IMA ADPCM (DVI ADPCM)
           - 0x0055 = MPEG Layer 3 (MP3)
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: channels
         type: u2
@@ -121,7 +121,7 @@ types:
           Number of audio channels:
           - 1 = mono
           - 2 = stereo
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: sample_rate
         type: u4
@@ -130,21 +130,21 @@ types:
           Typical values:
           - 22050 Hz for SFX
           - 44100 Hz for VO
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: bytes_per_sec
         type: u4
         doc: |
           Byte rate (average bytes per second)
           Formula: sample_rate × block_align
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: block_align
         type: u2
         doc: |
           Block alignment (bytes per sample frame)
           Formula for PCM: channels × (bits_per_sample / 8)
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: bits_per_sample
         type: u2
@@ -152,11 +152,9 @@ types:
           Bits per sample
           Common values: 8, 16
           For PCM: typically 16-bit
-          Reference: vendor/PyKotor/wiki/WAV-File-Format.md
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/WAV-File-Format.md
 
       - id: extra_format_bytes
-        type: str
-        encoding: ASCII
         size: _parent.size - 16
         if: _parent.size > 16
         doc: |
@@ -164,7 +162,7 @@ types:
           For IMA ADPCM and other compressed formats, contains:
           - Extra format size (u2)
           - Format-specific data (e.g., ADPCM coefficients)
-          Reference: vendor/xoreos/src/sound/decoders/wave.cpp:66
+          Reference: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:66
 
     instances:
       is_pcm:
@@ -182,12 +180,10 @@ types:
   data_chunk_body:
     seq:
       - id: data
-        type: str
-        encoding: ASCII
         size: _parent.size
         doc: |
           Raw audio data (PCM samples or compressed audio)
-          Reference: vendor/xoreos/src/sound/decoders/wave.cpp:79-80
+          Reference: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:79-80
 
   fact_chunk_body:
     seq:
@@ -196,17 +192,15 @@ types:
         doc: |
           Sample count (number of samples in compressed audio)
           Used for compressed formats like ADPCM
-          Reference: vendor/PyKotor/src/pykotor/resource/formats/wav/io_wav.py:189-192
+          Reference: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/wav/io_wav.py:189-192
 
   unknown_chunk_body:
     seq:
       - id: data
-        type: str
-        encoding: ASCII
         size: _parent.size
         doc: |
           Unknown chunk body (skip for compatibility)
-          Reference: vendor/xoreos/src/sound/decoders/wave.cpp:53-54
+          Reference: https://github.com/xoreos/xoreos/blob/master/src/sound/decoders/wave.cpp:53-54
 
       - id: padding
         type: u1
