@@ -120,25 +120,11 @@ All GFF generics use the base `GFF.ksy` format with FileType signature in the he
 
 ## Missing Formats Summary
 
-### High Priority
-
-1. **GFF-UTP.ksy** - Placeable template format
-   - **Location:** `formats/GFF/Generics/UTP/UTP.ksy`
-   - **Documentation:** `vendor/PyKotor/wiki/GFF-UTP.md`
-   - **Reference:** `vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/utp.py`
-   - **Similar to:** UTD.ksy (Door format), UTS.ksy (Sound format)
-   - **Status:** ✅ Complete
-
 ### Low Priority
 
-1. **PLT.ksy** - Palette texture format
-   - **Location:** `formats/PLT/PLT.ksy`
-   - **Documentation:** `vendor/PyKotor/wiki/PLT-File-Format.md`
-   - **Reference:** `vendor/xoreos-docs/specs/torlack/plt.html`
-   - **Note:** NWN-specific, not used in KotOR but documented for completeness
-   - **Status:** ✅ Complete
+**All High Priority formats are now complete!**
 
-2. **ITP.ksy** - Palette format (base binary)
+1. **ITP.ksy** - Palette format (base binary)
    - **Location:** Should be `formats/GFF/Generics/ITP/ITP.ksy`
    - **Documentation:** `vendor/PyKotor/wiki/Bioware-Aurora-PaletteITP.md`
    - **Note:** ITP_XML.ksy exists but base ITP is a GFF format - should reference GFF structure
@@ -189,7 +175,7 @@ All GFF generics use the base `GFF.ksy` format with FileType signature in the he
 - ✅ DDS (DirectDraw Surface)
 - ✅ TGA (Targa)
 - ✅ TXI (Texture Info)
-- ❌ PLT (Palette Texture) - Missing
+- ✅ PLT (Palette Texture)
 
 ### Script Formats
 - ✅ NSS (NWScript Source)
