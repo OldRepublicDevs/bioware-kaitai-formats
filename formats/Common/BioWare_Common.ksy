@@ -1,14 +1,14 @@
 meta:
   id: bioware_common
-  title: Bioware Common Types (Language, Gender, LocalizedString)
+  title: BioWare Common Types (enums + shared structs)
   license: MIT
   endian: le
   xref:
-    bioware: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/common/language.py
-    reone: https://github.com/seedhartha/reone/tree/master/include/reone/resource/types.h
-    xoreos_tools: https://github.com/xoreos/xoreos-tools/tree/master/src/common/types.h
+    pykotor_ref: vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/
+    xoreos_tools: vendor/xoreos-tools/src/common/types.h
+    reone: vendor/reone/include/reone/resource/types.h
 doc: |
-  Shared enums and "common objects" used across the Bioware ecosystem that also appear
+  Shared enums and "common objects" used across the BioWare ecosystem that also appear
   in BioWare/Odyssey binary formats (notably TLK and GFF LocalizedStrings).
 
   This file is intended to be imported by other `.ksy` files to avoid repeating:
@@ -17,9 +17,11 @@ doc: |
   - The CExoLocString / LocalizedString binary layout
 
   References:
-  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/common/language.py
-  - https://github.com/seedhartha/reone/tree/master/include/reone/resource/types.h
-  - https://github.com/xoreos/xoreos-tools/tree/master/src/common/types.h
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/language.py
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/misc.py
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/game_object.py
+  - vendor/xoreos-tools/src/common/types.h
+  - vendor/reone/include/reone/resource/types.h
 
 types:
   bioware_locstring:
@@ -73,7 +75,7 @@ types:
         doc: Raw language ID (0..255).
 
 enums:
-  # Extracted from `bioware.common.language.Language` (IntEnum)
+  # Extracted from `pykotor.common.language.Language` (IntEnum)
   bioware_language_id:
     0: english
     1: french
@@ -173,7 +175,53 @@ enums:
     131: japanese
     2147483646: unknown
 
-  # Extracted from `bioware.common.language.Gender` (IntEnum)
+  # Extracted from `pykotor.common.language.Gender` (IntEnum)
   bioware_gender_id:
     0: male
     1: female
+
+  # Extracted from `pykotor.common.misc.Game` (IntEnum)
+  bioware_game_id:
+    1: k1
+    2: k2
+    3: k1_xbox
+    4: k2_xbox
+    5: k1_ios
+    6: k2_ios
+    7: k1_android
+    8: k2_android
+
+  # Extracted from `pykotor.common.game_object.ObjectType` (IntEnum)
+  bioware_object_type_id:
+    0: invalid
+    1: creature
+    2: door
+    3: item
+    4: trigger
+    5: placeable
+    6: waypoint
+    7: encounter
+    8: store
+    9: area
+    10: sound
+    11: camera
+
+  # Extracted from `pykotor.common.misc.EquipmentSlot` (Enum used as bit-flags)
+  # NOTE: This is a flag set; consumers typically treat these as bitmasks.
+  bioware_equipment_slot_flag:
+    0: invalid
+    1: head
+    2: armor
+    8: gauntlet
+    16: right_hand
+    32: left_hand
+    128: right_arm
+    256: left_arm
+    512: implant
+    1024: belt
+    16384: claw1
+    32768: claw2
+    65536: claw3
+    131072: hide
+    262144: right_hand_2
+    524288: left_hand_2
