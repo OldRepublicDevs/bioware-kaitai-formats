@@ -1,0 +1,18 @@
+[submodule "vendor/xoreos-docs"]
+	path = vendor/xoreos-docs
+	url = https://github.com/th3w1zard1/xoreos-docs.git
+[submodule "vendor/xoreos"]
+	path = vendor/xoreos
+	url = https://github.com/th3w1zard1/xoreos.git
+[submodule "vendor/xoreos-tools"]
+	path = vendor/xoreos-tools
+	url = https://github.com/th3w1zard1/xoreos-tools.git
+[submodule "vendor/reone"]
+	path = vendor/reone
+	url = https://github.com/th3w1zard1/reone.git
+[submodule "vendor/PyKotor"]
+	path = vendor/PyKotor
+	url = https://github.com/th3w1zard1/PyKotor.git
+[submodule "vendor/Kotor.NET"]
+	path = vendor/Kotor.NET
+	url = https://github.com/NickHugi/Kotor.NET.git
