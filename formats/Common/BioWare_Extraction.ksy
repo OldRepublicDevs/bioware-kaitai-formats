@@ -4,12 +4,13 @@ meta:
   license: MIT
   endian: le
   xref:
-    pykotor_ref: vendor/PyKotor/Libraries/PyKotor/src/pykotor/extract/installation.py
+    pykotor_ref: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/extract/installation.py
+    andastra_ref: https://github.com/OldRepublicDevs/Andastra/blob/master/src/andastra/parsing/extract/installation.cs
 doc: |
   Enums and small helper types used by installation/extraction tooling.
 
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/extract/installation.py
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/extract/installation.py
 
 types:
   bioware_texture_pack_name_str:
@@ -19,8 +20,12 @@ types:
         type: str
         encoding: ASCII
         terminator: 0
-        # TODO: Add validation for texture pack names once Kaitai supports string literals with dots
-        # Valid values: swpc_tex_tpa.erf, swpc_tex_tpb.erf, swpc_tex_tpc.erf, swpc_tex_gui.erf
+        valid:
+          any-of: 
+            - "'swpc_tex_tpa.erf'"
+            - "'swpc_tex_tpb.erf'"
+            - "'swpc_tex_tpc.erf'"
+            - "'swpc_tex_gui.erf'"
 
 enums:
   # Extracted from `pykotor.extract.installation.SearchLocation` (IntEnum)

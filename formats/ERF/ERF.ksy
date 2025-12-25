@@ -5,9 +5,9 @@ meta:
   endian: le
   file-extension:
     - erf
+    - hak
     - mod
     - sav
-    - hak
   xref:
     pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/erf/
     reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/format/erfreader.cpp
@@ -290,7 +290,7 @@ types:
         doc: Raw binary data for this resource
 
 enums:
-  # NOTE: Mirrors `vendor/xoreos/src/aurora/types.h` (`enum FileType`).
+  # NOTE: Mirrors `https://github.com/xoreos/xoreos/blob/master/src/aurora/types.h` (`enum FileType`).
   # TODO: VERIFY - Aliases exist upstream (e.g. 2045 also known as DTF) but Kaitai enums cannot
   # represent multiple names for the same numeric key.
   xoreos_file_type_id:

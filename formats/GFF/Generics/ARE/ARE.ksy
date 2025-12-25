@@ -7,11 +7,11 @@ meta:
   imports:
     - ../../gff
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/are.py
-    reone: vendor/reone/src/libs/resource/parser/gff/are.cpp
-    xoreos: vendor/xoreos/src/aurora/arefile.cpp
-    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
-    bioware_docs: vendor/PyKotor/wiki/Bioware-Aurora-AreaFile.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/generics/are.py
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/parser/gff/are.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/arefile.cpp
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+    pykotor_wiki_gff_are: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-ARE.md
 doc: |
   ARE (Area) files are GFF-based format files that store static area information including
   lighting, fog, grass, weather, script hooks, and map data. ARE files use the GFF (Generic File Format)

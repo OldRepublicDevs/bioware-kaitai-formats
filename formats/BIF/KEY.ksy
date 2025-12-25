@@ -5,9 +5,9 @@ meta:
   endian: le
   file-extension: key
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/key/
-    reone: vendor/reone/src/libs/resource/format/keyreader.cpp
-    xoreos: vendor/xoreos/src/aurora/keyfile.cpp
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/key/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/keyreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/keyfile.cpp
 doc: |
   KEY files serve as the master index for all BIF files in the game.
   They map resource names (ResRefs) and types to specific locations within BIF archives.

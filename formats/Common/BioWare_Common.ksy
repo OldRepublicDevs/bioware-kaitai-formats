@@ -4,9 +4,9 @@ meta:
   license: MIT
   endian: le
   xref:
-    pykotor_ref: vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/
-    xoreos_tools: vendor/xoreos-tools/src/common/types.h
-    reone: vendor/reone/include/reone/resource/types.h
+    pykotor_ref: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/common/
+    xoreos_tools: https://github.com/xoreos/xoreos-tools/blob/master/src/common/types.h
+    reone: https://github.com/seedhartha/reone/blob/master/include/reone/resource/types.h
 doc: |
   Shared enums and "common objects" used across the BioWare ecosystem that also appear
   in BioWare/Odyssey binary formats (notably TLK and GFF LocalizedStrings).
@@ -17,13 +17,14 @@ doc: |
   - The CExoLocString / LocalizedString binary layout
 
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/language.py
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/misc.py
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/game_object.py
-  - vendor/xoreos-tools/src/common/types.h
-  - vendor/reone/include/reone/resource/types.h
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/common/language.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/common/misc.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/common/game_object.py
+  - https://github.com/xoreos/xoreos-tools/blob/master/src/common/types.h
+  - https://github.com/seedhartha/reone/blob/master/include/reone/resource/types.h
 
 types:
+  # LocalizedString (CExoLocString) - Used in GFF field data section
   bioware_locstring:
     doc: |
       BioWare "CExoLocString" (LocalizedString) binary layout, as embedded inside the GFF field-data
@@ -47,6 +48,10 @@ types:
         repeat: expr
         repeat-expr: num_substrings
         doc: Language/gender-specific substring entries.
+    instances:
+      has_strref:
+        value: string_ref != 0xFFFFFFFF
+        doc: True if this locstring references dialog.tlk
 
   substring:
     seq:
@@ -73,6 +78,94 @@ types:
       language_raw:
         value: (substring_id >> 8) & 0xff
         doc: Raw language ID (0..255).
+      gender:
+        value: gender_raw
+        enum: bioware_gender_id
+        doc: Gender as enum value
+      language:
+        value: language_raw
+        enum: bioware_language_id
+        doc: Language as enum value
+
+  # ResRef - Used in GFF field data section
+  bioware_resref:
+    doc: |
+      BioWare Resource Reference (ResRef) - max 16 character ASCII identifier.
+      Used throughout GFF files to reference game resources by name.
+    seq:
+      - id: len_resref
+        type: u1
+        doc: Length of ResRef string (0-16 characters)
+        valid:
+          max: 16
+      - id: value
+        type: str
+        encoding: ASCII
+        size: len_resref
+        doc: ResRef string data (ASCII, lowercase recommended)
+
+  # CExoString - Used in GFF field data section  
+  bioware_cexo_string:
+    doc: |
+      BioWare CExoString - variable-length string with 4-byte length prefix.
+      Used for string fields in GFF files.
+    seq:
+      - id: len_string
+        type: u4
+        doc: Length of string in bytes
+      - id: value
+        type: str
+        encoding: UTF-8
+        size: len_string
+        doc: String data (UTF-8)
+
+  # Vector3 - Used in GFF field data section
+  bioware_vector3:
+    doc: |
+      3D vector (X, Y, Z coordinates).
+      Used for positions, directions, etc. in game files.
+    seq:
+      - id: x
+        type: f4
+        doc: X coordinate
+      - id: y
+        type: f4
+        doc: Y coordinate
+      - id: z
+        type: f4
+        doc: Z coordinate
+
+  # Vector4 - Used in GFF field data section
+  bioware_vector4:
+    doc: |
+      4D vector / Quaternion (X, Y, Z, W components).
+      Used for orientations/rotations in game files.
+    seq:
+      - id: x
+        type: f4
+        doc: X component
+      - id: y
+        type: f4
+        doc: Y component
+      - id: z
+        type: f4
+        doc: Z component
+      - id: w
+        type: f4
+        doc: W component
+
+  # Binary data - Used in GFF field data section
+  bioware_binary_data:
+    doc: |
+      Variable-length binary data with 4-byte length prefix.
+      Used for Void/Binary fields in GFF files.
+    seq:
+      - id: len_value
+        type: u4
+        doc: Length of binary data in bytes
+      - id: value
+        size: len_value
+        doc: Binary data
 
 enums:
   # Extracted from `pykotor.common.language.Language` (IntEnum)

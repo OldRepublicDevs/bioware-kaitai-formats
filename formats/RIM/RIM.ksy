@@ -5,9 +5,10 @@ meta:
   endian: le
   file-extension: rim
   xref:
-    reone: vendor/reone/src/libs/resource/format/rimreader.cpp
-    xoreos: vendor/xoreos/src/aurora/rimfile.cpp
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/RIM-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/rim/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/rimreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/rimfile.cpp
+    pykotor_wiki_rim: https://github.com/OldRepublicDevs/PyKotor/wiki/RIM-File-Format.md
 doc: |
   RIM (Resource Information Manager) files are self-contained archives used for module templates.
   RIM files are similar to ERF files but are read-only from the game's perspective. The game

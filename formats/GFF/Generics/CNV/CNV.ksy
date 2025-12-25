@@ -7,10 +7,11 @@ meta:
   imports:
     - ../../gff
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/cnv/
-    reone: vendor/reone/src/libs/resource/parser/gff/cnv.cpp
-    xoreos: vendor/xoreos/src/aurora/cnvfile.cpp
-    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-CNV.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/cnv/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/parser/gff/cnv.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/cnvfile.cpp
+    pykotor_wiki_gff_cnv: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-CNV.md
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 doc: |
   CNV (Conversation) files are GFF-based format files that store conversation trees with entries, replies,
   links, and conversation metadata. CNV files use the GFF (Generic File Format) binary structure
@@ -38,7 +39,7 @@ doc: |
 
   References:
   - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-CNV.md
-  - vendor/PyKotor/wiki/GFF-File-Format.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 
 seq:
   - id: gff_data

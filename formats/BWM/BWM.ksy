@@ -8,10 +8,10 @@ meta:
     - pwk
     - wok
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/bwm/
-    reone: vendor/reone/src/libs/graphics/format/bwmreader.cpp
-    xoreos: vendor/xoreos/src/engines/kotorbase/path/walkmeshloader.cpp
-    kotorjs: vendor/KotOR.js/src/odyssey/OdysseyWalkMesh.ts
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/bwm/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/bwmreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/engines/kotorbase/path/walkmeshloader.cpp
+    kotor_js: https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/odyssey/OdysseyWalkMesh.ts
     wiki: vendor/PyKotor/wiki/BWM-File-Format.md
 doc: |
   BWM (Binary WalkMesh) files define walkable surfaces for pathfinding and collision detection

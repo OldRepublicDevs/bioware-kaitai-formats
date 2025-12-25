@@ -6,8 +6,8 @@
   file-extension:
     - 2da
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/twoda/
-    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/TwoDA-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/twoda/
+    pykotor_wiki_twoda: https://github.com/OldRepublicDevs/PyKotor/wiki/TwoDA-File-Format.md
 doc: |
   TwoDA (2D Array) files store tabular data in a binary format used by BioWare games
   including Knights of the Old Republic (KotOR) and The Sith Lords (TSL).

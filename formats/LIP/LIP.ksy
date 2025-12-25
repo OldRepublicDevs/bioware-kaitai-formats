@@ -5,11 +5,11 @@ meta:
   endian: le
   file-extension: lip
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/lip/
-    reone: vendor/reone/src/libs/graphics/format/lipreader.cpp
-    xoreos: vendor/xoreos/src/graphics/aurora/lipfile.cpp
-    kotorjs: vendor/KotOR.js/src/resource/LIPObject.ts
-    kotornet: vendor/Kotor.NET/Kotor.NET/Formats/KotorLIP/LIP.cs
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/lip/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/lipreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/graphics/aurora/lipfile.cpp
+    kotor_js: https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/LIPObject.ts
+    kotor_net: https://github.com/KotOR-Community-Patches/Kotor.NET/blob/master/Kotor.NET/Formats/KotorLIP/LIP.cs
 doc: |
   LIP (LIP Synchronization) files drive mouth animation for voiced dialogue in BioWare games.
   Each file contains a compact series of keyframes that map timestamps to discrete viseme

@@ -13,8 +13,8 @@ doc: |
   The ASCII format represents the model structure using plain text with keyword-based syntax.
   Lines are parsed sequentially, with keywords indicating sections, nodes, properties, and data arrays.
 
-  Reference: vendor/PyKotor/wiki/MDL-MDX-File-Format.md - ASCII MDL Format section
-  Reference: vendor/mdlops/MDLOpsM.pm:3916-4698 - readasciimdl function implementation
+  Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md - ASCII MDL Format section
+  Reference: https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm:3916-4698 - readasciimdl function implementation
 
 doc-ref: https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md#ascii-mdl-format
 

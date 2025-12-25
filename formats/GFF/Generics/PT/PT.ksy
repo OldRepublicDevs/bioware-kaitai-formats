@@ -7,10 +7,11 @@ meta:
   imports:
     - ../../gff
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/extract/savedata.py
-    reone: vendor/reone/src/libs/resource/parser/gff/pt.cpp
-    xoreos: vendor/xoreos/src/aurora/gff3file.cpp
-    wiki: vendor/PyKotor/wiki/GFF-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/extract/savedata.py
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/parser/gff/pt.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/gff3file.cpp
+    pykotor_wiki_gff_pt: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-PT.md
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 doc: |
   PT (Party Table) files are GFF-based format files that store party and game state information
   for Odyssey Engine games (KotOR and KotOR 2). PT files use the GFF (Generic File Format) binary
@@ -45,9 +46,9 @@ doc: |
   Based on swkotor2.exe: SavePartyTable @ 0x0057bd70
 
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/extract/savedata.py
-  - vendor/PyKotor/wiki/GFF-File-Format.md
-  - src/Andastra/Runtime/Content/Save/SaveSerializer.cs
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/extract/savedata.py
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-PT.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 
 seq:
   - id: gff_data

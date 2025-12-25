@@ -6,10 +6,10 @@ meta:
   file-extension:
     - tpc
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/tpc/
-    reone: vendor/reone/src/libs/graphics/format/tpcreader.cpp
-    xoreos: vendor/xoreos/src/graphics/images/tpc.cpp
-    wiki: vendor/PyKotor/wiki/TPC-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/tpc/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/tpcreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/graphics/images/tpc.cpp
+    pykotor_wiki_tpc: https://github.com/OldRepublicDevs/PyKotor/wiki/TPC-File-Format.md
 doc: |
   TPC (Texture Pack Container) is KotOR's native texture format. It supports paletteless RGB/RGBA,
   greyscale, and block-compressed DXT1/DXT3/DXT5 data, optional mipmaps, cube maps, and flipbook

@@ -6,8 +6,8 @@ meta:
   file-extension: txi
   encoding: ASCII
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/TXI-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/txi/
+    pykotor_wiki_txi: https://github.com/OldRepublicDevs/PyKotor/wiki/TXI-File-Format.md
 doc: |
   TXI (Texture Info) files are compact ASCII descriptors that attach metadata to TPC textures.
   They control mipmap usage, filtering, flipbook animation, environment mapping, font atlases,

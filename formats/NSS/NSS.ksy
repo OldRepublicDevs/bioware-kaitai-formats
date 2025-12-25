@@ -6,8 +6,8 @@ meta:
   file-extension: nss
   encoding: UTF-8
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ncs/
-    wiki: vendor/PyKotor/wiki/NSS-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ncs/
+    pykotor_wiki_nss: https://github.com/OldRepublicDevs/PyKotor/wiki/NSS-File-Format.md
 doc: |
   NSS (NWScript Source) files contain human-readable NWScript source code
   that compiles to NCS bytecode. NWScript is the scripting language used

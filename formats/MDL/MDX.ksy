@@ -24,7 +24,7 @@ doc: |
   - mdx_data_flags: Bitmask indicating which vertex attributes are present
   
   References:
-  - vendor/PyKotor/wiki/MDL-MDX-File-Format.md - Complete MDL/MDX format documentation
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md - Complete MDL/MDX format documentation
   - MDL.ksy - Model structure that references MDX data
 
 seq:

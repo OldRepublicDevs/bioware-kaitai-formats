@@ -36,8 +36,8 @@ doc: |
   Infinity-specific: GameName, Chapter, JournalEntries
 
   References:
-  - vendor/PyKotor/wiki/Bioware-Aurora-GFF.md
-  - vendor/PyKotor/wiki/GFF-File-Format.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-GAM.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 
 seq:
   - id: gff_data

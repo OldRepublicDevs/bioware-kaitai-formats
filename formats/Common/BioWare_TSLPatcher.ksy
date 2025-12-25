@@ -4,7 +4,7 @@ meta:
   license: MIT
   endian: le
   xref:
-    pykotor_ref: vendor/PyKotor/Libraries/PyKotor/src/pykotor/tslpatcher/
+    pykotor_ref: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/tslpatcher/
 doc: |
   Shared enums and small helper types used by TSLPatcher-style tooling.
 
@@ -13,10 +13,10 @@ doc: |
     so string-valued enums are modeled here as small string wrapper types with `valid` constraints.
 
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/tslpatcher/mods/twoda.py
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/tslpatcher/mods/ncs.py
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/tslpatcher/logger.py
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/tslpatcher/diff/objects.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/tslpatcher/mods/twoda.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/tslpatcher/mods/ncs.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/tslpatcher/logger.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/tslpatcher/diff/objects.py
 
 types:
   bioware_ncs_token_type_str:

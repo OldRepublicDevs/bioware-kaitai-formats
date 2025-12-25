@@ -5,9 +5,9 @@ meta:
   endian: le
   file-extension: bif
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/bif/
-    reone: vendor/reone/src/libs/resource/format/bifreader.cpp
-    xoreos: vendor/xoreos/src/aurora/biffile.cpp
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/bif/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/bifreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/biffile.cpp
 doc: |
   BIF (BioWare Index File) files are archive containers that store game resources.
   They work in tandem with KEY files which provide the filename-to-resource mappings.

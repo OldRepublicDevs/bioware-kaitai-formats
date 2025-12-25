@@ -6,12 +6,12 @@ meta:
   file-extension: vis
   encoding: ASCII
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/vis/
-    reone: vendor/reone/src/libs/resource/format/visreader.cpp
-    xoreos: vendor/xoreos/src/aurora/visfile.cpp
-    kotor_js: vendor/KotOR.js/src/resource/VISObject.ts
-    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/VISObject.cs
-    wiki: vendor/PyKotor/wiki/VIS-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/vis/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/visreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/visfile.cpp
+    kotor_js: https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/VISObject.ts
+    kotor_unity: https://github.com/KotOR-Community-Patches/KotOR-Unity/blob/master/Assets/Scripts/FileObjects/VISObject.cs
+    pykotor_wiki_vis: https://github.com/OldRepublicDevs/PyKotor/wiki/VIS-File-Format.md
 doc: |
   VIS (Visibility) files describe which module rooms can be seen from other rooms.
   They drive the engine's occlusion culling so that only geometry visible from the

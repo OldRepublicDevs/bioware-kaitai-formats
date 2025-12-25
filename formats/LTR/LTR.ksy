@@ -5,9 +5,9 @@ meta:
   endian: le
   file-extension: ltr
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/ltr/
-    reone: vendor/reone/src/libs/resource/format/ltrreader.cpp
-    xoreos: vendor/xoreos/src/aurora/ltrfile.cpp
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ltr/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/ltrreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/ltrfile.cpp
 doc: |
   LTR (Letter) resources store third-order Markov chain probability tables that the game uses
   to procedurally generate NPC names. The data encodes likelihoods for characters appearing at

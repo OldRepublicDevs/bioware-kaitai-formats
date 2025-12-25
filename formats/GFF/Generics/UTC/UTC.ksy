@@ -7,9 +7,9 @@ meta:
   imports:
     - ../../gff
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/generics/utc.py
-    reone: vendor/reone/src/libs/resource/parser/gff/utc.cpp
-    xoreos: vendor/xoreos/src/aurora/gff3file.cpp
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/generics/utc.py
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/parser/gff/utc.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/gff3file.cpp
 doc: |
   UTC (Creature Template) files are GFF-based format files that store creature definitions
   including stats, appearance, inventory, feats, and script hooks. UTC files are used to

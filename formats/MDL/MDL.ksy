@@ -19,8 +19,8 @@ doc: |
   - Node hierarchy with geometry data
 
   Reference implementations:
-  - vendor/PyKotor/vendor/MDLOps/MDLOpsM.pm
-  - vendor/PyKotor/wiki/MDL-MDX-File-Format.md
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 doc-ref: https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md
 
 seq:
@@ -988,9 +988,9 @@ types:
           - 100: SelfIllumColor (self-illumination color, 3 floats: R, G, B)
           - 128: Alpha (transparency/opacity, 1 float)
 
-          Reference: vendor/PyKotor/wiki/MDL-MDX-File-Format.md - Additional Controller Types section
-          Reference: vendor/mdlops/MDLOpsM.pm:342-407 - Controller type definitions
-          Reference: vendor/xoreos-docs/specs/torlack/binmdl.html - Comprehensive controller list
+          Reference: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md - Additional Controller Types section
+          Reference: https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm:342-407 - Controller type definitions
+          Reference: https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/binmdl.html - Comprehensive controller list
       - id: unknown
         type: u2
         doc: Purpose unknown, typically 0xFFFF

@@ -6,8 +6,8 @@ meta:
   file-extension: gff.xml
   encoding: UTF-8
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
-    xoreos: vendor/xoreos-tools/src/xml/gffdumper.cpp
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
+    xoreos_tools: https://github.com/xoreos/xoreos-tools/blob/master/src/xml/gffdumper.cpp
 doc: |
   GFF XML format is a human-readable XML representation of GFF (Generic File Format) binary files.
   Used by xoreos-tools and other modding tools for easier editing than binary GFF format.
@@ -20,9 +20,9 @@ doc: |
   - Lists contain nested <struct> elements
   
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
-  - vendor/xoreos-tools/src/xml/gffdumper.cpp
-  - vendor/xoreos-tools/src/xml/gffcreator.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
+  - https://github.com/xoreos/xoreos-tools/blob/master/src/xml/gffdumper.cpp
+  - https://github.com/xoreos/xoreos-tools/blob/master/src/xml/gffcreator.cpp
 
 seq:
   - id: xml_content

@@ -20,7 +20,7 @@ doc: |
   After decompression, the data follows the standard BIF format structure.
 
   References:
-  - vendor/PyKotor/wiki/BIF-File-Format.md - BZF compression section
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/BIF-File-Format.md - BZF compression section
   - BIF.ksy - Standard BIF format (decompressed BZF data matches this)
 
 seq:

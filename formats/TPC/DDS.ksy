@@ -16,7 +16,7 @@ doc: |
   and various other pixel formats. They can include mipmaps and cube maps.
   
   References:
-  - vendor/PyKotor/wiki/DDS-File-Format.md - Complete DDS format documentation
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/DDS-File-Format.md - Complete DDS format documentation
   - Standard DirectX DDS format specification
 
 seq:

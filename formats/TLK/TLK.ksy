@@ -6,10 +6,10 @@ meta:
   file-extension:
     - tlk
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/tlk/
-    reone: vendor/reone/src/libs/resource/format/tlkreader.cpp
-    xoreos: vendor/xoreos/src/aurora/talktable.cpp
-    wiki: vendor/PyKotor/wiki/TLK-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/tlk/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/tlkreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/talktable.cpp
+    pykotor_wiki_tlk: https://github.com/OldRepublicDevs/PyKotor/wiki/TLK-File-Format.md
 doc: |
   TLK (Talk Table) files contain all text strings used in the game, both written and spoken.
   They enable easy localization by providing a lookup table from string reference numbers (StrRef)
@@ -28,11 +28,11 @@ doc: |
   the first entry, StrRef 1 to the second, etc. StrRef -1 indicates no string reference.
 
   References:
-  - vendor/PyKotor/wiki/TLK-File-Format.md
-  - vendor/reone/src/libs/resource/format/tlkreader.cpp:31-84
-  - vendor/xoreos/src/aurora/talktable.cpp:42-176
-  - vendor/TSLPatcher/lib/site/Bioware/TLK.pm:1-533
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorTLK/TLKBinaryStructure.cs:11-132
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/TLK-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/tlkreader.cpp:31-84
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/talktable.cpp:42-176
+  - https://github.com/TSLPatcher/TSLPatcher/blob/master/lib/site/Bioware/TLK.pm:1-533
+  - https://github.com/KotOR-Community-Patches/Kotor.NET/blob/master/Kotor.NET/Formats/KotorTLK/TLKBinaryStructure.cs:11-132
 
 seq:
   - id: header

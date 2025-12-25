@@ -4,17 +4,24 @@ meta:
   license: MIT
   endian: le
   file-extension: gff
+  imports:
+    - ../common/bioware_common
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/gff/
-    reone: vendor/reone/src/libs/resource/format/gffreader.cpp
-    xoreos: vendor/xoreos/src/aurora/gff3file.cpp
-    kotor_js: vendor/KotOR.js/src/resource/GFFObject.ts
-    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/GFFObject.cs
-    kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorGFF/
-    wiki: vendor/PyKotor/wiki/GFF-File-Format.md
-    bioware_aurora: vendor/PyKotor/wiki/Bioware-Aurora-GFF.md
-    torlack: vendor/xoreos-docs/specs/torlack/itp.html
-    holopatcher: vendor/PyKotor/wiki/TSLPatcher-GFFList-Syntax.md
+    kotor_js: https://github.com/KobaltBlu/KotOR.js/blob/master/src/resource/GFFObject.ts
+    kotor_net: https://github.com/KotOR-Community-Patches/Kotor.NET/tree/master/Kotor.NET/Formats/KotorGFF/
+    kotor_net2: https://github.com/NickHugi/Kotor.NET/tree/master/Kotor.NET/Formats/KotorGFF/  # - .NET GFF reader/writer
+    kotor_unity: https://github.com/KotOR-Community-Patches/KotOR-Unity/blob/master/Assets/Scripts/FileObjects/GFFObject.cs
+    kotor_unity2: https://github.com/th3w1zard1/KotOR-Unity/blob/master/Assets/Scripts/FileObjects/GFFObject.cs  # - C# Unity GFF loader
+    pykotor_gff_data: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/gff_data.py  # - GFF data model
+    pykotor_io_gff: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff.py  # - PyKotor binary reader/writer
+    pykotor_wiki_gff_aurora: https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-GFF.md
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+    pykotor_wiki_tslpatcher: https://github.com/OldRepublicDevs/PyKotor/wiki/TSLPatcher-GFFList-Syntax.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/gffreader.cpp
+    xoreos_docs: https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/itp.html
+    xoreos_gff3file: https://github.com/xoreos/xoreos/blob/master/src/aurora/gff3file.cpp  #  - Generic Aurora GFF implementation (shared format)
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/gff3file.cpp
 doc: |
   GFF (Generic File Format) is BioWare's universal container format for structured game data.
   It is used by many KotOR file types including UTC (creature), UTI (item), DLG (dialogue),
@@ -51,16 +58,16 @@ doc: |
   6. Use field.data_or_offset based on field_type (inline, offset, struct index, list offset)
 
   References:
-  - vendor/PyKotor/wiki/GFF-File-Format.md - Complete GFF format documentation
-  - vendor/PyKotor/wiki/Bioware-Aurora-GFF.md - Official BioWare Aurora GFF specification
-  - vendor/xoreos-docs/specs/torlack/itp.html - Tim Smith/Torlack's GFF/ITP documentation
-  - vendor/reone/src/libs/resource/format/gffreader.cpp - Complete C++ GFF reader implementation
-  - vendor/xoreos/src/aurora/gff3file.cpp - Generic Aurora GFF implementation (shared format)
-  - vendor/KotOR.js/src/resource/GFFObject.ts - TypeScript GFF parser
-  - vendor/KotOR-Unity/Assets/Scripts/FileObjects/GFFObject.cs - C# Unity GFF loader
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorGFF/ - .NET GFF reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff.py - PyKotor binary reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/gff/gff_data.py - GFF data model
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md - Complete GFF format documentation
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-GFF.md - Official BioWare Aurora GFF specification
+  - https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/itp.html - Tim Smith/Torlack's GFF/ITP documentation
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/gffreader.cpp - Complete C++ GFF reader implementation
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/gff3file.cpp - Generic Aurora GFF implementation (shared format)
+  - https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/GFFObject.ts - TypeScript GFF parser
+  - https://github.com/KotOR-Community-Patches/KotOR-Unity/blob/master/Assets/Scripts/FileObjects/GFFObject.cs - C# Unity GFF loader
+  - https://github.com/KotOR-Community-Patches/Kotor.NET/tree/master/Kotor.NET/Formats/KotorGFF/ - .NET GFF reader/writer
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff.py - PyKotor binary reader/writer
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/gff_data.py - GFF data model
 
 seq:
   - id: header
@@ -321,7 +328,7 @@ types:
           - UInt64/Int64/Double: 8 bytes
           - String: 4-byte length + string bytes
           - ResRef: 1-byte length + string bytes (max 16)
-          - LocalizedString: variable (see localized_string_data type)
+          - LocalizedString: variable (see bioware_common::bioware_locstring type)
           - Binary: 4-byte length + binary bytes
           - Vector3: 12 bytes (3×float)
           - Vector4: 16 bytes (4×float)
@@ -353,74 +360,22 @@ types:
 
   list_entry:
     seq:
-      - id: count
+      - id: num_struct_indices
         type: u4
         doc: Number of struct indices in this list
       - id: struct_indices
         type: u4
         repeat: expr
-        repeat-expr: count
+        repeat-expr: num_struct_indices
         doc: Array of struct indices (indices into struct_array)
 
-  localized_string_data:
-    seq:
-      - id: total_size
-        type: u4
-        doc: |
-          Total size of this LocalizedString structure in bytes (not including this count).
-          Used for skipping over the structure, but can be calculated from the data.
-
-      - id: string_ref
-        type: u4
-        doc: |
-          String reference ID (StrRef) into dialog.tlk file.
-          Value 0xFFFFFFFF indicates no string reference (-1).
-
-      - id: string_count
-        type: u4
-        doc: Number of language-specific string substrings
-
-      - id: substrings
-        type: localized_substring
-        repeat: expr
-        repeat-expr: string_count
-        doc: Array of language-specific string substrings
-    instances:
-      string_ref_value:
-        value: string_ref
-        doc: |
-          String reference value. Application code should convert 0xFFFFFFFF to -1.
-          Note: Kaitai Struct expressions don't support ternary operators, so the conversion
-          must be done in application code: if string_ref == 0xFFFFFFFF then -1 else string_ref
-
-  localized_substring:
-    seq:
-      - id: string_id
-        type: u4
-        doc: |
-          String ID encoding language and gender:
-          - Bits 0-7: Gender (0 = Male, 1 = Female)
-          - Bits 8-15: Language ID (see Language enum)
-          - Bits 16-31: Reserved/unused
-
-      - id: string_length
-        type: u4
-        doc: Length of string data in bytes
-
-      - id: string_data
-        type: str
-        size: string_length
-        encoding: UTF-8
-        doc: |
-          String data (encoding depends on language, but UTF-8 is common).
-          Trailing null bytes should be trimmed.
-    instances:
-      language_id:
-        value: (string_id >> 8) & 0xFF
-        doc: Language ID (extracted from string_id)
-      gender_id:
-        value: string_id & 0xFF
-        doc: Gender ID (0 = Male, 1 = Female)
+  # NOTE: For field data parsing, use bioware_common types directly:
+  # - bioware_common::bioware_resref for ResRef fields
+  # - bioware_common::bioware_cexo_string for String fields
+  # - bioware_common::bioware_locstring for LocalizedString fields
+  # - bioware_common::bioware_vector3 for Vector3 fields
+  # - bioware_common::bioware_vector4 for Vector4 fields
+  # - bioware_common::bioware_binary_data for Binary fields
 
 enums:
   gff_field_type:
