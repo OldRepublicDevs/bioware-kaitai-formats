@@ -24,17 +24,16 @@ seq:
     encoding: ASCII
     size: 4
     doc: File type signature. Must be "BZF " for compressed BIF files.
-    valid: "BZF "
+    valid: "'BZF '"
   
   - id: version
     type: str
     encoding: ASCII
     size: 4
     doc: File format version. Must be "V1.0" for BZF files.
-    valid: "V1.0"
+    valid: "'V1.0'"
   
   - id: compressed_data
-    type: str
     size-eos: true
     doc: |
       LZMA-compressed BIF file data.
