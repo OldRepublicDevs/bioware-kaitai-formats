@@ -290,7 +290,11 @@ types:
           - "V3.3": Later BioWare games
           - "V4.0": Dragon Age: Origins, Dragon Age 2
           - "V4.1": Mass Effect series
-        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+        valid: |
+          "V3.2"
+          "V3.3"
+          "V4.0"
+          "V4.1"
 
       - id: struct_array_offset
         type: u4
@@ -610,94 +614,112 @@ types:
 
 enums:
   gff_field_type:
-    0: uint8
-    doc: |
-      8-bit unsigned integer (Byte).
-      Used in ARE files for: Unescapable, DisableTransit, StealthXPEnabled, SunFogOn, SunShadows,
-      ShadowOpacity (in some implementations), DisableWeather (room structs, KotOR 2 only).
-      Values: 0 = false/off, 1 = true/on (for boolean fields).
-    1: int8
-    doc: 8-bit signed integer (Char). Rarely used in ARE files.
-    2: uint16
-    doc: |
-      16-bit unsigned integer (Word).
-      Used in ARE files for: LoadScreenID (index into loadscreens.2da, if present).
-    3: int16
-    doc: 16-bit signed integer (Short). Rarely used in ARE files.
-    4: uint32
-    doc: |
-      32-bit unsigned integer (DWord).
-      Used in ARE files for: Color values in BGR format (SunAmbientColor, SunDiffuseColor, DynAmbientColor,
-      SunFogColor, Grass_Ambient, Grass_Diffuse, Grass_Emissive, DirtyARGBOne/Two/Three).
-      Note: Colors are stored in BGR format, not RGB. See main documentation for details.
-    5: int32
-    doc: |
-      32-bit signed integer (Int).
-      Used in ARE files for: CameraStyle, WindPower, StealthXPLoss, StealthXPMax,
-      DirtyFormulaOne, DirtyFormulaTwo, DirtyFormulaThre, DirtyFuncOne, DirtyFuncTwo, DirtyFuncThree,
-      NorthAxis (Map struct), MapZoom (Map struct), MapResX (Map struct),
-      ChanceRain, ChanceSnow, ChanceLightning (KotOR 2 only).
-      Note: AlphaTest is stored as Single/Float (type 8), not Int32, as verified from engine behavior (swkotor.exe: 0x00508c50, swkotor2.exe: 0x004e3ff0).
-      EnvAudio (room structs, Aurora/NWN), ForceRating (room structs, KotOR 2 only),
-      Version, Creator_ID, ID, Flags, ModSpotCheck, ModListenCheck (deprecated fields).
-    6: uint64
-    doc: 64-bit unsigned integer (QWord). Not used in ARE files.
-    7: int64
-    doc: 64-bit signed integer (Long). Not used in ARE files.
-    8: single
-    doc: |
-      32-bit floating point (Float, IEEE 754 single precision).
-      Used in ARE files for: AlphaTest (default: 0.2, verified from engine: swkotor.exe: 0x00508c50, swkotor2.exe: 0x004e3ff0),
-      SunFogNear, SunFogFar, MoonFogNear, MoonFogFar (if present),
-      Grass_Density, Grass_QuadSize, Grass_Prob_LL, Grass_Prob_LR, Grass_Prob_UL, Grass_Prob_UR,
-      DirtySizeOne, DirtySizeTwo, DirtySizeThree (KotOR 2 only),
-      MapPt1X, MapPt1Y, MapPt2X, MapPt2Y (Map struct, normalized 0.0-1.0),
-      WorldPt1X, WorldPt1Y, WorldPt2X, WorldPt2Y (Map struct, world coordinates),
-      AmbientScale (room structs).
-    9: double
-    doc: 64-bit floating point (Double, IEEE 754 double precision). Not used in ARE files.
-    10: string
-    doc: |
-      Null-terminated string (CExoString).
-      Used in ARE files for: Tag (area identifier), Comments (developer notes),
-      RoomName (room structs), DisplayName (Aurora/NWN only).
-      Format: 4-byte length (u4) + length bytes (ASCII encoding, no null terminator).
-    11: resref
-    doc: |
-      Resource reference (ResRef, max 16 characters).
-      Used in ARE files for: DefaultEnvMap (environment map texture),
-      Grass_TexName (grass texture), script hooks (OnEnter, OnExit, OnHeartbeat, OnUserDefined,
-      OnEnter2, OnExit2, OnHeartbeat2, OnUserDefined2).
-      Format: 1-byte length (u1, max 16) + length bytes (ASCII encoding).
-    12: localized_string
-    doc: |
-      Localized string (CExoLocString).
-      Used in ARE files for: Name (area name, displayed in-game and toolset).
-      Format: Variable-length structure with string reference (StrRef) and language-specific strings.
-      See field_data_section documentation for detailed structure.
-    13: binary
-    doc: |
-      Binary data blob (Void).
-      Rarely used in ARE files. Format: 4-byte length (u4) + length bytes.
-    14: struct
-    doc: |
-      Nested struct.
-      Used in ARE files for: Map (nested struct containing map coordinate data).
-      Format: data_or_offset contains struct index into struct_array.
-    15: list
-    doc: |
-      List of structs.
-      Used in ARE files for: Rooms (list of room structs for audio zones and weather regions),
-      AreaList (list of area names, typically empty), MapList (list of map ResRefs, typically empty).
-      Format: data_or_offset contains byte offset into list_indices_array.
-      Each list entry starts with count (u4) followed by struct indices (u4 each).
-    16: vector4
-    doc: |
-      Quaternion/Orientation (4×float, Vector4).
-      Not commonly used in ARE files. Format: 16 bytes (4×f4, little-endian).
-    17: vector3
-    doc: |
-      3D vector (3×float, Vector3).
-      Not commonly used in ARE files directly, but Vector2 is used conceptually for map coordinates
-      (stored as two separate Float fields: MapPt1X/Y, WorldPt1X/Y).
-      Format: 12 bytes (3×f4, little-endian) if present.
+    0:
+      id: uint8
+      doc: |
+        8-bit unsigned integer (Byte).
+        Used in ARE files for: Unescapable, DisableTransit, StealthXPEnabled, SunFogOn, SunShadows,
+        ShadowOpacity (in some implementations), DisableWeather (room structs, KotOR 2 only).
+        Values: 0 = false/off, 1 = true/on (for boolean fields).
+    1:
+      id: int8
+      doc: 8-bit signed integer (Char). Rarely used in ARE files.
+    2:
+      id: uint16
+      doc: |
+        16-bit unsigned integer (Word).
+        Used in ARE files for: LoadScreenID (index into loadscreens.2da, if present).
+    3:
+      id: int16
+      doc: 16-bit signed integer (Short). Rarely used in ARE files.
+    4:
+      id: uint32
+      doc: |
+        32-bit unsigned integer (DWord).
+        Used in ARE files for: Color values in BGR format (SunAmbientColor, SunDiffuseColor, DynAmbientColor,
+        SunFogColor, Grass_Ambient, Grass_Diffuse, Grass_Emissive, DirtyARGBOne/Two/Three).
+        Note: Colors are stored in BGR format, not RGB. See main documentation for details.
+    5:
+      id: int32
+      doc: |
+        32-bit signed integer (Int).
+        Used in ARE files for: CameraStyle, WindPower, StealthXPLoss, StealthXPMax,
+        DirtyFormulaOne, DirtyFormulaTwo, DirtyFormulaThre, DirtyFuncOne, DirtyFuncTwo, DirtyFuncThree,
+        NorthAxis (Map struct), MapZoom (Map struct), MapResX (Map struct),
+        ChanceRain, ChanceSnow, ChanceLightning (KotOR 2 only).
+        Note: AlphaTest is stored as Single/Float (type 8), not Int32, as verified from engine behavior (swkotor.exe: 0x00508c50, swkotor2.exe: 0x004e3ff0).
+        EnvAudio (room structs, Aurora/NWN), ForceRating (room structs, KotOR 2 only),
+        Version, Creator_ID, ID, Flags, ModSpotCheck, ModListenCheck (deprecated fields).
+    6:
+      id: uint64
+      doc: 64-bit unsigned integer (QWord). Not used in ARE files.
+    7:
+      id: int64
+      doc: 64-bit signed integer (Long). Not used in ARE files.
+    8:
+      id: single
+      doc: |
+        32-bit floating point (Float, IEEE 754 single precision).
+        Used in ARE files for: AlphaTest (default: 0.2, verified from engine: swkotor.exe: 0x00508c50, swkotor2.exe: 0x004e3ff0),
+        SunFogNear, SunFogFar, MoonFogNear, MoonFogFar (if present),
+        Grass_Density, Grass_QuadSize, Grass_Prob_LL, Grass_Prob_LR, Grass_Prob_UL, Grass_Prob_UR,
+        DirtySizeOne, DirtySizeTwo, DirtySizeThree (KotOR 2 only),
+        MapPt1X, MapPt1Y, MapPt2X, MapPt2Y (Map struct, normalized 0.0-1.0),
+        WorldPt1X, WorldPt1Y, WorldPt2X, WorldPt2Y (Map struct, world coordinates),
+        AmbientScale (room structs).
+    9:
+      id: double
+      doc: 64-bit floating point (Double, IEEE 754 double precision). Not used in ARE files.
+    10:
+      id: string
+      doc: |
+        Null-terminated string (CExoString).
+        Used in ARE files for: Tag (area identifier), Comments (developer notes),
+        RoomName (room structs), DisplayName (Aurora/NWN only).
+        Format: 4-byte length (u4) + length bytes (ASCII encoding, no null terminator).
+    11:
+      id: resref
+      doc: |
+        Resource reference (ResRef, max 16 characters).
+        Used in ARE files for: DefaultEnvMap (environment map texture),
+        Grass_TexName (grass texture), script hooks (OnEnter, OnExit, OnHeartbeat, OnUserDefined,
+        OnEnter2, OnExit2, OnHeartbeat2, OnUserDefined2).
+        Format: 1-byte length (u1, max 16) + length bytes (ASCII encoding).
+    12:
+      id: localized_string
+      doc: |
+        Localized string (CExoLocString).
+        Used in ARE files for: Name (area name, displayed in-game and toolset).
+        Format: Variable-length structure with string reference (StrRef) and language-specific strings.
+        See field_data_section documentation for detailed structure.
+    13:
+      id: binary
+      doc: |
+        Binary data blob (Void).
+        Rarely used in ARE files. Format: 4-byte length (u4) + length bytes.
+    14:
+      id: struct
+      doc: |
+        Nested struct.
+        Used in ARE files for: Map (nested struct containing map coordinate data).
+        Format: data_or_offset contains struct index into struct_array.
+    15:
+      id: list
+      doc: |
+        List of structs.
+        Used in ARE files for: Rooms (list of room structs for audio zones and weather regions),
+        AreaList (list of area names, typically empty), MapList (list of map ResRefs, typically empty).
+        Format: data_or_offset contains byte offset into list_indices_array.
+        Each list entry starts with count (u4) followed by struct indices (u4 each).
+    16:
+      id: vector4
+      doc: |
+        Quaternion/Orientation (4×float, Vector4).
+        Not commonly used in ARE files. Format: 16 bytes (4×f4, little-endian).
+    17:
+      id: vector3
+      doc: |
+        3D vector (3×float, Vector3).
+        Not commonly used in ARE files directly, but Vector2 is used conceptually for map coordinates
+        (stored as two separate Float fields: MapPt1X/Y, WorldPt1X/Y).
+        Format: 12 bytes (3×f4, little-endian) if present.

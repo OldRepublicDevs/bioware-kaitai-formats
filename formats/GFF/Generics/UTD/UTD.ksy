@@ -183,7 +183,11 @@ types:
         doc: |
           File format version. Typically "V3.2" for KotOR.
           Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
-        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+        valid: |
+          "V3.2"
+          "V3.3"
+          "V4.0"
+          "V4.1"
       
       - id: struct_array_offset
         type: u4
@@ -586,64 +590,82 @@ types:
 
 enums:
   gff_field_type:
-    0: uint8
-    doc: |
-      8-bit unsigned integer (byte).
-      Used in UTD for: Lockable, Locked, KeyRequired, AutoRemoveKey, OpenLockDC, CloseLockDC,
-      OpenLockDiff, OpenState, GenericType, AnimationState, PaletteID, Hardness, Min1HP,
-      NotBlastable, Plot, Static, Interruptable, Fort, Ref, Will, TrapDetectable, TrapDetectDC,
-      TrapDisarmable, DisarmDC, TrapFlag, TrapOneShot, TrapType, LinkedToFlags.
-    1: int8
-    doc: |
-      8-bit signed integer (char).
-      Used in UTD for: OpenLockDiffMod (KotOR2 only, signed modifier).
-    2: uint16
-    doc: |
-      16-bit unsigned integer (word).
-      Used in UTD for: PortraitId, LoadScreenID.
-    3: int16
-    doc: |
-      16-bit signed integer (short).
-      Used in UTD for: HP (maximum hit points), CurrentHP (current hit points).
-    4: uint32
-    doc: |
-      32-bit unsigned integer (dword).
-      Used in UTD for: Faction (faction identifier), Appearance (deprecated appearance index).
-    5: int32
-    doc: 32-bit signed integer (int)
-    6: uint64
-    doc: 64-bit unsigned integer (stored in field_data section)
-    7: int64
-    doc: 64-bit signed integer (stored in field_data section)
-    8: single
-    doc: 32-bit floating point (float)
-    9: double
-    doc: 64-bit floating point (stored in field_data section)
-    10: string
-    doc: |
-      Null-terminated string (CExoString, stored in field_data section).
-      Used in UTD for: Tag (door tag identifier), Comment (developer comment),
-      KeyName (tag of required KEY item), LinkedTo (destination module tag).
-    11: resref
-    doc: |
-      Resource reference (ResRef, max 16 chars, stored in field_data section).
-      Used in UTD for: TemplateResRef (door template name), Conversation (dialog ResRef),
-      OnClick, OnOpen, OnClosed, OnDamaged, OnDeath, OnDisarm, OnFailToOpen, OnHeartbeat,
-      OnLock, OnMeleeAttacked, OnSpellCastAt, OnTrapTriggered, OnUnlock, OnUserDefined
-      (script hook ResRefs), LinkedToModule (destination module ResRef).
-    12: localized_string
-    doc: |
-      Localized string (CExoLocString, stored in field_data section).
-      Used in UTD for: LocName (localized door name with multiple language/gender support),
-      Description (door description, deprecated, not used by game engine),
-      TransitionDestin (destination label, deprecated, not used by game engine).
-    13: binary
-    doc: Binary data blob (Void, stored in field_data section)
-    14: struct
-    doc: Nested struct (struct index stored inline)
-    15: list
-    doc: List of structs (offset to list_indices stored inline). UTD files typically do not use LIST type fields.
-    16: vector4
-    doc: Quaternion/Orientation (4×float, stored in field_data as Vector4)
-    17: vector3
-    doc: 3D vector (3×float, stored in field_data)
+    0:
+      id: uint8
+      doc: |
+        8-bit unsigned integer (byte).
+        Used in UTD for: Lockable, Locked, KeyRequired, AutoRemoveKey, OpenLockDC, CloseLockDC,
+        OpenLockDiff, OpenState, GenericType, AnimationState, PaletteID, Hardness, Min1HP,
+        NotBlastable, Plot, Static, Interruptable, Fort, Ref, Will, TrapDetectable, TrapDetectDC,
+        TrapDisarmable, DisarmDC, TrapFlag, TrapOneShot, TrapType, LinkedToFlags.
+    1:
+      id: int8
+      doc: |
+        8-bit signed integer (char).
+        Used in UTD for: OpenLockDiffMod (KotOR2 only, signed modifier).
+    2:
+      id: uint16
+      doc: |
+        16-bit unsigned integer (word).
+        Used in UTD for: PortraitId, LoadScreenID.
+    3:
+      id: int16
+      doc: |
+        16-bit signed integer (short).
+        Used in UTD for: HP (maximum hit points), CurrentHP (current hit points).
+    4:
+      id: uint32
+      doc: |
+        32-bit unsigned integer (dword).
+        Used in UTD for: Faction (faction identifier), Appearance (deprecated appearance index).
+    5:
+      id: int32
+      doc: 32-bit signed integer (int)
+    6:
+      id: uint64
+      doc: 64-bit unsigned integer (stored in field_data section)
+    7:
+      id: int64
+      doc: 64-bit signed integer (stored in field_data section)
+    8:
+      id: single
+      doc: 32-bit floating point (float)
+    9:
+      id: double
+      doc: 64-bit floating point (stored in field_data section)
+    10:
+      id: string
+      doc: |
+        Null-terminated string (CExoString, stored in field_data section).
+        Used in UTD for: Tag (door tag identifier), Comment (developer comment),
+        KeyName (tag of required KEY item), LinkedTo (destination module tag).
+    11:
+      id: resref
+      doc: |
+        Resource reference (ResRef, max 16 chars, stored in field_data section).
+        Used in UTD for: TemplateResRef (door template name), Conversation (dialog ResRef),
+        OnClick, OnOpen, OnClosed, OnDamaged, OnDeath, OnDisarm, OnFailToOpen, OnHeartbeat,
+        OnLock, OnMeleeAttacked, OnSpellCastAt, OnTrapTriggered, OnUnlock, OnUserDefined
+        (script hook ResRefs), LinkedToModule (destination module ResRef).
+    12:
+      id: localized_string
+      doc: |
+        Localized string (CExoLocString, stored in field_data section).
+        Used in UTD for: LocName (localized door name with multiple language/gender support),
+        Description (door description, deprecated, not used by game engine),
+        TransitionDestin (destination label, deprecated, not used by game engine).
+    13:
+      id: binary
+      doc: Binary data blob (Void, stored in field_data section)
+    14:
+      id: struct
+      doc: Nested struct (struct index stored inline)
+    15:
+      id: list
+      doc: List of structs (offset to list_indices stored inline). UTD files typically do not use LIST type fields.
+    16:
+      id: vector4
+      doc: Quaternion/Orientation (4×float, stored in field_data as Vector4)
+    17:
+      id: vector3
+      doc: 3D vector (3×float, stored in field_data)

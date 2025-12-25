@@ -101,7 +101,11 @@ types:
         doc: |
           File format version. Typically "V3.2" for KotOR.
           Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
-        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+        valid: |
+          "V3.2"
+          "V3.3"
+          "V4.0"
+          "V4.1"
 
       - id: struct_array_offset
         type: u4
@@ -824,63 +828,89 @@ types:
 
 enums:
   gui_control_type:
-    -1: invalid
-    doc: Invalid control type
-    0: control
-    doc: Base control/container type
-    2: panel
-    doc: Panel container
-    4: proto_item
-    doc: Prototype item (used in ListBox)
-    5: label
-    doc: Label/text display
-    6: button
-    doc: Button control
-    7: checkbox
-    doc: Checkbox control
-    8: slider
-    doc: Slider control
-    9: scrollbar
-    doc: Scrollbar control
-    10: progress
-    doc: Progress bar
-    11: listbox
-    doc: List box with items
+    -1:
+      id: invalid
+      doc: Invalid control type
+    0:
+      id: control
+      doc: Base control/container type
+    2:
+      id: panel
+      doc: Panel container
+    4:
+      id: proto_item
+      doc: Prototype item (used in ListBox)
+    5:
+      id: label
+      doc: Label/text display
+    6:
+      id: button
+      doc: Button control
+    7:
+      id: checkbox
+      doc: Checkbox control
+    8:
+      id: slider
+      doc: Slider control
+    9:
+      id: scrollbar
+      doc: Scrollbar control
+    10:
+      id: progress
+      doc: Progress bar
+    11:
+      id: listbox
+      doc: List box with items
 
   gui_text_alignment:
-    1: top_left
-    doc: Top-Left alignment
-    2: top_center
-    doc: Top-Center alignment
-    3: top_right
-    doc: Top-Right alignment
-    17: center_left
-    doc: Center-Left alignment
-    18: center
-    doc: Center alignment (most common)
-    19: center_right
-    doc: Center-Right alignment
-    33: bottom_left
-    doc: Bottom-Left alignment
-    34: bottom_center
-    doc: Bottom-Center alignment
-    35: bottom_right
-    doc: Bottom-Right alignment
+    1:
+      id: top_left
+      doc: Top-Left alignment
+    2:
+      id: top_center
+      doc: Top-Center alignment
+    3:
+      id: top_right
+      doc: Top-Right alignment
+    17:
+      id: center_left
+      doc: Center-Left alignment
+    18:
+      id: center
+      doc: Center alignment (most common)
+    19:
+      id: center_right
+      doc: Center-Right alignment
+    33:
+      id: bottom_left
+      doc: Bottom-Left alignment
+    34:
+      id: bottom_center
+      doc: Bottom-Center alignment
+    35:
+      id: bottom_right
+      doc: Bottom-Right alignment
 
   gui_fill_style:
-    -1: none
-    doc: No fill style (not set)
-    0: empty
-    doc: Empty fill
-    1: solid
-    doc: Solid color fill
-    2: texture
-    doc: Texture fill (most common)
+    -1:
+      id: none
+      doc: No fill style (not set)
+    0:
+      id: empty
+      doc: Empty fill
+    1:
+      id: solid
+      doc: Solid color fill
+    2:
+      id: texture
+      doc: Texture fill (most common)
 
   gui_slider_direction:
-    0: horizontal
-    doc: Horizontal slider (left-right)
-    1: vertical
-    doc: Vertical slider (top-bottom)
+    0:
+      id: horizontal
+      doc: Horizontal slider (left-right)
+    1:
+      id: vertical
+      doc: Vertical slider (top-bottom)
 
 
