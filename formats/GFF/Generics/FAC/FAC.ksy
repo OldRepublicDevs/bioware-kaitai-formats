@@ -5,7 +5,7 @@ meta:
   endian: le
   file-extension: fac
   xref:
-    pykotor: vendor/PyKotor/wiki/Bioware-Aurora-Faction.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-Faction.md
     reone: vendor/reone/src/libs/resource/parser/gff/fac.cpp
     xoreos: vendor/xoreos/src/aurora/gff3file.cpp
     bioware_docs: vendor/xoreos-docs/specs/bioware/Faction_Format.pdf
@@ -42,37 +42,38 @@ seq:
     type: gff_header
     doc: GFF file header (56 bytes)
 
-  - id: label_array
+instances:
+  label_array:
     type: label_array
     if: gff_header.label_count > 0
     pos: gff_header.label_array_offset
     doc: Array of field name labels (16-byte null-terminated strings)
 
-  - id: struct_array
+  struct_array:
     type: struct_array
     if: gff_header.struct_count > 0
     pos: gff_header.struct_array_offset
     doc: Array of struct entries (12 bytes each)
 
-  - id: field_array
+  field_array:
     type: field_array
     if: gff_header.field_count > 0
     pos: gff_header.field_array_offset
     doc: Array of field entries (12 bytes each)
 
-  - id: field_data
+  field_data:
     type: field_data_section
     if: gff_header.field_data_count > 0
     pos: gff_header.field_data_offset
     doc: Field data section for complex types (strings, ResRefs, LocalizedStrings, etc.)
 
-  - id: field_indices
+  field_indices:
     type: field_indices_array
     if: gff_header.field_indices_count > 0
     pos: gff_header.field_indices_offset
     doc: Field indices array (MultiMap) for structs with multiple fields
 
-  - id: list_indices
+  list_indices:
     type: list_indices_array
     if: gff_header.list_indices_count > 0
     pos: gff_header.list_indices_offset
