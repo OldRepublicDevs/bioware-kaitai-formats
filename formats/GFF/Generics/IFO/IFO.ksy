@@ -94,12 +94,13 @@ types:
         size: 4
         doc: |
           File format version. Typically "V3.2" for KotOR.
-          Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
-        valid: |
-          "V3.2"
-          "V3.3"
-          "V4.0"
-          "V4.1"
+          Other versions: "V3.3", "V4.0", "V4.1" for various other BioWare games.
+        valid:
+          any-of:
+            - "V3.2"
+            - "V3.3"
+            - "V4.0"
+            - "V4.1"
 
       - id: struct_array_offset
         type: u4
@@ -297,6 +298,64 @@ types:
         value: _root.gff_header.list_indices_offset + data_or_offset
         if: is_list_type
         doc: Absolute file offset to list indices for list type fields
+
+  # Complex field data types (used when accessing field_data section)
+  localized_string_data:
+    seq:
+      - id: total_size
+        type: u4
+        doc: |
+          Total size of this LocalizedString structure in bytes (not including this count).
+          Used for skipping over the structure, but can be calculated from the data.
+
+      - id: string_ref
+        type: u4
+        doc: |
+          String reference ID (StrRef) into dialog.tlk file.
+          Value 0xFFFFFFFF indicates no string reference (-1).
+
+      - id: string_count
+        type: u4
+        doc: Number of language-specific string substrings
+
+      - id: substrings
+        type: localized_substring
+        repeat: expr
+        repeat-expr: string_count
+        doc: Array of language-specific string substrings
+    instances:
+      string_ref_value:
+        value: string_ref == 0xFFFFFFFF ? -1 : string_ref
+        doc: String reference as signed integer (-1 if none)
+
+  localized_substring:
+    seq:
+      - id: string_id
+        type: u4
+        doc: |
+          String ID encoding language and gender:
+          - Bits 0-7: Gender (0 = Male, 1 = Female)
+          - Bits 8-15: Language ID (see Language enum)
+          - Bits 16-31: Reserved/unused
+
+      - id: string_length
+        type: u4
+        doc: Length of string data in bytes
+
+      - id: string_data
+        type: str
+        size: string_length
+        encoding: UTF-8
+        doc: |
+          String data (encoding depends on language, but UTF-8 is common).
+          Trailing null bytes should be trimmed.
+    instances:
+      language_id:
+        value: (string_id >> 8) & 0xFF
+        doc: Language ID (extracted from string_id)
+      gender_id:
+        value: string_id & 0xFF
+        doc: Gender ID (0 = Male, 1 = Female)
 
   # Field Data Section
   field_data_section:

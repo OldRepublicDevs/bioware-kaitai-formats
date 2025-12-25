@@ -94,11 +94,12 @@ types:
         doc: |
           File format version. Must be "V3.2" for KotOR games.
           Later BioWare games use "V3.3", "V4.0", or "V4.1".
-        valid: |
-          "V3.2"
-          "V3.3"
-          "V4.0"
-          "V4.1"
+        valid:
+          any-of:
+            - "V3.2"
+            - "V3.3"
+            - "V4.0"
+            - "V4.1"
       
       - id: struct_offset
         type: u4
