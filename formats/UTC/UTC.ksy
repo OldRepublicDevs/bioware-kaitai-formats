@@ -366,7 +366,7 @@ types:
         doc: Array of language-specific string substrings
     instances:
       string_ref_value:
-        value: string_ref == 0xFFFFFFFF ? -1 : string_ref
+        value: 'string_ref == 0xFFFFFFFF ? -1 : string_ref'
         doc: String reference as signed integer (-1 if none)
   
   localized_substring:
