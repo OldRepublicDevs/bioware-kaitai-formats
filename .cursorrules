@@ -84,6 +84,11 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 - Use descriptive field names matching BioWare conventions
 - Add `doc` comments for all types and fields
 
+**Validation and Linting**:
+- **CRITICAL**: After ANY `.ksy` file change, always lint and fix all problems by referencing `include/ksy_schema.json`
+- The schema file defines the complete Kaitai Struct specification and must be used to validate syntax
+- Fix all validation errors, schema violations, and linting issues before committing
+
 ## 5. Generated Code Location
 
 **Structure**: `src/<language>/` (mirrors `formats/` structure)
