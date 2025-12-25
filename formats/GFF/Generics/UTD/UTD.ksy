@@ -378,16 +378,32 @@ types:
             Byte offset into list_indices array (relative to list_indices_offset)
     instances:
       is_simple_type:
-        value: field_type.value >= 0 && field_type.value <= 5 || field_type.value == 8
-        doc: "True if field stores data inline (simple types: Byte, Char, UInt16, Int16, UInt32, Int32, Float)"
+        value: |
+          field_type == gff_field_type::uint8 or
+          field_type == gff_field_type::int8 or
+          field_type == gff_field_type::uint16 or
+          field_type == gff_field_type::int16 or
+          field_type == gff_field_type::uint32 or
+          field_type == gff_field_type::int32 or
+          field_type == gff_field_type::single
+        doc: True if field stores data inline (simple types: Byte, Char, UInt16, Int16, UInt32, Int32, Float)
       is_complex_type:
-        value: field_type.value >= 6 && field_type.value <= 13 || field_type.value >= 16 && field_type.value <= 17
-        doc: "True if field stores data in field_data section (complex types: UInt64, Int64, Double, String, ResRef, LocalizedString, Binary, Vector3, Vector4)"
+        value: |
+          field_type == gff_field_type::uint64 or
+          field_type == gff_field_type::int64 or
+          field_type == gff_field_type::double or
+          field_type == gff_field_type::string or
+          field_type == gff_field_type::resref or
+          field_type == gff_field_type::localized_string or
+          field_type == gff_field_type::binary or
+          field_type == gff_field_type::vector4 or
+          field_type == gff_field_type::vector3
+        doc: True if field stores data in field_data section (complex types: UInt64, Int64, Double, String, ResRef, LocalizedString, Binary, Vector3, Vector4)
       is_struct_type:
-        value: field_type.value == 14
+        value: field_type == gff_field_type::struct
         doc: True if field is a nested struct
       is_list_type:
-        value: field_type.value == 15
+        value: field_type == gff_field_type::list
         doc: True if field is a list of structs
       field_data_offset_value:
         value: _root.gff_header.field_data_offset + data_or_offset
