@@ -6,7 +6,6 @@ meta:
   file-extension: bzf
   xref:
     pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/BIF-File-Format.md
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/BIF-File-Format.md
 doc: |
   BZF (BioWare Zipped File) files are LZMA-compressed BIF files used primarily in iOS
   (and maybe Android) ports of KotOR. The BZF header contains "BZF " + "V1.0", followed
