@@ -356,10 +356,10 @@ types:
             Byte offset into list_indices array (relative to list_indices_offset)
     instances:
       is_simple_type:
-        value: (field_type >= 0 and field_type <= 5) or field_type == 8
+        value: (field_type >= 0 && field_type <= 5) || field_type == 8
         doc: "True if field stores data inline (simple types: Byte, Char, UInt16, Int16, UInt32, Int32, Float)"
       is_complex_type:
-        value: (field_type >= 6 and field_type <= 13) or (field_type >= 16 and field_type <= 17)
+        value: (field_type >= 6 && field_type <= 13) || (field_type >= 16 && field_type <= 17)
         doc: "True if field stores data in field_data section (complex types: UInt64, Int64, Double, String, ResRef, LocalizedString, Binary, Vector3, Vector4)"
       is_struct_type:
         value: field_type == 14
