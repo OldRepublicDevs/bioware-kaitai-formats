@@ -98,10 +98,10 @@ types:
           Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
         valid:
           any-of:
-            - "'V3.2'"
-            - "'V3.3'"
-            - "'V4.0'"
-            - "'V4.1'"
+            - V3.2
+            - V3.3
+            - V4.0
+            - V4.1
       
       - id: struct_array_offset
         type: u4
@@ -242,11 +242,21 @@ types:
             Byte offset into list_indices array
   
   # Field Data Section
-  field_data_section:
+  field_data:
     seq:
-      - id: data
+      - id: raw_data
         size: _root.gff_header.field_data_count
-        doc: Raw field data bytes for complex types
+        doc: |
+          Raw field data storage. Individual field data entries are accessed via
+          field_entry.field_data_offset_value offsets. The structure of each entry
+          depends on the field_type:
+          - UInt64/Int64/Double: 8 bytes
+          - String: 4-byte length + string bytes
+          - ResRef: 1-byte length + string bytes (max 16)
+          - LocalizedString: variable (see localized_string_data type)
+          - Binary: 4-byte length + binary bytes
+          - Vector3: 12 bytes (3×float)
+          - Vector4: 16 bytes (4×float)
   
   # Field Indices Array (MultiMap)
   field_indices_array:

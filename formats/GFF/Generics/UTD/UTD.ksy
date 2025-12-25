@@ -147,7 +147,7 @@ instances:
     doc: Array of field entries (12 bytes each)
   
   field_data:
-    type: field_data
+    type: field_data_section
     if: gff_header.field_data_count > 0
     pos: gff_header.field_data_offset
     doc: Field data section for complex types (strings, ResRefs, LocalizedStrings, etc.)
@@ -499,7 +499,6 @@ types:
   list_indices_array:
     seq:
       - id: raw_data
-        type: str
         size: _root.gff_header.list_indices_count
         doc: |
           Raw list indices data. List entries are accessed via offsets stored in
