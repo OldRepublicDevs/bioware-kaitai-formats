@@ -278,6 +278,7 @@ types:
   # and resolving field references based on label names.
 
   gui_root:
+    doc: |
       Root GUI struct. Contains:
       - Tag (string): GUI identifier/tag name
       - CONTROLS (list): Array of GUIControl structs (top-level controls)
