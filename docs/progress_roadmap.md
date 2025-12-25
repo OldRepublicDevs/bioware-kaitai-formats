@@ -8,6 +8,7 @@
 - `docs/comprehensive_audit_summary.md` - Executive summary and status
 - `docs/fix_progress.md` - Compilation fix patterns and progress
 - `docs/known_issues.md` - Known issues and solutions
+- `docs/audit_compilation_status.md` - Detailed compilation testing results
 
 This document provides a comprehensive overview of all BioWare file format parsers, their implementation status, test coverage, and what remains to be done.
 
@@ -20,10 +21,11 @@ This document provides a comprehensive overview of all BioWare file format parse
 - **Missing Formats:** 1 identified (ITP base binary)
 - **Test Coverage:** 33 formats have tests (41 test files)
 - **Compilation Status:** 
-  - ✅ Core formats compiling: GFF, ARE, CNV, UTD, ERF, TwoDA, BIF, TLK, SSF, LIP
-  - ✅ Fixed compilation errors: ARE, CNV, UTD, ERF, TwoDA (valid syntax, enum operators, raw data types)
-  - ⚠️ Needs fixing: Remaining GFF generic formats (DLG, FAC, GIT, GUI, etc.) - pos: syntax and valid expression syntax
-  - See `docs/compilation_fix_log.md` and `docs/fix_progress.md` for detailed fix status
+  - ✅ Core formats compiling: TwoDA, GFF, TLK, MDL, BWM, TPC, PLT, NSS, WAV, SSF, LIP, LYT, VIS, LTR, DAS, DA2S (16 formats)
+  - ⚠️ Core formats with errors: RIM, PCC (2 formats with errors); BIF, ERF (warnings only)
+  - ⚠️ GFF formats: Multiple valid syntax patterns (quoted/unquoted/object) - unquoted causes errors (DLG, UTD)
+  - ⚠️ Needs fixing: Valid syntax standardization, remaining compilation errors
+  - See `docs/audit_compilation_status.md`, `docs/compilation_fix_log.md` and `docs/fix_progress.md` for detailed status
 
 ---
 
