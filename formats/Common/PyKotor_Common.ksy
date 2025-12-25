@@ -1,0 +1,179 @@
+meta:
+  id: pykotor_common
+  title: PyKotor Common Types (Language, Gender, LocalizedString)
+  license: MIT
+  endian: le
+  xref:
+    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/language.py
+    reone: vendor/reone/include/reone/resource/types.h
+    xoreos_tools: vendor/xoreos-tools/src/common/types.h
+doc: |
+  Shared enums and "common objects" used across the PyKotor ecosystem that also appear
+  in BioWare/Odyssey binary formats (notably TLK and GFF LocalizedStrings).
+
+  This file is intended to be imported by other `.ksy` files to avoid repeating:
+  - Language IDs (used in TLK headers and GFF LocalizedString substrings)
+  - Gender IDs (used in GFF LocalizedString substrings)
+  - The CExoLocString / LocalizedString binary layout
+
+  References:
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/common/language.py
+
+types:
+  pykotor_locstring:
+    doc: |
+      BioWare "CExoLocString" (LocalizedString) binary layout, as embedded inside the GFF field-data
+      section for field type "LocalizedString".
+    seq:
+      - id: total_size
+        type: u4
+        doc: Total size of the structure in bytes (excluding this field).
+
+      - id: string_ref
+        type: u4
+        doc: |
+          StrRef into dialog.tlk (0xFFFFFFFF means no strref / use substrings).
+
+      - id: num_substrings
+        type: u4
+        doc: Number of substring entries that follow.
+
+      - id: substrings
+        type: substring
+        repeat: expr
+        repeat-expr: num_substrings
+        doc: Language/gender-specific substring entries.
+
+  substring:
+    seq:
+      - id: substring_id
+        type: u4
+        doc: |
+          Packed language+gender identifier:
+          - bits 0..7: gender
+          - bits 8..15: language
+
+      - id: len_text
+        type: u4
+        doc: Length of text in bytes.
+
+      - id: text
+        type: str
+        encoding: UTF-8
+        size: len_text
+        doc: Substring text.
+    instances:
+      gender_raw:
+        value: substring_id & 0xff
+        doc: Raw gender ID (0..255).
+      language_raw:
+        value: (substring_id >> 8) & 0xff
+        doc: Raw language ID (0..255).
+
+enums:
+  # Extracted from `pykotor.common.language.Language` (IntEnum)
+  pykotor_language_id:
+    0: english
+    1: french
+    2: german
+    3: italian
+    4: spanish
+    5: polish
+    6: afrikaans
+    7: basque
+    9: breton
+    10: catalan
+    11: chamorro
+    12: chichewa
+    13: corsican
+    14: danish
+    15: dutch
+    16: faroese
+    18: filipino
+    19: finnish
+    20: flemish
+    21: frisian
+    22: galician
+    23: ganda
+    24: haitian_creole
+    25: hausa_latin
+    26: hawaiian
+    27: icelandic
+    28: ido
+    29: indonesian
+    30: igbo
+    31: irish
+    32: interlingua
+    33: javanese_latin
+    34: latin
+    35: luxembourgish
+    36: maltese
+    37: norwegian
+    38: occitan
+    39: portuguese
+    40: scots
+    41: scottish_gaelic
+    42: shona
+    43: soto
+    44: sundanese_latin
+    45: swahili
+    46: swedish
+    47: tagalog
+    48: tahitian
+    49: tongan
+    50: uzbek_latin
+    51: walloon
+    52: xhosa
+    53: yoruba
+    54: welsh
+    55: zulu
+    58: bulgarian
+    59: belarisian
+    60: macedonian
+    61: russian
+    62: serbian_cyrillic
+    63: tajik
+    64: tatar_cyrillic
+    66: ukrainian
+    67: uzbek
+    68: albanian
+    69: bosnian_latin
+    70: czech
+    71: slovak
+    72: slovene
+    73: croatian
+    75: hungarian
+    76: romanian
+    77: greek
+    78: esperanto
+    79: azerbaijani_latin
+    81: turkish
+    82: turkmen_latin
+    83: hebrew
+    84: arabic
+    85: estonian
+    86: latvian
+    87: lithuanian
+    88: vietnamese
+    89: thai
+    90: aymara
+    91: kinyarwanda
+    92: kurdish_latin
+    93: malagasy
+    94: malay_latin
+    95: maori
+    96: moldovan_latin
+    97: samoan
+    98: somali
+    128: korean
+    129: chinese_traditional
+    130: chinese_simplified
+    131: japanese
+    2147483646: unknown
+
+  # Extracted from `pykotor.common.language.Gender` (IntEnum)
+  pykotor_gender_id:
+    0: male
+    1: female
+
+
