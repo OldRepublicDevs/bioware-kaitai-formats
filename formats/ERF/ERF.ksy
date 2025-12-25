@@ -285,7 +285,6 @@ types:
 
     instances:
       data:
-        type: str
         pos: offset_to_data
         size: resource_size
         doc: Raw binary data for this resource

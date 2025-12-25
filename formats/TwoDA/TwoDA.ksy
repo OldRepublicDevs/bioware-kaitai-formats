@@ -108,7 +108,7 @@ types:
     
     instances:
       is_valid_twoda:
-        value: magic == "2DA " && version == "V2.b" && newline == 0x0A
+        value: magic == "2DA " and version == "V2.b" and newline == 0x0A
         doc: |
           Validation check that the file is a valid TwoDA file.
           All header fields must match expected values.
