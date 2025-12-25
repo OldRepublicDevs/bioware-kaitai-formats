@@ -206,7 +206,8 @@ seq:
       GFF file header (56 bytes total, 14 fields * 4 bytes each).
       Contains file signature, version, and offsets to all other sections.
 
-  - id: label_array
+instances:
+  label_array:
     type: label_array
     if: gff_header.label_count > 0
     pos: gff_header.label_array_offset
@@ -215,7 +216,7 @@ seq:
       Each label identifies a field in the ARE root struct or nested structs.
       Common labels: "Tag", "Name", "Map", "Rooms", "SunAmbientColor", etc.
 
-  - id: struct_array
+  struct_array:
     type: struct_array
     pos: gff_header.struct_array_offset
     doc: |
@@ -225,14 +226,14 @@ seq:
       - Map struct (struct_id varies) containing map coordinate data
       - Room structs (struct_id varies) for each room in the Rooms list
 
-  - id: field_array
+  field_array:
     type: field_array
     pos: gff_header.field_array_offset
     doc: |
       Array of field entries (12 bytes each: 4 bytes field_type + 4 bytes label_index + 4 bytes data_or_offset).
       Each field entry references a label by index and contains either inline data or an offset to complex data.
 
-  - id: field_data
+  field_data:
     type: field_data_section
     if: gff_header.field_data_count > 0
     pos: gff_header.field_data_offset
@@ -246,7 +247,7 @@ seq:
       - Vector4: 16 bytes (4×float, quaternion/orientation)
       - Binary: 4-byte length + binary bytes
 
-  - id: field_indices
+  field_indices:
     type: field_indices_array
     if: gff_header.field_indices_count > 0
     pos: gff_header.field_indices_offset
@@ -255,7 +256,7 @@ seq:
       When a struct has more than 1 field, it stores an offset into this array,
       and the next N consecutive u4 values (where N = struct.field_count) are the field indices.
 
-  - id: list_indices
+  list_indices:
     type: list_indices_array
     if: gff_header.list_indices_count > 0
     pos: gff_header.list_indices_offset
@@ -278,7 +279,7 @@ types:
         doc: |
           File type signature (FourCC). Must be "ARE " for area files (space-padded).
           Other GFF types: "GFF ", "DLG ", "UTC ", "UTI ", "GIT ", etc.
-        valid: "ARE "
+        valid: "'ARE '"
 
       - id: file_version
         type: str
@@ -292,10 +293,10 @@ types:
           - "V4.1": Mass Effect series
         valid:
           any-of:
-            - "V3.2"
-            - "V3.3"
-            - "V4.0"
-            - "V4.1"
+            - "'V3.2'"
+            - "'V3.3'"
+            - "'V4.0'"
+            - "'V4.1'"
 
       - id: struct_array_offset
         type: u4
@@ -517,7 +518,6 @@ types:
   field_data_section:
     seq:
       - id: data
-        type: str
         size: _root.gff_header.field_data_count
         doc: |
           Raw field data bytes for complex types.
