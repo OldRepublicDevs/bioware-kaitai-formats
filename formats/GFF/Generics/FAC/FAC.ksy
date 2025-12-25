@@ -6,9 +6,9 @@ meta:
   file-extension: fac
   xref:
     pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-Faction.md
-    reone: vendor/reone/src/libs/resource/parser/gff/fac.cpp
-    xoreos: vendor/xoreos/src/aurora/gff3file.cpp
-    bioware_docs: vendor/xoreos-docs/specs/bioware/Faction_Format.pdf
+    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/fac.cpp
+    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
+    bioware_docs: https://github.com/OldRepublicDevs/xoreos-docs/blob/master/specs/bioware/Faction_Format.pdf
 doc: |
   FAC (Faction) files are GFF-based format files that define faction relationships for determining
   how game objects interact with each other in terms of friendly, neutral, and hostile reactions.
@@ -33,9 +33,9 @@ doc: |
 
   References:
   - https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-Faction.md (official BioWare documentation)
-  - vendor/xoreos-docs/specs/bioware/Faction_Format.pdf (original PDF)
-  - vendor/xoreos/src/aurora/gff3file.cpp
-  - vendor/reone/src/libs/resource/parser/gff/fac.cpp
+  - https://github.com/OldRepublicDevs/xoreos-docs/blob/master/specs/bioware/Faction_Format.pdf (original PDF)
+  - https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
+  - https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/fac.cpp
 
 seq:
   - id: gff_header
@@ -169,10 +169,8 @@ types:
           The actual label length is determined by the first null byte.
           Common FAC field names: "FactionList", "RepList", "FactionName", "FactionGlobal",
           "FactionParentID", "FactionID1", "FactionID2", "FactionRep".
-    instances:
-      name_trimmed:
-        value: name.rstrip('\x00')
-        doc: "Label name with trailing nulls removed"
+    # TODO: Kaitai Struct 0.11 doesn't support Python-style .rstrip() in all backends
+    # Application code should trim trailing nulls from label names when needed
 
   # Struct Array
   struct_array:
@@ -268,8 +266,8 @@ types:
           For List type: Byte offset into list_indices_array.
     instances:
       label_name:
-        value: _root.label_array.labels[label_index].name_trimmed
-        doc: Field name from label array
+        value: _root.label_array.labels[label_index].name
+        doc: Field name from label array (may contain trailing nulls - trim in application code)
 
   # Field Data Section
   field_data_section:

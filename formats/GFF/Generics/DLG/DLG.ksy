@@ -8,7 +8,7 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/dlg/
     reone: vendor/reone/src/libs/resource/parser/gff/dlg.cpp
     xoreos: vendor/xoreos/src/aurora/dlgfile.cpp
-    wiki: vendor/PyKotor/wiki/GFF-DLG.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-DLG.md
 doc: |
   DLG (Dialogue) files are GFF-based format files that store dialog trees with entries, replies,
   links, and conversation metadata. DLG files use the GFF (Generic File Format) binary structure
@@ -31,7 +31,7 @@ doc: |
   Links connect nodes and define flow control with conditional scripts.
   
   References:
-  - vendor/PyKotor/wiki/GFF-DLG.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-DLG.md
   - vendor/PyKotor/wiki/GFF-File-Format.md
   - vendor/reone/src/libs/resource/parser/gff/dlg.cpp:37-172
   - vendor/xoreos/src/aurora/dlgfile.cpp:166-226
@@ -97,11 +97,7 @@ types:
           File format version. Typically "V3.2" for KotOR.
           Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
         valid:
-          any-of:
-            - V3.2
-            - V3.3
-            - V4.0
-            - V4.1
+          any-of: ["'V3.2'", "'V3.3'", "'V4.0'", "'V4.1'"]
       
       - id: struct_array_offset
         type: u4

@@ -8,7 +8,7 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/ute.py
     reone: vendor/reone/src/libs/resource/parser/gff/ute.cpp
     xoreos: vendor/xoreos/src/aurora/gfffile.cpp
-    wiki: vendor/PyKotor/wiki/GFF-UTE.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTE.md
 doc: |
   UTE (Encounter Template) files are GFF-based format files that store encounter definitions including
   creature spawn lists, difficulty, respawn settings, and script hooks. UTE files use the GFF (Generic File Format)
@@ -22,7 +22,7 @@ doc: |
   - Spawn configuration (MaxCreatures, RecCreatures, SpawnOption, PlayerOnly)
   
   References:
-  - vendor/PyKotor/wiki/GFF-UTE.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTE.md
   - vendor/PyKotor/wiki/GFF-File-Format.md
   - vendor/reone/include/reone/resource/parser/gff/ute.h:28-59
   - vendor/reone/src/libs/resource/parser/gff/ute.cpp:28-65
@@ -32,38 +32,39 @@ seq:
   - id: gff_header
     type: gff_header
     doc: GFF file header (56 bytes)
-  
-  - id: label_array
+
+instances:
+  label_array:
     type: label_array
     if: gff_header.label_count > 0
     pos: gff_header.label_array_offset
     doc: Array of field name labels (16-byte null-terminated strings)
-  
-  - id: struct_array
+
+  struct_array:
     type: struct_array
     if: gff_header.struct_count > 0
     pos: gff_header.struct_array_offset
     doc: Array of struct entries (12 bytes each)
-  
-  - id: field_array
+
+  field_array:
     type: field_array
     if: gff_header.field_count > 0
     pos: gff_header.field_array_offset
     doc: Array of field entries (12 bytes each)
-  
-  - id: field_data
+
+  field_data:
     type: field_data_section
     if: gff_header.field_data_count > 0
     pos: gff_header.field_data_offset
     doc: Field data section for complex types (strings, ResRefs, LocalizedStrings, etc.)
-  
-  - id: field_indices
+
+  field_indices:
     type: field_indices_array
     if: gff_header.field_indices_count > 0
     pos: gff_header.field_indices_offset
     doc: Field indices array (MultiMap) for structs with multiple fields
-  
-  - id: list_indices
+
+  list_indices:
     type: list_indices_array
     if: gff_header.list_indices_count > 0
     pos: gff_header.list_indices_offset
