@@ -184,7 +184,12 @@ types:
         doc: |
           File format version. Typically "V3.2" for KotOR.
           Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
-        valid: {any-of: ["V3.2", "V3.3", "V4.0", "V4.1"]}
+        valid:
+          any-of:
+            - "'V3.2'"
+            - "'V3.3'"
+            - "'V4.0'"
+            - "'V4.1'"
       
       - id: struct_array_offset
         type: u4
@@ -381,7 +386,8 @@ types:
           field_type == gff_field_type::uint32 or
           field_type == gff_field_type::int32 or
           field_type == gff_field_type::single
-        doc: True if field stores data inline (simple types: Byte, Char, UInt16, Int16, UInt32, Int32, Float)
+        doc: |
+          True if field stores data inline (simple types: Byte, Char, UInt16, Int16, UInt32, Int32, Float)
       is_complex_type:
         value: |
           field_type == gff_field_type::uint64 or
@@ -393,7 +399,8 @@ types:
           field_type == gff_field_type::binary or
           field_type == gff_field_type::vector4 or
           field_type == gff_field_type::vector3
-        doc: True if field stores data in field_data section (complex types: UInt64, Int64, Double, String, ResRef, LocalizedString, Binary, Vector3, Vector4)
+        doc: |
+          True if field stores data in field_data section (complex types: UInt64, Int64, Double, String, ResRef, LocalizedString, Binary, Vector3, Vector4)
       is_struct_type:
         value: field_type == gff_field_type::struct
         doc: True if field is a nested struct
