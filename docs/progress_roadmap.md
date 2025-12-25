@@ -1,17 +1,19 @@
 # BioWare Kaitai Formats - Progress Roadmap
 
 **Last Updated:** 2025-01-27  
-**Status:** Comprehensive audit and roadmap creation
+**Status:** Comprehensive audit completed - see `docs/comprehensive_findings.md` for detailed findings
 
 This document provides a comprehensive overview of all BioWare file format parsers, their implementation status, test coverage, and what remains to be done.
 
 ## Summary
 
-- **Total Formats Documented:** 71 .ksy files
-- **Core Formats Implemented:** 20/20 (100%)
-- **GFF Variants Implemented:** 21/22 (95.5%)
-- **Missing Formats:** 2 identified (PLT, GFF-UTP)
-- **Test Coverage:** ~34 formats have tests
+- **Total Formats Documented:** 85 .ksy files
+- **Unique Formats:** 49 formats
+- **Core Formats Implemented:** 24/24 (100%)
+- **GFF Variants Implemented:** 22/23 (95.7%) - UTP created, ITP base binary missing
+- **Missing Formats:** 1 identified (ITP base binary)
+- **Test Coverage:** 33 formats have tests (41 test files)
+- **Compilation Status:** GFF.ksy compiles successfully; all GFF generics need pos: fix
 
 ---
 
