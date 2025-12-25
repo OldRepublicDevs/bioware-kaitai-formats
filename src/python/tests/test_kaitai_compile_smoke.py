@@ -73,6 +73,7 @@ EXPECTED_PASSES = {
     Path("formats/BIF/KEY.ksy"),
     Path("formats/BIF/BIF.ksy"),
     Path("formats/BIF/BZF.ksy"),
+    Path("formats/Common/BioWare_Common.ksy"),
     Path("formats/ERF/ERF.ksy"),
     Path("formats/GFF/GFF.ksy"),
     Path("formats/GFF/Generics/ARE/ARE.ksy"),
