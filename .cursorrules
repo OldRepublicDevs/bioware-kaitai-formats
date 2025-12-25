@@ -45,6 +45,7 @@ git add <file> && git commit -m "type(scope): message"  # NEVER git add . or -A;
 **Version**: 0.11 (as specified in repository)
 
 **Usage Pattern**:
+
 ```powershell
 # For a single format
 kaitai-struct-compiler -t <language> -d <output_dir> formats/<Format>/<Format>.ksy
@@ -59,6 +60,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Supported Languages**: python, javascript, java, go, rust, cpp_stl, csharp, ruby, php, lua, perl, nim, swift
 
 **Use scripts**: Always use `scripts/generate_code.ps1` for batch generation instead of manual compilation:
+
 ```powershell
 .\scripts\generate_code.ps1 -Language csharp -OutputDir src/csharp
 ```
@@ -68,16 +70,19 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Location**: All `.ksy` files MUST be in `formats/` directory
 
 **Naming Conventions**:
+
 - Base format: `FormatName.ksy` (e.g., `GFF.ksy`, `ERF.ksy`)
 - XML variants: `FormatName_XML.ksy` (e.g., `GFF_XML.ksy`, `ARE_XML.ksy`)
 - JSON variants: `FormatName_JSON.ksy` (e.g., `GFF_JSON.ksy`, `TLK_JSON.ksy`)
 - CSV variants: `FormatName_CSV.ksy` (e.g., `TwoDA_CSV.ksy`)
 
 **Directory Structure**:
+
 - Group related formats together (e.g., `formats/GFF/`, `formats/GFF/Generics/`, `formats/GFF/XML/`)
 - Game-specific generics go in `formats/GFF/Generics/` (e.g., `ARE/`, `DLG/`, `UTC/`)
 
 **Best Practices**:
+
 - Include comprehensive inline documentation explaining file structure
 - Document field meanings and game engine compatibility
 - Reference original format documentation sources
@@ -85,6 +90,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 - Add `doc` comments for all types and fields
 
 **Validation and Linting**:
+
 - **CRITICAL**: After ANY `.ksy` file change, always lint and fix all problems by referencing `include/ksy_schema.json`
 - The schema file defines the complete Kaitai Struct specification and must be used to validate syntax
 - Fix all validation errors, schema violations, and linting issues before committing
@@ -94,6 +100,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Structure**: `src/<language>/` (mirrors `formats/` structure)
 
 **Examples**:
+
 - `formats/GFF/GFF.ksy` → `src/csharp/GFF/Gff.cs`
 - `formats/GFF/Generics/ARE/ARE.ksy` → `src/csharp/GFF/Generics/ARE/Are.cs`
 - `formats/TLK/TLK.ksy` → `src/python/tlk/tlk.py`
@@ -109,12 +116,14 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Test Naming**: `FormatNameKaitaiCompilerTests.cs` or `FormatNameKaitaiStructTests.cs`
 
 **Test Requirements**:
+
 - Test that `.ksy` files compile successfully to target languages
 - Test parsing of sample files from BioWare games
 - Verify generated code correctness
 - Test multiple language targets when possible (aim for 12+ languages)
 
 **When adding new formats**:
+
 1. Create/modify `.ksy` file in `formats/`
 2. Regenerate code using `scripts/generate_code.ps1`
 3. Add test file in `tests/<language>/`
@@ -125,6 +134,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Location**: `scripts/` directory only
 
 **Key Scripts**:
+
 - `generate_code.ps1` – Batch generate code for all formats in a language
 - `generate_code.sh` – Unix version of code generation script
 - `check_changes.ps1` – Check if generated files have changed (for CI/CD)
@@ -136,6 +146,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 ## 8. Incomplete Format Definitions: ALWAYS Mark with `TODO:`
 
 **In `.ksy` files**:
+
 ```yaml
 # TODO: STUB - Implement GFF v3.3 extended field types
 # TODO: PLACEHOLDER - Temporary workaround for KOTOR2-specific field
@@ -148,6 +159,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Why this works**: LLMs love searchability. `TODO:` + type + context is the gold standard for self-documenting code.
 
 **TODO Types**:
+
 - `STUB` – Incomplete implementation
 - `PLACEHOLDER` – Temporary solution
 - `FIXME` – Known bug or issue
@@ -158,6 +170,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 ## 9. Format Definition Best Practices
 
 **Documentation Requirements**:
+
 - Every `.ksy` file MUST have a `doc` comment at the top explaining:
   - Format purpose and usage
   - Game engine compatibility
@@ -165,6 +178,7 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
   - References to original documentation
 
 **Primary Documentation Source**:
+
 - **ALWAYS consult** `./vendor/PyKotor/wiki/` for format documentation when creating or updating format definitions
 - Wiki files follow naming pattern: `{FormatName}-File-Format.md` (e.g., `GFF-File-Format.md`, `TLK-File-Format.md`)
 - Game-specific variants: `GFF-{Type}.md` (e.g., `GFF-ARE.md`, `GFF-UTC.md`)
@@ -172,23 +186,46 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 - Include reference to relevant wiki file in `.ksy` `doc` comments (e.g., `- vendor/PyKotor/wiki/GFF-File-Format.md`)
 
 **Field Documentation**:
+
 - Use `doc` attribute on all important fields
 - Explain field purpose and data type
 - Note any game-specific variations
 
 **Structure**:
+
 - Group related fields logically
 - Use descriptive names matching BioWare conventions
 - Include validation where possible (`valid` attribute)
 - Use `if` conditions for variant structures
 
 **Validation Syntax**:
+
 - **CRITICAL**: `valid` expects either a scalar value OR an object with validation properties
 - **WRONG**: `valid: ["V3.2", "V3.3", "V4.0", "V4.1"]` (array directly is invalid)
 - **CORRECT**: `valid: { any-of: ["V3.2", "V3.3", "V4.0", "V4.1"] }` (use `any-of` for multiple values)
 - Other validation properties: `eq`, `min`, `max`, etc.
 
+**Enum Syntax**:
+
+- **CRITICAL**: Enum values with `doc` must be objects with `id` and `doc` properties
+- **WRONG**: 
+  ```yaml
+  enums:
+    my_enum:
+      12: value_name
+      doc: Documentation here
+  ```
+- **CORRECT**: 
+  ```yaml
+  enums:
+    my_enum:
+      12:
+        id: value_name
+        doc: Documentation here
+  ```
+
 **Game Engine Compatibility**:
+
 - Document which games/engines use each format variant
 - Use comments to explain differences between versions
 - Note platform-specific differences (PC vs Xbox vs mobile)
@@ -196,12 +233,14 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 ## 10. CI/CD Workflow
 
 **Automated Processes**:
+
 1. Code generation for all supported languages
 2. Running tests on generated code
 3. Publishing packages to package managers
 4. Change detection (only commit if files actually changed)
 
 **Generated Code**:
+
 - Generated code is committed to repository
 - CI/CD regenerates and verifies no changes
 - Use `scripts/check_changes.ps1` to detect if regeneration produces different output
@@ -241,7 +280,8 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 
 **Test Files**: Use real BioWare game files for validation when possible
 
-**Test File Sources**: 
+**Test File Sources**:
+
 - KOTOR/KOTOR2 files
 - Neverwinter Nights files
 - Dragon Age files
