@@ -2,16 +2,19 @@ meta:
   id: bioware_type_ids
   title: BioWare Type ID Enums (xoreos FileType + PyKotor ResourceType)
   license: MIT
+  xref:
+    xoreos_types: https://github.com/xoreos/xoreos/blob/master/src/aurora/types.h
+    pykotor_types: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/type.py
 doc: |
   This file provides **exhaustive enum mappings** for resource/type identifiers used across
   BioWare-family games and their tooling ecosystems.
-  
+
   Why two enums?
   - `xoreos_file_type_id` mirrors `https://github.com/xoreos/xoreos/blob/master/src/aurora/types.h` (`enum FileType`) and is the
     canonical set of **engine-facing** numeric type IDs found in archives (KEY/BIF/ERF/RIM, etc).
   - `bioware_resource_type_id` mirrors `https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/type.py` (`class ResourceType`)
     and includes additional **toolset-only** IDs (e.g. XML/JSON abstractions).
-  
+
   Important notes:
   - **Duplicates / aliases** exist in upstream definitions (e.g., `DFT`/`DTF` share `2045`,
     `FXR`/`FXT` share `22033`). Kaitai enums cannot represent multiple names for the same numeric key,

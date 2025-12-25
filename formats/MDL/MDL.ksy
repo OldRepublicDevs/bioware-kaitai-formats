@@ -6,6 +6,9 @@ meta:
   ks-version: 0.11
   license: MIT
   title: BioWare MDL (Model) Binary Format
+  xref:
+    pykotor_mdlops: https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+    pykotor_wiki_mdl: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 doc: |
   BioWare MDL Model Format
 

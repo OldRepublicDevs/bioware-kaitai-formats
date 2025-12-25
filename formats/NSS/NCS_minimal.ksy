@@ -1,9 +1,12 @@
 meta:
-  id: ncs
-  title: BioWare NCS File
+  id: ncs_minimal
+  title: BioWare NCS (Compiled Script) Minimal Format
   license: MIT
   endian: be
   file-extension: ncs
+  xref:
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ncs/
+    pykotor_wiki_ncs: https://github.com/OldRepublicDevs/PyKotor/wiki/NCS-File-Format.md
 
 seq:
   - id: file_type

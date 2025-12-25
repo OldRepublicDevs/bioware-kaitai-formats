@@ -5,9 +5,15 @@ meta:
   endian: le
   file-extension: gff.json
   encoding: UTF-8
+  xref:
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 doc: |
   GFF JSON format is a human-readable JSON representation of GFF (Generic File Format) binary files.
   Provides easier editing and interoperability with modern tools than binary GFF format.
+
+  References:
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
 
 seq:
   - id: json_content

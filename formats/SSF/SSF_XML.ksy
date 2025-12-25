@@ -11,10 +11,6 @@ meta:
     reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/ssf.cpp
     pykotor_wiki_ssf: https://github.com/OldRepublicDevs/PyKotor/wiki/SSF-File-Format.md
     xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/ssffile.cpp
-  imports:
-    - ../GFF/gff
-    - ../GFF/XML/gff_xml
-    - ../SSF/ssf
 doc: |
   SSF XML format is a human-readable XML representation of SSF (Soundset) binary files.
   Provides easier editing than binary SSF format.

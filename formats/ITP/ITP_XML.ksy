@@ -12,9 +12,6 @@ meta:
     pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
     pykotor_wiki_itp: https://github.com/OldRepublicDevs/PyKotor/wiki/ITP-File-Format.md
     xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
-  imports:
-    - ../GFF/GFF
-    - ../GFF/XML/GFF_XML
 doc: |
   ITP XML format is a human-readable XML representation of ITP (Palette) binary files.
   ITP files use GFF format (FileType "ITP " in GFF header).

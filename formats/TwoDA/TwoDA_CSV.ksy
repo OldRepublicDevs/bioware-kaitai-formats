@@ -5,11 +5,17 @@ meta:
   endian: le
   file-extension: 2da.csv
   encoding: UTF-8
+  xref:
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/twoda/
+    pykotor_wiki_twoda: https://github.com/OldRepublicDevs/PyKotor/wiki/TwoDA-File-Format.md
 doc: |
   TwoDA CSV format is a human-readable CSV (Comma-Separated Values) representation of TwoDA files.
   Provides easier editing in spreadsheet applications than binary TwoDA format.
 
   Each row represents a data row, with the first row containing column headers.
+
+  References:
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/twoda/io_twoda.py
 
 seq:
   - id: csv_content

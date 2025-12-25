@@ -10,9 +10,6 @@ meta:
     gff_xml_schema: ../../xml/gff_xml
     pykotor_wiki_gff_utm: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTM.md
     pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
-  imports:
-    - ../../GFF/GFF
-    - ../../GFF/XML/GFF_XML
 doc: |
   Human-readable XML representation of UTM (Store/Merchant Template) binary files.
   Uses GFF XML structure with <gff3> root element.

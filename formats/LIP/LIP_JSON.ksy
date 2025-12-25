@@ -5,9 +5,15 @@ meta:
   endian: le
   file-extension: lip.json
   encoding: UTF-8
+  xref:
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/lip/
+    pykotor_wiki_lip: https://github.com/OldRepublicDevs/PyKotor/wiki/LIP-File-Format.md
 doc: |
   LIP JSON format is a human-readable JSON representation of LIP (Lipsync) binary files.
   Provides easier editing than binary LIP format.
+
+  References:
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/lip/io_lip_xml.py
 
 seq:
   - id: json_content

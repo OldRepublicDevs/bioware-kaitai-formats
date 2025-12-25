@@ -6,6 +6,9 @@ meta:
   file-extension: mdl.ascii
   encoding: UTF-8
   ks-version: 0.11
+  xref:
+    pykotor_mdlops: https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+    pykotor_wiki_mdl: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 doc: |
   MDL ASCII format is a human-readable ASCII text representation of MDL (Model) binary files.
   Used by modding tools for easier editing than binary MDL format.

@@ -5,9 +5,15 @@ meta:
   endian: le
   file-extension: tlk.json
   encoding: UTF-8
+  xref:
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/tlk/
+    pykotor_wiki_tlk: https://github.com/OldRepublicDevs/PyKotor/wiki/TLK-File-Format.md
 doc: |
   TLK JSON format is a human-readable JSON representation of TLK (Talk Table) binary files.
   Provides easier editing and translation than binary TLK format.
+
+  References:
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/tlk/io_tlk_xml.py
 
 seq:
   - id: json_content

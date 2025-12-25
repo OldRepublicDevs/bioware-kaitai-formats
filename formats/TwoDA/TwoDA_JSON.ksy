@@ -5,9 +5,15 @@ meta:
   endian: le
   file-extension: 2da.json
   encoding: UTF-8
+  xref:
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/twoda/
+    pykotor_wiki_twoda: https://github.com/OldRepublicDevs/PyKotor/wiki/TwoDA-File-Format.md
 doc: |
   TwoDA JSON format is a human-readable JSON representation of TwoDA files.
   Provides easier editing and interoperability with modern tools than binary TwoDA format.
+
+  References:
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/twoda/io_twoda.py
 
 seq:
   - id: json_content
