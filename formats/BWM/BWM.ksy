@@ -80,37 +80,37 @@ instances:
   normals:
     pos: _root.data_table_offsets.normals_offset
     type: normals_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.face_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.face_count > 0
     doc: Array of face normal vectors (float3 triplets) - WOK only
 
   planar_distances:
     pos: _root.data_table_offsets.distances_offset
     type: planar_distances_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.face_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.face_count > 0
     doc: Array of planar distances (float32 per face) - WOK only
 
   aabb_nodes:
     pos: _root.data_table_offsets.aabb_offset
     type: aabb_nodes_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.aabb_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.aabb_count > 0
     doc: Array of AABB tree nodes for spatial acceleration - WOK only
 
   adjacencies:
     pos: _root.data_table_offsets.adjacency_offset
     type: adjacencies_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.adjacency_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.adjacency_count > 0
     doc: Array of adjacency indices (int32 triplets per walkable face) - WOK only
 
   edges:
     pos: _root.data_table_offsets.edge_offset
     type: edges_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.edge_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.edge_count > 0
     doc: Array of perimeter edges (edge_index, transition pairs) - WOK only
 
   perimeters:
     pos: _root.data_table_offsets.perimeter_offset
     type: perimeters_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.perimeter_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.perimeter_count > 0
     doc: Array of perimeter markers (edge indices marking end of loops) - WOK only
 
 types:
