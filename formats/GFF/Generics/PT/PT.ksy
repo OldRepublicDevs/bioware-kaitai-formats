@@ -85,7 +85,6 @@ types:
         size: 4
         doc: |
           File type signature. Must be "PT  " for party table files.
-        valid: "PT  "
 
       - id: file_version
         type: str
@@ -155,12 +154,11 @@ types:
   label_entry:
     seq:
       - id: name
-        type: str
+        type: strz
         encoding: ASCII
         size: 16
         doc: |
-          Field name label (null-padded to 16 bytes, null-terminated).
-          The actual label length is determined by the first null byte.
+          Field name label (null-terminated string, up to 16 bytes).
           Common PT field names: "PT_PCNAME", "PT_GOLD", "PT_XP_POOL", "PT_PLAYEDSECONDS",
           "PT_CONTROLLED_NPC", "PT_SOLOMODE", "PT_CHEAT_USED", "PT_NUM_MEMBERS", "PT_NUM_PUPPETS",
           "PT_AISTATE", "PT_FOLLOWSTATE", "PT_ITEM_COMPONENT", "PT_ITEM_CHEMICAL",
