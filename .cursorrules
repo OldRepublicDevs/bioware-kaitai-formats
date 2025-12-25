@@ -159,6 +159,13 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
   - File extensions used
   - References to original documentation
 
+**Primary Documentation Source**:
+- **ALWAYS consult** `./vendor/PyKotor/wiki/` for format documentation when creating or updating format definitions
+- Wiki files follow naming pattern: `{FormatName}-File-Format.md` (e.g., `GFF-File-Format.md`, `TLK-File-Format.md`)
+- Game-specific variants: `GFF-{Type}.md` (e.g., `GFF-ARE.md`, `GFF-UTC.md`)
+- This wiki contains complete, authoritative documentation for BioWare game formats
+- Include reference to relevant wiki file in `.ksy` `doc` comments (e.g., `- vendor/PyKotor/wiki/GFF-File-Format.md`)
+
 **Field Documentation**:
 - Use `doc` attribute on all important fields
 - Explain field purpose and data type
