@@ -50,7 +50,7 @@ seq:
     doc: |
       File type signature. Must be "SSF " (space-padded).
       Bytes: 0x53 0x53 0x46 0x20
-    valid: "SSF "
+    valid: "'SSF '"
 
   - id: file_version
     type: str
@@ -59,7 +59,7 @@ seq:
     doc: |
       File format version. Always "V1.1" for KotOR SSF files.
       Bytes: 0x56 0x31 0x2E 0x31
-    valid: "V1.1"
+    valid: "'V1.1'"
 
   - id: sounds_offset
     type: u4
@@ -69,14 +69,15 @@ seq:
       This field exists for format consistency, though it's always the same value.
     valid: 12
 
-  - id: sounds
-    type: sound_array
-    pos: sounds_offset
-    doc: Array of 28 sound string references (StrRefs)
-
   - id: padding
     type: padding
     doc: Reserved padding bytes (12 bytes of 0xFFFFFFFF)
+
+instances:
+  sounds:
+    type: sound_array
+    pos: sounds_offset
+    doc: Array of 28 sound string references (StrRefs)
 
 types:
   sound_array:
