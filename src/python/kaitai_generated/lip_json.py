@@ -11,6 +11,9 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
 class LipJson(KaitaiStruct):
     """LIP JSON format is a human-readable JSON representation of LIP (Lipsync) binary files.
     Provides easier editing than binary LIP format.
+    
+    References:
+    - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/lip/io_lip_xml.py
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(LipJson, self).__init__(_io)

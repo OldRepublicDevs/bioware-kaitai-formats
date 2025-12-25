@@ -12,6 +12,9 @@ class ResXml(KaitaiStruct):
     """RES XML format is a human-readable XML representation of RES (Save Data) binary files.
     Uses GFF XML structure with root element <gff3> containing <struct> elements.
     Each field has a label attribute and appropriate type element (byte, uint32, exostring, etc.).
+    
+    References:
+    - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(ResXml, self).__init__(_io)

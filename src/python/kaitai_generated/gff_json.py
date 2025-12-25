@@ -11,6 +11,9 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
 class GffJson(KaitaiStruct):
     """GFF JSON format is a human-readable JSON representation of GFF (Generic File Format) binary files.
     Provides easier editing and interoperability with modern tools than binary GFF format.
+    
+    References:
+    - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(GffJson, self).__init__(_io)

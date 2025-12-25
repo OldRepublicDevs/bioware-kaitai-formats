@@ -13,6 +13,9 @@ class TwodaCsv(KaitaiStruct):
     Provides easier editing in spreadsheet applications than binary TwoDA format.
     
     Each row represents a data row, with the first row containing column headers.
+    
+    References:
+    - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/twoda/io_twoda.py
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(TwodaCsv, self).__init__(_io)

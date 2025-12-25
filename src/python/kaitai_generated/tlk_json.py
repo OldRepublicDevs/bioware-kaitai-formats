@@ -11,6 +11,9 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
 class TlkJson(KaitaiStruct):
     """TLK JSON format is a human-readable JSON representation of TLK (Talk Table) binary files.
     Provides easier editing and translation than binary TLK format.
+    
+    References:
+    - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/tlk/io_tlk_xml.py
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(TlkJson, self).__init__(_io)

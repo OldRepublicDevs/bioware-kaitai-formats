@@ -65,8 +65,8 @@ class Vis(KaitaiStruct):
     - https://github.com/OldRepublicDevs/PyKotor/wiki/VIS-File-Format.md
     - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/visreader.cpp
     - https://github.com/xoreos/xoreos/blob/master/src/aurora/visfile.cpp
-    - Libraries/PyKotor/src/pykotor/resource/formats/vis/io_vis.py:14-87
-    - Libraries/PyKotor/src/pykotor/resource/formats/vis/vis_data.py:52-294
+    - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/vis/io_vis.py:14-87
+    - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/vis/vis_data.py:52-294
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(Vis, self).__init__(_io)
