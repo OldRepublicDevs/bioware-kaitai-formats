@@ -155,9 +155,10 @@ types:
     
     instances:
       data:
-        type: str
+        type: u1
         pos: offset_to_data
-        size: resource_size
+        repeat: expr
+        repeat-expr: resource_size
         doc: Raw binary data for this resource (read at specified offset)
 
 enums:

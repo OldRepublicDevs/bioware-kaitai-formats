@@ -1,61 +1,57 @@
 meta:
   id: mdx
-  title: BioWare MDX (Model Extension) File Format
+  title: BioWare MDX (Model Extension) Format
   license: MIT
   endian: le
   file-extension: mdx
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/mdl/
-    reone: vendor/reone/src/libs/graphics/format/mdlmdxreader.cpp
-    mdlops: vendor/mdlops/MDLOpsM.pm
+    pykotor: vendor/PyKotor/wiki/MDL-MDX-File-Format.md
     wiki: vendor/PyKotor/wiki/MDL-MDX-File-Format.md
 doc: |
-  MDX (Model Extension) files contain vertex data that complements MDL files.
-  The MDX file contains interleaved vertex attributes based on flags specified in the MDL trimesh header.
-
-  Vertex data is stored in an interleaved format based on the MDX vertex size.
-  Each vertex attribute is accessed via its relative offset within the vertex stride.
-
+  MDX (Model Extension) files contain vertex data for MDL models. MDX files work in tandem
+  with MDL files which define the model structure, hierarchy, and metadata. The MDX file
+  contains the actual vertex positions, normals, texture coordinates, colors, and other
+  per-vertex attributes.
+  
+  Format Structure:
+  - Vertex data is organized by mesh and stored at offsets specified in the MDL file
+  - Each mesh can have different vertex formats depending on what attributes are present
+  - Vertex attributes include: positions, normals, texture coordinates (up to 4 sets),
+    vertex colors, tangent space data, and bone weights/indices for skinned meshes
+  
+  MDX data is referenced from MDL trimesh headers via offsets. The MDL file specifies:
+  - mdx_data_offset: Absolute offset to this mesh's vertex data in MDX file
+  - mdx_vertex_size: Size in bytes of each vertex
+  - mdx_data_flags: Bitmask indicating which vertex attributes are present
+  
   References:
-  - vendor/PyKotor/wiki/MDL-MDX-File-Format.md (MDX Data Format section)
-  - vendor/mdlops/MDLOpsM.pm (MDX data reading)
+  - vendor/PyKotor/wiki/MDL-MDX-File-Format.md - Complete MDL/MDX format documentation
+  - MDL.ksy - Model structure that references MDX data
 
 seq:
   - id: vertex_data
-    type: vertex_data_block
-    size-eos: true
+    type: u1
+    repeat: eos
     doc: |
-      Interleaved vertex data blocks.
-      The structure depends on the MDX data flags from the corresponding MDL file.
-      Each vertex is stored as a contiguous block of bytes (vertex_size bytes per vertex).
-
-      Vertex attributes are interleaved in this order (if flags are set):
-      1. Vertex positions (3 floats: X, Y, Z) - if MDX_VERTICES (0x00000001)
-      2. Primary texture coordinates (2 floats: U, V) - if MDX_TEX0_VERTICES (0x00000002)
-      3. Secondary texture coordinates (2 floats: U, V) - if MDX_TEX1_VERTICES (0x00000004)
-      4. Tertiary texture coordinates (2 floats: U, V) - if MDX_TEX2_VERTICES (0x00000008)
-      5. Quaternary texture coordinates (2 floats: U, V) - if MDX_TEX3_VERTICES (0x00000010)
-      6. Vertex normals (3 floats: X, Y, Z) - if MDX_VERTEX_NORMALS (0x00000020)
-      7. Vertex colors (3 floats: R, G, B) - if MDX_VERTEX_COLORS (0x00000040)
-      8. Tangent space data (9 floats: tangent XYZ, bitangent XYZ, normal XYZ) - if MDX_TANGENT_SPACE (0x00000080)
-      9. Bone weights (4 floats) - if skinmesh (MDX_BONE_WEIGHTS, 0x00000800)
-      10. Bone indices (4 floats, cast to uint16) - if skinmesh (MDX_BONE_INDICES, 0x00001000)
-
-      Note: MDX files are typically accessed via offsets from MDL trimesh headers.
-      The actual structure depends on the mdx_data_flags and mdx_vertex_size from the MDL file.
-
-types:
-  vertex_data_block:
-    seq:
-      - id: raw_data
-        type: str
-        size-eos: true
-        doc: |
-          Raw vertex data bytes.
-          Structure depends on MDX data flags from corresponding MDL file.
-          Each vertex is vertex_size bytes, with attributes interleaved based on flags.
-
-          Note: Kaitai Struct cannot dynamically parse interleaved vertex data
-          without knowing the flags. This field contains raw bytes that must be
-          parsed by the application using the MDX data flags from the MDL file.
-
+      Raw vertex data bytes.
+      Structure depends on the mesh definition in the corresponding MDL file.
+      
+      Vertex data is organized by mesh, with each mesh's data stored at the offset
+      specified in the MDL file's trimesh header (mdx_data_offset field).
+      
+      Vertex format is determined by mdx_data_flags in the MDL:
+      - 0x00000001: MDX_VERTICES (vertex positions - 3 floats = 12 bytes)
+      - 0x00000002: MDX_TEX0_VERTICES (primary texture coordinates - 2 floats = 8 bytes)
+      - 0x00000004: MDX_TEX1_VERTICES (secondary texture coordinates - 2 floats = 8 bytes)
+      - 0x00000008: MDX_TEX2_VERTICES (tertiary texture coordinates - 2 floats = 8 bytes)
+      - 0x00000010: MDX_TEX3_VERTICES (quaternary texture coordinates - 2 floats = 8 bytes)
+      - 0x00000020: MDX_VERTEX_NORMALS (vertex normals - 3 floats = 12 bytes)
+      - 0x00000040: MDX_VERTEX_COLORS (vertex colors - 4 bytes, typically RGBA)
+      - 0x00000080: MDX_TANGENT_SPACE (tangent space data - variable size)
+      
+      For skinned meshes, additional data includes:
+      - Bone weights: 4 floats per vertex (16 bytes)
+      - Bone indices: 4 floats per vertex, cast to uint16 (8 bytes)
+      
+      Vertex data must be parsed in conjunction with the MDL file to determine
+      the exact structure and offsets for each mesh.

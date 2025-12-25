@@ -1,55 +1,50 @@
 meta:
   id: txi
-  title: BioWare TXI (Texture Info) File Format
+  title: BioWare TXI (Texture Info) Format
   license: MIT
   endian: le
-  file-extension:
-    - txi
+  file-extension: txi
+  encoding: ASCII
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/
-    reone: vendor/reone/src/libs/graphics/format/txireader.cpp
-    xoreos: vendor/xoreos/src/graphics/images/txi.cpp
+    pykotor: vendor/PyKotor/wiki/TXI-File-Format.md
     wiki: vendor/PyKotor/wiki/TXI-File-Format.md
 doc: |
-  TXI (Texture Info) files are ASCII text files that provide metadata for TPC textures.
-  They specify rendering properties (blending modes, mipmaps, filtering), companion textures
-  (bump maps, environment maps), font metrics for bitmap fonts, and animation parameters
-  for flipbook textures.
+  TXI (Texture Info) files are compact ASCII descriptors that attach metadata to TPC textures.
+  They control mipmap usage, filtering, flipbook animation, environment mapping, font atlases,
+  and platform-specific downsampling. Every TXI file is parsed at runtime to configure how
+  a TPC image is rendered.
   
-  Format Overview:
-  - TXI files are plain-text key/value lists
+  Format:
+  - Plain-text KEY/value pairs
   - Commands are case-insensitive but conventionally lowercase
-  - Values can be integers, floats, booleans (0/1), strings, or multi-line coordinate tables
+  - Values can be integers, floats, booleans (0/1), ResRefs, or multi-line coordinate tables
   - A single TXI can be appended to the end of a .tpc file or shipped as a sibling .txi file
   
+  Many TXI files in the game installation are empty (0 bytes), serving as placeholders that
+  indicate the texture should use default rendering settings.
+  
   References:
-  - vendor/PyKotor/wiki/TXI-File-Format.md
-  - vendor/reone/src/libs/graphics/format/txireader.cpp
-  - vendor/xoreos/src/graphics/images/txi.cpp
+  - vendor/PyKotor/wiki/TXI-File-Format.md - Complete TXI command reference
+  - vendor/reone/src/libs/graphics/format/txireader.cpp - C++ TXI parser implementation
 
 seq:
   - id: content
     type: str
-    encoding: ASCII
     size-eos: true
+    encoding: ASCII
     doc: |
       Complete TXI file content as ASCII text.
-      Contains line-based command/value pairs that should be parsed by application code.
+      Contains command/value pairs, one per line.
       
-      Common commands include:
-      - mipmap <0|1>
-      - blending <default|additive|punchthrough>
-      - filter <0|1>
-      - decal <0|1>
-      - cube <0|1>
-      - proceduretype <cycle>
-      - numx <count>
-      - numy <count>
-      - fps <float>
-      - And many more...
+      Common commands:
+      - mipmap: 0/1 - Toggles engine mipmap usage
+      - filter: 0/1 - Enables bilinear filtering
+      - clamp: 0/1 - Forces address mode clamp
+      - blending: additive/punchthrough - Selects blending mode
+      - proceduretype: cycle - Enables flipbook animation
+      - numx, numy: int - Horizontal/vertical frame counts
+      - fps: float - Frames per second for playback
+      - cube: 0/1 - Marks texture as cube map
+      - And many more (see wiki documentation)
       
-      Coordinate blocks (upperleftcoords, lowerrightcoords) use multi-line format:
-      upperleftcoords <count>
-      <u> <v> <z>
-      <u> <v> <z>
-      ...
+      Empty TXI files (0 bytes) are valid and indicate default settings.

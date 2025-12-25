@@ -1,22 +1,26 @@
 meta:
   id: bzf
-  title: BioWare BZF (Compressed BIF) File
+  title: BioWare BZF (BioWare Zipped File) Format
   license: MIT
   endian: le
   file-extension: bzf
   xref:
-    pykotor: Libraries/PyKotor/src/pykotor/resource/formats/bif/
-    reone: vendor/reone/src/libs/resource/format/bifreader.cpp
-    xoreos: vendor/xoreos/src/aurora/biffile.cpp
+    pykotor: vendor/PyKotor/wiki/BIF-File-Format.md
+    wiki: vendor/PyKotor/wiki/BIF-File-Format.md
 doc: |
-  BZF files are LZMA-compressed BIF files used primarily in iOS/Android ports of KotOR.
-  The BZF header contains "BZF " + "V1.0", followed by LZMA-compressed BIF data.
+  BZF (BioWare Zipped File) files are LZMA-compressed BIF files used primarily in iOS
+  (and maybe Android) ports of KotOR. The BZF header contains "BZF " + "V1.0", followed
+  by LZMA-compressed BIF data. Decompression reveals a standard BIF structure.
   
-  Decompression reveals a standard BIF structure that can be parsed as a BIF file.
+  Format Structure:
+  - Header (8 bytes): File type signature "BZF " and version "V1.0"
+  - Compressed Data: LZMA-compressed BIF file data
+  
+  After decompression, the data follows the standard BIF format structure.
   
   References:
-  - vendor/PyKotor/wiki/BIF-File-Format.md (BZF Compression section)
-  - vendor/reone/src/libs/resource/format/bifreader.cpp
+  - vendor/PyKotor/wiki/BIF-File-Format.md - BZF compression section
+  - BIF.ksy - Standard BIF format (decompressed BZF data matches this)
 
 seq:
   - id: file_type
@@ -30,18 +34,13 @@ seq:
     type: str
     encoding: ASCII
     size: 4
-    doc: File format version. Must be "V1.0" for BZF files.
+    doc: File format version. Always "V1.0" for BZF files.
     valid: "'V1.0'"
   
   - id: compressed_data
-    size-eos: true
+    type: u1
+    repeat: eos
     doc: |
       LZMA-compressed BIF file data.
-      This entire block (from offset 8 to end of file) is compressed using LZMA.
-      Decompression yields a standard BIF file that can be parsed as a BIF.
-      
-      Note: Kaitai Struct does not natively support LZMA decompression.
-      This field contains the raw compressed bytes. Decompression must be
-      performed by the application using an LZMA library before parsing as BIF.
-
-
+      This data must be decompressed using LZMA algorithm to obtain the standard BIF structure.
+      After decompression, the data can be parsed using the BIF format definition.
