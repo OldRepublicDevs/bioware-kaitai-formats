@@ -5,10 +5,9 @@ meta:
   endian: le
   file-extension: rim
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/rim/
     reone: vendor/reone/src/libs/resource/format/rimreader.cpp
     xoreos: vendor/xoreos/src/aurora/rimfile.cpp
-    wiki: vendor/PyKotor/wiki/RIM-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/RIM-File-Format.md
 doc: |
   RIM (Resource Information Manager) files are self-contained archives used for module templates.
   RIM files are similar to ERF files but are read-only from the game's perspective. The game
@@ -26,7 +25,7 @@ doc: |
   - Resource Data (variable size): Raw binary data for each resource
   
   References:
-  - vendor/PyKotor/wiki/RIM-File-Format.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/RIM-File-Format.md
   - vendor/reone/src/libs/resource/format/rimreader.cpp:24-100
   - vendor/xoreos/src/aurora/rimfile.cpp:40-160
   - vendor/Kotor.NET/Kotor.NET/Formats/KotorRIM/RIMBinaryStructure.cs:11-121

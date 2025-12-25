@@ -9,12 +9,12 @@ meta:
     - sav
     - hak
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/erf/
-    reone: vendor/reone/src/libs/resource/format/erfreader.cpp
-    xoreos: vendor/xoreos/src/aurora/erffile.cpp
-    kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorERF/
-    wiki: vendor/PyKotor/wiki/ERF-File-Format.md
-    bioware_aurora: vendor/PyKotor/wiki/Bioware-Aurora-ERF.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/erf/
+    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/format/erfreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/erffile.cpp
+    kotor_net: https://github.com/NickHugi/Kotor.NET/tree/master/Formats/KotorERF/
+    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/ERF-File-Format.md
+    bioware_aurora: https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-ERF.md
 doc: |
   ERF (Encapsulated Resource File) files are self-contained archives used for modules, save games,
   texture packs, and hak paks. Unlike BIF files which require a KEY file for filename lookups,
@@ -53,13 +53,13 @@ doc: |
   4. Read resource data from offset_to_data with size resource_size
 
   References:
-  - vendor/PyKotor/wiki/ERF-File-Format.md - Complete ERF format documentation
-  - vendor/PyKotor/wiki/Bioware-Aurora-ERF.md - Official BioWare Aurora ERF specification
-  - vendor/reone/src/libs/resource/format/erfreader.cpp:24-106 - Complete C++ ERF reader implementation
-  - vendor/xoreos/src/aurora/erffile.cpp:44-229 - Generic Aurora ERF implementation (shared format)
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorERF/ERFBinaryStructure.cs:11-170 - .NET ERF reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/erf/io_erf.py - PyKotor binary reader/writer
-  - Libraries/PyKotor/src/pykotor/resource/formats/erf/erf_data.py - ERF data model
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/ERF-File-Format.md - Complete ERF format documentation
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-ERF.md - Official BioWare Aurora ERF specification
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/erfreader.cpp:24-106 - Complete C++ ERF reader implementation
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/erffile.cpp:44-229 - Generic Aurora ERF implementation (shared format)
+  - https://github.com/NickHugi/Kotor.NET/blob/master/Formats/KotorERF/ERFBinaryStructure.cs:11-170 - .NET ERF reader/writer
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/erf/io_erf.py - PyKotor binary reader/writer
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/erf/erf_data.py - ERF data model
 
 seq:
   - id: header

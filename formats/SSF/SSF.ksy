@@ -6,7 +6,6 @@ meta:
   file-extension: ssf
   xref:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ssf/
-    wiki: vendor/PyKotor/wiki/SSF-File-Format.md
 doc: |
   SSF (Sound Set File) files store sound string references (StrRefs) for character voice sets.
   Each SSF file contains exactly 28 sound slots, mapping to different game events and actions.
