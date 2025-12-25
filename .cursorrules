@@ -177,6 +177,12 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 - Include validation where possible (`valid` attribute)
 - Use `if` conditions for variant structures
 
+**Validation Syntax**:
+- **CRITICAL**: `valid` expects either a scalar value OR an object with validation properties
+- **WRONG**: `valid: ["V3.2", "V3.3", "V4.0", "V4.1"]` (array directly is invalid)
+- **CORRECT**: `valid: { any-of: ["V3.2", "V3.3", "V4.0", "V4.1"] }` (use `any-of` for multiple values)
+- Other validation properties: `eq`, `min`, `max`, etc.
+
 **Game Engine Compatibility**:
 - Document which games/engines use each format variant
 - Use comments to explain differences between versions
