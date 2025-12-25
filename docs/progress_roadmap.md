@@ -21,10 +21,11 @@ This document provides a comprehensive overview of all BioWare file format parse
 - **Missing Formats:** 1 identified (ITP base binary)
 - **Test Coverage:** 33 formats have tests (41 test files)
 - **Compilation Status:** 
-  - ✅ Core formats compiling: TwoDA, GFF, TLK, MDL, BWM, TPC, PLT, NSS, WAV, SSF, LIP, LYT, VIS, LTR, DAS, DA2S (16 formats)
-  - ⚠️ Core formats with errors: RIM, PCC (2 formats with errors); BIF, ERF (warnings only)
-  - ⚠️ GFF formats: Multiple valid syntax patterns (quoted/unquoted/object) - unquoted causes errors (DLG, UTD)
-  - ⚠️ Needs fixing: Valid syntax standardization, remaining compilation errors
+  - ✅ Core formats compiling: TwoDA, GFF, TLK, MDL, BWM, TPC, PLT, NSS, WAV, SSF, LIP, LYT, VIS, LTR, DAS, DA2S, RIM, PCC (18 formats)
+  - ⚠️ Core formats with warnings: BIF, ERF, RIM (naming conventions - low priority)
+  - ⚠️ GFF formats: FAC fixed (pos: moved to instances:), many others still need pos: fix
+  - ⚠️ Valid syntax: Multiple patterns (quoted/unquoted/object) - unquoted causes errors (DLG, UTD)
+  - ⚠️ Needs fixing: pos: syntax in remaining GFF formats, valid syntax standardization
   - See `docs/audit_compilation_status.md`, `docs/compilation_fix_log.md` and `docs/fix_progress.md` for detailed status
 
 ---
