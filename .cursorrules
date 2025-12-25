@@ -1,0 +1,233 @@
+# BioWare Kaitai Formats Rules for AI Agents
+
+(2025 Edition – Optimized for LLM Performance & Compliance)
+
+## 1. CRITICAL: ALWAYS COMMIT EVERY CHANGE
+
+Commit format: Conventional Commits
+`fix:`, `feat:`, `refactor:`, `docs:`, `chore:`, `test:`
+
+**Rule #1 – Non-negotiable**
+After ANY file change (create, modify, delete, move):
+
+### Windows
+
+```powershell
+git add <file>; git commit -m "type(scope): message"  # NEVER git add . or -A; e.g. feat(gff): add GFF v3.3 support
+```
+
+### Linux/Mac (Unix)
+
+```bash
+git add <file> && git commit -m "type(scope): message"  # NEVER git add . or -A; e.g. feat(gff): add GFF v3.3 support
+```
+
+**Why this works for LLMs**: Clear, measurable, binary success/failure check. LLMs perform best with explicit "do this exact sequence" instructions.
+
+**Why we chain with semicolon(;) and ampersand(&&)**: Other agents simultaneously might be committing, this prevents conflicts when multiple agents may be trying to add/commit to git simultaneously.
+
+## 2. File Organization (Root Must Stay Clean)
+
+- `formats/` – ALL .ksy format definition files (organized by format type)
+- `scripts/` – ALL .ps1/.sh/.py/.bat helper scripts
+- `src/` – Generated code for each language (e.g., `src/csharp/`, `src/python/`)
+- `tests/` – ALL test files (organized by language, e.g., `tests/csharp/`)
+- `docs/` – ALL .md documentation except root `README.md`
+- Root only allowed: `README.md`, `.gitignore`, `.cursorrules`, `LICENSE`
+
+**Action**: If you see misplaced files → move them immediately → commit.
+
+## 3. Kaitai Struct Compiler Usage
+
+**Compiler command**: `kaitai-struct-compiler` (NOT `ksc`)
+
+**Version**: 0.11 (as specified in repository)
+
+**Usage Pattern**:
+```powershell
+# For a single format
+kaitai-struct-compiler -t <language> -d <output_dir> formats/<Format>/<Format>.ksy
+
+# Example for C#
+kaitai-struct-compiler -t csharp -d ./src/csharp formats/GFF/GFF.ksy
+
+# For .NET namespaces
+kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp formats/GFF/GFF.ksy
+```
+
+**Supported Languages**: python, javascript, java, go, rust, cpp_stl, csharp, ruby, php, lua, perl, nim, swift
+
+**Use scripts**: Always use `scripts/generate_code.ps1` for batch generation instead of manual compilation:
+```powershell
+.\scripts\generate_code.ps1 -Language csharp -OutputDir src/csharp
+```
+
+## 4. Format Definition Files (.ksy)
+
+**Location**: All `.ksy` files MUST be in `formats/` directory
+
+**Naming Conventions**:
+- Base format: `FormatName.ksy` (e.g., `GFF.ksy`, `ERF.ksy`)
+- XML variants: `FormatName_XML.ksy` (e.g., `GFF_XML.ksy`, `ARE_XML.ksy`)
+- JSON variants: `FormatName_JSON.ksy` (e.g., `GFF_JSON.ksy`, `TLK_JSON.ksy`)
+- CSV variants: `FormatName_CSV.ksy` (e.g., `TwoDA_CSV.ksy`)
+
+**Directory Structure**:
+- Group related formats together (e.g., `formats/GFF/`, `formats/GFF/Generics/`, `formats/GFF/XML/`)
+- Game-specific generics go in `formats/GFF/Generics/` (e.g., `ARE/`, `DLG/`, `UTC/`)
+
+**Best Practices**:
+- Include comprehensive inline documentation explaining file structure
+- Document field meanings and game engine compatibility
+- Reference original format documentation sources
+- Use descriptive field names matching BioWare conventions
+- Add `doc` comments for all types and fields
+
+## 5. Generated Code Location
+
+**Structure**: `src/<language>/` (mirrors `formats/` structure)
+
+**Examples**:
+- `formats/GFF/GFF.ksy` → `src/csharp/GFF/Gff.cs`
+- `formats/GFF/Generics/ARE/ARE.ksy` → `src/csharp/GFF/Generics/ARE/Are.cs`
+- `formats/TLK/TLK.ksy` → `src/python/tlk/tlk.py`
+
+**Never commit generated code manually**: Use CI/CD or `scripts/generate_code.ps1` to regenerate after `.ksy` changes.
+
+**If you modify generated code**: This is WRONG. Always modify the `.ksy` source file instead, then regenerate.
+
+## 6. Testing
+
+**Test Location**: `tests/<language>/` (e.g., `tests/csharp/`, `tests/python/`)
+
+**Test Naming**: `FormatNameKaitaiCompilerTests.cs` or `FormatNameKaitaiStructTests.cs`
+
+**Test Requirements**:
+- Test that `.ksy` files compile successfully to target languages
+- Test parsing of sample files from BioWare games
+- Verify generated code correctness
+- Test multiple language targets when possible (aim for 12+ languages)
+
+**When adding new formats**:
+1. Create/modify `.ksy` file in `formats/`
+2. Regenerate code using `scripts/generate_code.ps1`
+3. Add test file in `tests/<language>/`
+4. Test with real game files if available
+
+## 7. Scripts
+
+**Location**: `scripts/` directory only
+
+**Key Scripts**:
+- `generate_code.ps1` – Batch generate code for all formats in a language
+- `generate_code.sh` – Unix version of code generation script
+- `check_changes.ps1` – Check if generated files have changed (for CI/CD)
+
+**When modifying scripts**: Ensure both `.ps1` and `.sh` versions are updated if applicable.
+
+**Script Usage**: Always prefer using these scripts over manual compiler invocations.
+
+## 8. Incomplete Format Definitions: ALWAYS Mark with `TODO:`
+
+**In `.ksy` files**:
+```yaml
+# TODO: STUB - Implement GFF v3.3 extended field types
+# TODO: PLACEHOLDER - Temporary workaround for KOTOR2-specific field
+# TODO: FIXME - This field order may be incorrect for DA:O
+# TODO: SIMPLIFIED - No support for compressed variants yet
+# TODO: HACK - Using workaround until Kaitai Struct supports dynamic arrays
+# TODO: VERIFY - Field size needs verification with game files
+```
+
+**Why this works**: LLMs love searchability. `TODO:` + type + context is the gold standard for self-documenting code.
+
+**TODO Types**:
+- `STUB` – Incomplete implementation
+- `PLACEHOLDER` – Temporary solution
+- `FIXME` – Known bug or issue
+- `SIMPLIFIED` – Reduced functionality for now
+- `HACK` – Workaround for compiler limitation
+- `VERIFY` – Needs testing/verification with game files
+
+## 9. Format Definition Best Practices
+
+**Documentation Requirements**:
+- Every `.ksy` file MUST have a `doc` comment at the top explaining:
+  - Format purpose and usage
+  - Game engine compatibility
+  - File extensions used
+  - References to original documentation
+
+**Field Documentation**:
+- Use `doc` attribute on all important fields
+- Explain field purpose and data type
+- Note any game-specific variations
+
+**Structure**:
+- Group related fields logically
+- Use descriptive names matching BioWare conventions
+- Include validation where possible (`valid` attribute)
+- Use `if` conditions for variant structures
+
+**Game Engine Compatibility**:
+- Document which games/engines use each format variant
+- Use comments to explain differences between versions
+- Note platform-specific differences (PC vs Xbox vs mobile)
+
+## 10. CI/CD Workflow
+
+**Automated Processes**:
+1. Code generation for all supported languages
+2. Running tests on generated code
+3. Publishing packages to package managers
+4. Change detection (only commit if files actually changed)
+
+**Generated Code**:
+- Generated code is committed to repository
+- CI/CD regenerates and verifies no changes
+- Use `scripts/check_changes.ps1` to detect if regeneration produces different output
+
+**Never manually edit generated code**: Always fix the `.ksy` source and regenerate.
+
+## 11. Documentation
+
+**Public Documentation**: `docs/` directory (if needed)
+
+**Progress Reports**: `.cursor/roadmaps/*.md` (if using Cursor roadmaps)
+
+**Root README.md**: Main project documentation (keep updated)
+
+**Format Documentation**: Prefer inline documentation in `.ksy` files using `doc` attributes
+
+## 12. Definition of Done (Simple Checklist)
+
+- `.ksy` file follows naming conventions
+- Format definition includes comprehensive `doc` comments
+- Code generates successfully for target languages (test with `scripts/generate_code.ps1`)
+- Tests added/updated for new formats
+- All changes committed with conventional commit messages
+- Files in correct directories
+- Uses `TODO:` for anything unfinished
+- No manual edits to generated code
+
+## 13. Version Compatibility
+
+**Kaitai Struct Compiler**: Version 0.11 (hard requirement)
+
+**Language Runtimes**: Support latest stable versions of target languages
+
+**When compiler features are needed**: Document version requirements in `.ksy` file comments
+
+## 14. Game File Testing
+
+**Test Files**: Use real BioWare game files for validation when possible
+
+**Test File Sources**: 
+- KOTOR/KOTOR2 files
+- Neverwinter Nights files
+- Dragon Age files
+- Mass Effect files
+
+**Note**: Test files are typically not committed to repository (add to `.gitignore` if needed)
+
+**Validation**: Always test with actual game files to ensure format definitions are correct
