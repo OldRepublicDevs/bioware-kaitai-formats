@@ -205,8 +205,9 @@ types:
   field_data_section:
     seq:
       - id: data
-        type: str
-        size: _root.gff_header.field_data_count
+        type: u1
+        repeat: expr
+        repeat-expr: _root.gff_header.field_data_count
         doc: Raw field data bytes for complex types
   
   field_indices_array:

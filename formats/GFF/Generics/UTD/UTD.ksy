@@ -185,11 +185,7 @@ types:
           File format version. Typically V3.2 for KotOR.
           Other versions: V3.3, V4.0, V4.1 for other BioWare games.
         valid:
-          any-of:
-            - V3.2
-            - V3.3
-            - V4.0
-            - V4.1
+          any-of: ["'V3.2'", "'V3.3'", "'V4.0'", "'V4.1'"]
       
       - id: struct_array_offset
         type: u4
