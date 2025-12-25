@@ -128,7 +128,19 @@ All GFF generics use the base `GFF.ksy` format with FileType signature in the he
    - **Location:** Should be `formats/GFF/Generics/ITP/ITP.ksy`
    - **Documentation:** `vendor/PyKotor/wiki/Bioware-Aurora-PaletteITP.md`
    - **Note:** ITP_XML.ksy exists but base ITP is a GFF format - should reference GFF structure
-   - **Status:** ⚠️ Partial (XML only)
+   - **Status:** ⚠️ Partial (XML only, directory created but .ksy not yet created)
+
+2. **GDA.ksy** - Game Data Archive format (Dragon Age)
+   - **Location:** Should be `formats/GDA/GDA.ksy`
+   - **Documentation:** Found in `vendor/xoreos-tools/src/aurora/gdafile.h/cpp`
+   - **Note:** Dragon Age-specific format, not used in KotOR
+   - **Status:** ❌ Missing
+
+3. **HERF.ksy** - Heretic Encapsulated Resource Format
+   - **Location:** Should be `formats/HERF/HERF.ksy`  
+   - **Documentation:** Found in `vendor/xoreos-tools/src/aurora/herffile.h/cpp`
+   - **Note:** Heretic-specific format variant, not used in KotOR
+   - **Status:** ❌ Missing
 
 ---
 
@@ -204,7 +216,7 @@ All GFF generics use the base `GFF.ksy` format with FileType signature in the he
 - ✅ UTE (Encounter)
 - ✅ UTI (Item)
 - ✅ UTM (Store)
-- ❌ UTP (Placeable) - Missing
+- ✅ UTP (Placeable) - Created (needs compilation fix)
 - ✅ UTS (Sound)
 - ✅ UTT (Trigger)
 - ✅ UTW (Waypoint)
