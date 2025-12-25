@@ -6,29 +6,16 @@ meta:
   file-extension: gam.xml
   encoding: UTF-8
   xref:
-    pykotor_library_gam_binary: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/gam.py
-    pykotor_library_gam_xml: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
-    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/gam.cpp
-    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
     pykotor_wiki_gff_gam: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-GAM.md
-    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+  imports:
+    - ../../gff/gff
+    - ../../xml/gff_xml
+    - ../gam/gam
 doc: |
-  GAM XML format is a human-readable XML representation of GAM (Game Instance) binary files.
-  Uses GFF XML structure with root element <gff3> containing <struct> elements.
-  Each field has a label attribute and appropriate type element (byte, uint32, exostring, etc.).
-
-  References:
-  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/gam.py
-  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/gff/io_gff_xml.py
-  - https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/gam.cpp
-  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
-  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-GAM.md
-  - https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
-
-imports:
-  - ../../GFF
-  - ../../XML/GFF_XML
-  - ../GAM/GAM
+  Human-readable XML representation of GAM (Game Instance) binary files.
+  Uses GFF XML structure with <gff3> root element.
+  References: PyKotor wiki (GFF-GAM.md, GFF-File-Format.md)
 
 seq:
   - id: xml_content
@@ -36,4 +23,6 @@ seq:
     size-eos: true
     encoding: UTF-8
     doc: XML document content as UTF-8 text
+
+
 
