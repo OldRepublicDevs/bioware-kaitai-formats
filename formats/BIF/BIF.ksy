@@ -91,7 +91,6 @@ types:
 
     instances:
       data:
-        type: str
         pos: offset
         size: file_size
         doc: Raw binary data for the resource (read at specified offset).
