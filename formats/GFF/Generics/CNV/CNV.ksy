@@ -8,7 +8,7 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/cnv/
     reone: vendor/reone/src/libs/resource/parser/gff/cnv.cpp
     xoreos: vendor/xoreos/src/aurora/cnvfile.cpp
-    wiki: vendor/PyKotor/wiki/GFF-CNV.md
+    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-CNV.md
 doc: |
   CNV (Conversation) files are GFF-based format files that store conversation trees with entries, replies,
   links, and conversation metadata. CNV files use the GFF (Generic File Format) binary structure
@@ -40,7 +40,7 @@ doc: |
   - Used by Eclipse Engine games (daorigins.exe, DragonAge2.exe, MassEffect.exe, MassEffect2.exe)
 
   References:
-  - vendor/PyKotor/wiki/GFF-CNV.md
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-CNV.md
   - vendor/PyKotor/wiki/GFF-File-Format.md
   - vendor/PyKotor/wiki/GFF-DLG.md (similar format for reference)
 
