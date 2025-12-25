@@ -265,10 +265,10 @@ types:
   field_data_section:
     seq:
       - id: data
-        type: str
-        size: _root.gff_header.field_data_count
-        doc: |
-          Raw field data bytes for complex types.
+        type: u1
+        repeat: expr
+        repeat-expr: _root.gff_header.field_data_count
+        doc: Raw field data bytes for complex types
           PTH files typically have minimal field_data since most fields are simple types
           (UInt32, Single) stored inline in field_entry.data_or_offset.
   

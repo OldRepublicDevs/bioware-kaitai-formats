@@ -147,7 +147,7 @@ instances:
     doc: Array of field entries (12 bytes each)
   
   field_data:
-    type: field_data_section_section
+    type: field_data_section
     if: gff_header.field_data_count > 0
     pos: gff_header.field_data_offset
     doc: Field data section for complex types (strings, ResRefs, LocalizedStrings, etc.)
