@@ -134,7 +134,7 @@ types:
 
     instances:
       is_valid_bwm:
-        value: magic == "BWM " and version == "V1.0"
+        value: magic == "BWM " && version == "V1.0"
         doc: |
           Validation check that the file is a valid BWM file.
           Both magic and version must match expected values.
