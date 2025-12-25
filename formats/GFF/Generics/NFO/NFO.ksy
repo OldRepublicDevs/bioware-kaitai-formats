@@ -106,7 +106,7 @@ types:
         size: 4
         doc: |
           File type signature. Must be "NFO " for save metadata files.
-        valid: "NFO "
+        valid: "'NFO '"
 
       - id: file_version
         type: str

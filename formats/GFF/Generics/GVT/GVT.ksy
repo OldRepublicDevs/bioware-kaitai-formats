@@ -181,10 +181,8 @@ types:
           The actual label length is determined by the first null byte.
           Common GVT field names: "CatBoolean", "ValBoolean", "CatNumber", "ValNumber",
           "CatLocation", "ValLocation", "CatString", "ValString", "Name", "String".
-    instances:
-      name_trimmed:
-        value: name.rstrip('\x00')
-        doc: "Label name with trailing nulls removed"
+    # TODO: Kaitai Struct 0.11 doesn't support Python-style .rstrip() in all backends
+    # Application code should trim trailing nulls from label names when needed
 
   # Struct Array - Standard GFF struct array
   struct_array:
@@ -279,7 +277,7 @@ types:
           For Binary type: Byte offset into field_data section.
     instances:
       label_name:
-        value: _root.label_array.labels[label_index].name_trimmed
+        value: _root.label_array.labels[label_index].name
         doc: Field name from label array
 
   # Field Data Section - Standard GFF field data section
