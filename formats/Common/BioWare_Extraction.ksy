@@ -19,12 +19,8 @@ types:
         type: str
         encoding: ASCII
         terminator: 0
-        valid:
-          any-of:
-            - "'swpc_tex_tpa.erf'"
-            - "'swpc_tex_tpb.erf'"
-            - "'swpc_tex_tpc.erf'"
-            - "'swpc_tex_gui.erf'"
+        # TODO: Add validation for texture pack names once Kaitai supports string literals with dots
+        # Valid values: swpc_tex_tpa.erf, swpc_tex_tpb.erf, swpc_tex_tpc.erf, swpc_tex_gui.erf
 
 enums:
   # Extracted from `pykotor.extract.installation.SearchLocation` (IntEnum)
@@ -43,5 +39,3 @@ enums:
     11: rims
     12: custom_modules
     13: custom_folders
-
-
