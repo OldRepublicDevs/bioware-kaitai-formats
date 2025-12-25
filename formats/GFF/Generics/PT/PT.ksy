@@ -34,44 +34,45 @@ doc: |
   - src/Andastra/Runtime/Content/Save/SaveSerializer.cs (SerializePartyTable)
 
 seq:
-  - id: gff_header
+  - id: header
     type: gff_header
     doc: GFF file header (56 bytes)
 
-  - id: label_array
+instances:
+  label_array:
     type: label_array
-    if: gff_header.label_count > 0
-    pos: gff_header.label_array_offset
+    if: header.label_count > 0
+    pos: header.label_array_offset
     doc: Array of field name labels (16-byte null-terminated strings)
 
-  - id: struct_array
+  struct_array:
     type: struct_array
-    if: gff_header.struct_count > 0
-    pos: gff_header.struct_array_offset
+    if: header.struct_count > 0
+    pos: header.struct_array_offset
     doc: Array of struct entries (12 bytes each)
 
-  - id: field_array
+  field_array:
     type: field_array
-    if: gff_header.field_count > 0
-    pos: gff_header.field_array_offset
+    if: header.field_count > 0
+    pos: header.field_array_offset
     doc: Array of field entries (12 bytes each)
 
-  - id: field_data
+  field_data:
     type: field_data_section
-    if: gff_header.field_data_count > 0
-    pos: gff_header.field_data_offset
+    if: header.field_data_count > 0
+    pos: header.field_data_offset
     doc: Field data section for complex types (strings, ResRefs, LocalizedStrings, etc.)
 
-  - id: field_indices
+  field_indices_array:
     type: field_indices_array
-    if: gff_header.field_indices_count > 0
-    pos: gff_header.field_indices_offset
+    if: header.field_indices_count > 0
+    pos: header.field_indices_offset
     doc: Field indices array (MultiMap) for structs with multiple fields
 
-  - id: list_indices
+  list_indices_array:
     type: list_indices_array
-    if: gff_header.list_indices_count > 0
-    pos: gff_header.list_indices_offset
+    if: header.list_indices_count > 0
+    pos: header.list_indices_offset
     doc: List indices array for LIST type fields (PT_MEMBERS, PT_PUPPETS, PT_AVAIL_PUPS, PT_AVAIL_NPCS, PT_INFLUENCE, etc.)
 
 types:
@@ -148,7 +149,7 @@ types:
       - id: labels
         type: label_entry
         repeat: expr
-        repeat-expr: _root.gff_header.label_count
+        repeat-expr: _root.header.label_count
         doc: Array of label entries (16 bytes each)
 
   label_entry:
@@ -172,10 +173,6 @@ types:
           "PT_NPC_AVAIL", "PT_NPC_SELECT", "PT_NPC_INFLUENCE", "PT_PAZAAKCOUNT", "PT_PAZSIDECARD",
           "PT_FB_MSG_MSG", "PT_FB_MSG_TYPE", "PT_FB_MSG_COLOR", "PT_DLG_MSG_SPKR", "PT_DLG_MSG_MSG",
           "PT_COM_MSG_MSG", "PT_COM_MSG_TYPE", "PT_COM_MSG_COOR", "PT_COST_MULT_VALUE".
-    instances:
-      name_trimmed:
-        value: name.rstrip('\x00')
-        doc: "Label name with trailing nulls removed"
 
   # Struct Array - Standard GFF struct array
   struct_array:
@@ -183,7 +180,7 @@ types:
       - id: entries
         type: struct_entry
         repeat: expr
-        repeat-expr: _root.gff_header.struct_count
+        repeat-expr: _root.header.struct_count
         doc: Array of struct entries (12 bytes each)
 
   struct_entry:
@@ -228,7 +225,7 @@ types:
       - id: entries
         type: field_entry
         repeat: expr
-        repeat-expr: _root.gff_header.field_count
+        repeat-expr: _root.header.field_count
         doc: Array of field entries (12 bytes each)
 
   field_entry:
@@ -269,7 +266,7 @@ types:
           For List type: Byte offset into list_indices_array.
     instances:
       label_name:
-        value: _root.label_array.labels[label_index].name_trimmed
+        value: _root.label_array.labels[label_index].name
         doc: Field name from label array
 
   # Field Data Section - Standard GFF field data section
@@ -278,7 +275,7 @@ types:
       - id: data
         type: u1
         repeat: expr
-        repeat-expr: _root.gff_header.field_data_count
+        repeat-expr: _root.header.field_data_count
         doc: Raw field data bytes (strings, ResRefs, binary data, etc.)
 
   # Field Indices Array - Standard GFF field indices array
@@ -287,7 +284,7 @@ types:
       - id: indices
         type: u4
         repeat: expr
-        repeat-expr: _root.gff_header.field_indices_count
+        repeat-expr: _root.header.field_indices_count
         doc: Array of field indices (uint32 values) for structs with multiple fields
 
   # List Indices Array - Standard GFF list indices array
@@ -296,18 +293,18 @@ types:
       - id: entries
         type: list_entry
         repeat: until
-        repeat-until: _io.pos >= (_root.gff_header.list_indices_offset + _root.gff_header.list_indices_count * 4)
+        repeat-until: _io.pos >= (_root.header.list_indices_offset + _root.header.list_indices_count * 4)
         doc: List entry structures (count + struct indices)
 
   list_entry:
     seq:
-      - id: count
+      - id: num_struct_indices
         type: u4
         doc: Number of struct indices in this list entry
 
       - id: struct_indices
         type: u4
         repeat: expr
-        repeat-expr: count
+        repeat-expr: num_struct_indices
         doc: Array of struct indices (uint32) pointing to struct_array entries
 
