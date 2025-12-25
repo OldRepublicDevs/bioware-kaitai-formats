@@ -289,6 +289,7 @@ types:
         doc: GUI tag/identifier string (from "Tag" field)
 
   gui_control:
+    doc: |
       GUI Control struct. Represents a single UI control element.
       Can be nested recursively via CONTROLS list.
 
