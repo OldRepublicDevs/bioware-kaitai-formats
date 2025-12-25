@@ -63,7 +63,7 @@ This document provides a comprehensive overview of all BioWare file format parse
 
 | Format | Status | Priority | Notes |
 |--------|--------|----------|-------|
-| **PLT** (Palette Texture) | ❌ Missing | Low | NWN-specific format, not used in KotOR but documented |
+| **PLT** (Palette Texture) | ✅ `formats/PLT/PLT.ksy` | Low | NWN-specific format, not used in KotOR but documented |
 
 ---
 
