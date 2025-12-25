@@ -33,7 +33,8 @@ git add <file> && git commit -m "type(scope): message"  # NEVER git add . or -A;
 - `src/` – Generated code for each language (e.g., `src/csharp/`, `src/python/`)
 - `tests/` – ALL test files (organized by language, e.g., `tests/csharp/`)
 - `docs/` – ALL .md documentation except root `README.md`
-- Root only allowed: `README.md`, `.gitignore`, `.cursorrules`, `LICENSE`
+- Root files only allowed: `README.md`, `.gitignore`, `.cursorrules`, `LICENSE`
+- Root directories allowed: `.cursor/` (Cursor IDE configuration, roadmaps at `.cursor/roadmaps/*.md`)
 
 **Action**: If you see misplaced files → move them immediately → commit.
 
