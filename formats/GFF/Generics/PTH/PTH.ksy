@@ -5,10 +5,11 @@ meta:
   endian: le
   file-extension: pth
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/pth.py
-    reone: vendor/reone/src/libs/resource/parser/gff/pth.cpp
-    xoreos: vendor/xoreos/src/aurora/pthfile.cpp
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/pth.py
+    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/pth.cpp
+    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/pthfile.cpp
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+    pykotor_wiki_gff_pth: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-PTH.md
 doc: |
   PTH (Pathfinding) files are GFF-based format files that store pathfinding data including
   waypoints and connections for NPC navigation. PTH files use the GFF (Generic File Format) 
@@ -34,10 +35,10 @@ doc: |
   3. Reading Destination indices to build the graph edges
   
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/pth.py:160-209
-  - vendor/reone/src/libs/resource/parser/gff/pth.cpp
-  - vendor/xoreos/src/aurora/pthfile.cpp
-  - vendor/PyKotor/wiki/GFF-File-Format.md
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/generics/pth.py:160-209
+  - https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/pth.cpp
+  - https://github.com/xoreos/xoreos/tree/master/src/aurora/pthfile.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 
 seq:
   - id: gff_header
@@ -100,11 +101,7 @@ types:
           File format version. Typically "V3.2" for KotOR.
           Other versions: "V3.3", "V4.0", "V4.1" for other BioWare games.
         valid:
-          any-of:
-            - "V3.2"
-            - "V3.3"
-            - "V4.0"
-            - "V4.1"
+          any-of: ["'V3.2'", "'V3.3'", "'V4.0'", "'V4.1'"]
       
       - id: struct_array_offset
         type: u4

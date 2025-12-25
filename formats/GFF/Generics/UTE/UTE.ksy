@@ -5,10 +5,11 @@ meta:
   endian: le
   file-extension: ute
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/ute.py
-    reone: vendor/reone/src/libs/resource/parser/gff/ute.cpp
-    xoreos: vendor/xoreos/src/aurora/gfffile.cpp
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTE.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/ute.py
+    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/ute.cpp
+    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/gfffile.cpp
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+    pykotor_wiki_gff_ute: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTE.md
 doc: |
   UTE (Encounter Template) files are GFF-based format files that store encounter definitions including
   creature spawn lists, difficulty, respawn settings, and script hooks. UTE files use the GFF (Generic File Format)
@@ -23,10 +24,10 @@ doc: |
   
   References:
   - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-UTE.md
-  - vendor/PyKotor/wiki/GFF-File-Format.md
-  - vendor/reone/include/reone/resource/parser/gff/ute.h:28-59
-  - vendor/reone/src/libs/resource/parser/gff/ute.cpp:28-65
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/ute.py:15-222
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+  - https://github.com/seedhartha/reone/tree/master/include/reone/resource/parser/gff/ute.h:28-59
+  - https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/ute.cpp:28-65
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/ute.py:15-222
 
 seq:
   - id: gff_header

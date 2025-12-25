@@ -7,7 +7,7 @@ meta:
   xref:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/uts.py
     reone: vendor/reone/src/libs/resource/parser/gff/uts.cpp
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 doc: |
   UTS (Sound) files are GFF-based format files that store sound object definitions including
   audio settings, positioning, looping, and volume controls. UTS files use the GFF (Generic File Format)

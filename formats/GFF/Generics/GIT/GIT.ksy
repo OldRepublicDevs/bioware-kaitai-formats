@@ -5,10 +5,11 @@ meta:
   endian: le
   file-extension: git
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/git.py
-    reone: vendor/reone/src/libs/resource/parser/gff/git.cpp
-    xoreos: vendor/xoreos/src/aurora/gitfile.cpp
-    wiki: vendor/PyKotor/wiki/GFF-File-Format.md
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/git.py
+    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/git.cpp
+    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/gitfile.cpp
+    pykotor_wiki_gff_git: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-GIT.md
+    pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
 doc: |
   GIT (Game Instance Template) files are GFF-based format files that store dynamic area information
   including creatures, doors, placeables, triggers, waypoints, stores, encounters, sounds, and cameras.
@@ -159,10 +160,10 @@ doc: |
   Note: Bearing is calculated as atan2(YOrientation, XOrientation) - π/2 radians. If both XOrientation and YOrientation are 0, bearing defaults to 0.
   
   References:
-  - vendor/PyKotor/wiki/GFF-File-Format.md
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/git.py
-  - vendor/reone/src/libs/resource/parser/gff/git.cpp
-  - vendor/xoreos/src/aurora/gitfile.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/generics/git.py
+  - https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/gff/git.cpp
+  - https://github.com/xoreos/xoreos/tree/master/src/aurora/gitfile.cpp
 
 seq:
   - id: gff_header

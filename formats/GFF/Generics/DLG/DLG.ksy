@@ -8,7 +8,7 @@ meta:
     pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/generics/dlg/
     reone: vendor/reone/src/libs/resource/parser/gff/dlg.cpp
     xoreos: vendor/xoreos/src/aurora/dlgfile.cpp
-    pykotor: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-DLG.md
+    pykotor_wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-DLG.md
 doc: |
   DLG (Dialogue) files are GFF-based format files that store dialog trees with entries, replies,
   links, and conversation metadata. DLG files use the GFF (Generic File Format) binary structure
