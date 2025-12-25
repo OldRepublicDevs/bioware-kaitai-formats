@@ -1,4 +1,4 @@
-﻿meta:
+meta:
   id: twoda
   title: BioWare TwoDA (2D Array) File Format
   license: MIT

@@ -25,9 +25,9 @@ doc: |
   - Preprocessor directives: #include, #define, etc.
   
   References:
-  - vendor/PyKotor/wiki/NSS-File-Format.md
-  - vendor/xoreos-tools/src/nwscript/ (NWScript compiler)
-  - vendor/reone/src/libs/script/ (Script execution engine)
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/NSS-File-Format.md
+  - https://github.com/xoreos/xoreos-tools/tree/master/src/nwscript/ (NWScript compiler)
+  - https://github.com/seedhartha/reone/blob/master/src/libs/script/ (Script execution engine)
 
 seq:
   - id: bom

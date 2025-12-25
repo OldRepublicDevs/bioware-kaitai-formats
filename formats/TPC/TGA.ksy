@@ -21,7 +21,7 @@ doc: |
   - Image Data: Raw or RLE-compressed pixel data
   
   References:
-  - vendor/PyKotor/wiki/TPC-File-Format.md - TGA conversion to TPC
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/TPC-File-Format.md - TGA conversion to TPC
   - Standard TGA format specification
 
 seq:

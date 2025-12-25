@@ -1,5 +1,5 @@
 meta:
-  id: plt_palette_texture
+  id: plt
   title: BioWare PLT (Palette Texture) File Format
   license: MIT
   endian: le
@@ -39,9 +39,9 @@ doc: |
   6 = Leather 1, 7 = Leather 2, 8 = Tattoo 1, 9 = Tattoo 2
   
   References:
-  - vendor/PyKotor/wiki/PLT-File-Format.md
-  - vendor/xoreos-docs/specs/torlack/plt.html
-  - vendor/xoreos/src/graphics/aurora/pltfile.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/PLT-File-Format.md
+  - https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/plt.html
+  - https://github.com/xoreos/xoreos/blob/master/src/graphics/aurora/pltfile.cpp
 
 seq:
   - id: header

@@ -22,7 +22,6 @@ doc: |
   - https://github.com/OldRepublicDevs/PyKotor/wiki/TLK-File-Format.md
   - https://github.com/xoreos/xoreos/tree/master/src/aurora/talktable.cpp
 
-imports:
   - ../GFF/GFF
   - ../GFF/XML/GFF_XML
   - ../TLK/TLK

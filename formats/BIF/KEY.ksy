@@ -17,9 +17,9 @@ doc: |
   - KEY entries mapping ResRef + ResourceType to Resource ID
   
   References:
-  - vendor/PyKotor/wiki/KEY-File-Format.md
-  - vendor/xoreos-docs/specs/torlack/key.html
-  - vendor/reone/src/libs/resource/format/keyreader.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/KEY-File-Format.md
+  - https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/key.html
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/keyreader.cpp
 
 seq:
   - id: file_type
@@ -167,7 +167,7 @@ types:
           - resource_index = resource_id & 0xFFFFF
 
 enums:
-  # NOTE: Mirrors `vendor/xoreos/src/aurora/types.h` (`enum FileType`).
+  # NOTE: Mirrors `https://github.com/xoreos/xoreos/blob/master/src/aurora/types.h` (`enum FileType`).
   # TODO: VERIFY - Aliases exist upstream (e.g. 2045 also known as DTF) but Kaitai enums cannot
   # represent multiple names for the same numeric key.
   xoreos_file_type_id:

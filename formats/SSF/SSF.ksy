@@ -39,8 +39,8 @@ doc: |
   27: Poisoned
 
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_binary_reader.py
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_binary_writer.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_binary_reader.py
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf_binary_writer.py
 
 seq:
   - id: file_type

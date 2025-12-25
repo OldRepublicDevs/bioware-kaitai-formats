@@ -20,10 +20,10 @@ doc: |
   (singles, doubles, triples) stored as contiguous float arrays.
   
   References:
-  - vendor/PyKotor/wiki/LTR-File-Format.md
-  - vendor/reone/src/libs/resource/format/ltrreader.cpp:27-74
-  - vendor/xoreos/src/aurora/ltrfile.cpp:135-168
-  - vendor/KotOR.js/src/resource/LTRObject.ts:61-117
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/LTR-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/ltrreader.cpp:27-74
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/ltrfile.cpp:135-168
+  - https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/LTRObject.ts:61-117
 
 seq:
   - id: file_type

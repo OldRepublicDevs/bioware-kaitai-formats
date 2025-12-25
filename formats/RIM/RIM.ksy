@@ -27,10 +27,10 @@ doc: |
   
   References:
   - https://github.com/OldRepublicDevs/PyKotor/wiki/RIM-File-Format.md
-  - vendor/reone/src/libs/resource/format/rimreader.cpp:24-100
-  - vendor/xoreos/src/aurora/rimfile.cpp:40-160
-  - vendor/Kotor.NET/Kotor.NET/Formats/KotorRIM/RIMBinaryStructure.cs:11-121
-  - vendor/KotOR_IO/KotOR_IO/File Formats/RIM.cs:20-260
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/rimreader.cpp:24-100
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/rimfile.cpp:40-160
+  - https://github.com/KotOR-Community-Patches/Kotor.NET/blob/master/Kotor.NET/Formats/KotorRIM/RIMBinaryStructure.cs:11-121
+  - https://github.com/KotOR-Community-Patches/KotOR_IO/blob/master/KotOR_IO/File%20Formats/RIM.cs:20-260
 
 seq:
   - id: header
@@ -162,7 +162,7 @@ types:
         doc: Raw binary data for this resource (read at specified offset)
 
 enums:
-  # NOTE: Mirrors `vendor/xoreos/src/aurora/types.h` (`enum FileType`).
+  # NOTE: Mirrors `https://github.com/xoreos/xoreos/blob/master/src/aurora/types.h` (`enum FileType`).
   # TODO: VERIFY - Aliases exist upstream (e.g. 2045 also known as DTF) but Kaitai enums cannot
   # represent multiple names for the same numeric key.
   xoreos_file_type_id:

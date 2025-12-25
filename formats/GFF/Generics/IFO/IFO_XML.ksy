@@ -11,8 +11,8 @@ meta:
     pykotor_wiki_gff_ifo: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-IFO.md
     pykotor_wiki_gff_format: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-File-Format.md
   imports:
-    - ../../gff/gff
-    - ../../xml/gff_xml
+    - ../../GFF/GFF
+    - ../../GFF/XML/GFF_XML
 doc: |
   Human-readable XML representation of IFO (Module Information) binary files.
   Uses GFF XML structure with <gff3> root element.

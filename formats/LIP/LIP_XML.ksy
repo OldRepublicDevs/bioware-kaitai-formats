@@ -22,7 +22,6 @@ doc: |
   - https://github.com/OldRepublicDevs/PyKotor/wiki/LIP-File-Format.md
   - https://github.com/xoreos/xoreos/tree/master/src/graphics/aurora/lipfile.cpp
 
-imports:
   - ../GFF/GFF
   - ../GFF/XML/GFF_XML
   - ../LIP/LIP

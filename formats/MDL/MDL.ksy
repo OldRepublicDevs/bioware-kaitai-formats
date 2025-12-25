@@ -113,7 +113,7 @@ types:
         doc: Padding bytes for alignment
     instances:
       is_kotor2:
-        value: function_pointer_0 == 4285200 || function_pointer_0 == 4285872
+        value: function_pointer_0 == 4285200 or function_pointer_0 == 4285872
         doc: True if this is a KOTOR 2 model
 
   array_definition:

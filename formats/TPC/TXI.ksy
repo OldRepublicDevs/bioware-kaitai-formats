@@ -46,10 +46,10 @@ doc: |
   - waterheight, waterwidth, xbox_downsample
 
   References:
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/io_txi.py - Complete parser
-  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/txi_data.py - Data structures
-  - vendor/PyKotor/wiki/TXI-File-Format.md - Format documentation
-  - vendor/reone/src/libs/graphics/format/txireader.cpp - C++ reference implementation
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/txi/io_txi.py - Complete parser
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/txi/txi_data.py - Data structures
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/TXI-File-Format.md - Format documentation
+  - https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/txireader.cpp - C++ reference implementation
 
 seq:
   - id: content

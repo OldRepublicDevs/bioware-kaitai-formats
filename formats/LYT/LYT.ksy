@@ -12,8 +12,8 @@ meta:
     xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp
     kotor_js: https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/LYTObject.ts
     kotor_unity: https://github.com/KotOR-Community-Patches/KotOR-Unity/blob/master/Assets/Scripts/FileObjects/LYTObject.cs
-    kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorLYT/LYT.cs
-    wiki: vendor/PyKotor/wiki/LYT-File-Format.md
+    kotor_net: https://github.com/KotOR-Community-Patches/Kotor.NET/blob/master/Kotor.NET/Formats/KotorLYT/LYT.cs
+    pykotor_wiki_lyt: https://github.com/OldRepublicDevs/PyKotor/wiki/LYT-File-Format.md
 doc: |
   LYT (Layout) files define how area geometry is assembled from room models and where
   interactive elements (doors, tracks, obstacles, art placeables) are positioned.
@@ -138,14 +138,14 @@ doc: |
   - VIS: Visibility graph for areas with LYT rooms, controls which rooms are visible
   - ARE: Area files that load LYT layouts to assemble the area geometry
 
-  All implementations (vendor/reone, vendor/xoreos, vendor/KotOR.js, vendor/Kotor.NET)
+  All implementations (reone, xoreos, KotOR.js, Kotor.NET)
   parse identical tokens for the core sections. KotOR-Unity mirrors the same structure.
   xoreos extends the format with additional sections for Jade Engine compatibility.
 
   References:
-  - vendor/PyKotor/wiki/LYT-File-Format.md - Complete format documentation
-  - vendor/reone/src/libs/resource/format/lytreader.cpp:37-77 - Room parsing implementation
-  - vendor/xoreos/src/aurora/lytfile.cpp:98-200 - Complete parser with all sections
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/LYT-File-Format.md - Complete format documentation
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/lytreader.cpp:37-77 - Room parsing implementation
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp:98-200 - Complete parser with all sections
   - Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py:17-165 - PyKotor parser/writer
 
 seq:
@@ -284,7 +284,7 @@ types:
 
       Example: "Room01 Door01 10.0 11.0 12.0 13.0 14.0 15.0 16.0 17.0"
 
-      Reference: vendor/xoreos/src/aurora/lytfile.cpp:161-187
+      Reference: https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp:161-187
 
   artplaceable_entry:
     doc: |
@@ -303,7 +303,7 @@ types:
 
       Example: "AP01 20.0 21.0 22.0"
 
-      Reference: vendor/xoreos/src/aurora/lytfile.cpp:120-139
+      Reference: https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp:120-139
 
   walkmesh_room_entry:
     doc: |
@@ -320,7 +320,7 @@ types:
 
       Example: "WMRoom01"
 
-      Reference: vendor/xoreos/src/aurora/lytfile.cpp:141-159
+      Reference: https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp:141-159
 
 instances:
   has_valid_header:

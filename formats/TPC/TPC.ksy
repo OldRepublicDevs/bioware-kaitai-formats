@@ -21,9 +21,9 @@ doc: |
   - Optional TXI Footer: ASCII text metadata appended after texture data
 
   References:
-  - vendor/PyKotor/wiki/TPC-File-Format.md
-  - vendor/reone/src/libs/graphics/format/tpcreader.cpp
-  - vendor/xoreos/src/graphics/images/tpc.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/TPC-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/tpcreader.cpp
+  - https://github.com/xoreos/xoreos/blob/master/src/graphics/images/tpc.cpp
 
 seq:
   - id: header
@@ -106,7 +106,7 @@ types:
         type: texture_layer
         repeat: expr
         repeat-expr: |
-          (_root.header.is_compressed && _root.header.height != 0 && _root.header.width != 0 && (_root.header.height / _root.header.width) == 6) ?
+          (_root.header.is_compressed and _root.header.height != 0 and _root.header.width != 0 and (_root.header.height / _root.header.width) == 6) ?
             6 : 1
         doc: Array of texture layers (1 for regular, 6 for cube maps)
 

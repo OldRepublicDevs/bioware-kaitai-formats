@@ -23,10 +23,9 @@ doc: |
 
   Format Variants:
   - ERF: Generic encapsulated resource file (texture packs, etc.)
-  - MOD: Module file (game areas/levels). Contains area resources, scripts, and module-specific data
-  - SAV: Save game file (contains saved game state). Uses MOD signature but typically has
-    description_strref = 0
   - HAK: Hak pak file (contains override resources). Used for mod content distribution
+  - MOD: Module file (game areas/levels). Contains area resources, scripts, and module-specific data
+  - SAV: Save game file (contains saved game state). Uses MOD signature but typically has `description_strref == 0`
 
   All variants use the same binary format structure, differing only in the file type signature.
 

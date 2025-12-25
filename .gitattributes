@@ -1,0 +1,3 @@
+# Set case-insensitive file handling for cross-platform compatibility
+* text=auto eol=lf
+*.ksy text eol=lf

@@ -208,4 +208,4 @@ types:
         doc: |
           Padding byte to align to word boundary (only if chunk size is odd)
           RIFF chunks must be aligned to 2-byte boundaries
-          Reference: vendor/PyKotor/src/pykotor/resource/formats/wav/io_wav.py:153-156
+          Reference: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/wav/io_wav.py:153-156

@@ -66,9 +66,9 @@ doc: |
   - Doorway Artifacts: Door rooms not mutually visible → walls clip during door animations
   
   References:
-  - vendor/PyKotor/wiki/VIS-File-Format.md
-  - vendor/reone/src/libs/resource/format/visreader.cpp
-  - vendor/xoreos/src/aurora/visfile.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/VIS-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/visreader.cpp
+  - https://github.com/xoreos/xoreos/blob/master/src/aurora/visfile.cpp
   - Libraries/PyKotor/src/pykotor/resource/formats/vis/io_vis.py:14-87
   - Libraries/PyKotor/src/pykotor/resource/formats/vis/vis_data.py:52-294
 

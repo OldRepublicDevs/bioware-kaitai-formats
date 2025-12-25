@@ -18,7 +18,7 @@ doc: |
   All multi-byte values in NCS files are stored in BIG-ENDIAN byte order (network byte order).
   
   References:
-  - vendor/PyKotor/wiki/NCS-File-Format.md - Complete NCS format documentation
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/NCS-File-Format.md - Complete NCS format documentation
   - NSS.ksy - NWScript source code that compiles to NCS
 
 seq:

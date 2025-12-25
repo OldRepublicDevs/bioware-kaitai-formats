@@ -2,7 +2,6 @@
 """Fix all GFF XML variant .ksy files to have proper imports and xrefs."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 # Map of format codes to full names
@@ -34,7 +33,7 @@ FORMAT_NAMES = {
 
 def fix_xml_variant(file_path: Path):
     """Fix a single XML variant .ksy file."""
-    content = file_path.read_text(encoding="utf-8")
+    _content = file_path.read_text(encoding="utf-8")
 
     # Extract format code from filename (e.g., "ARE_XML.ksy" -> "are")
     format_code = file_path.stem.replace("_XML", "").lower()

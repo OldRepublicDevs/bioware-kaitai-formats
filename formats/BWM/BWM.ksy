@@ -12,7 +12,7 @@ meta:
     reone: https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/bwmreader.cpp
     xoreos: https://github.com/xoreos/xoreos/blob/master/src/engines/kotorbase/path/walkmeshloader.cpp
     kotor_js: https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/odyssey/OdysseyWalkMesh.ts
-    wiki: vendor/PyKotor/wiki/BWM-File-Format.md
+    wiki: https://github.com/OldRepublicDevs/PyKotor/wiki/BWM-File-Format.md
 doc: |
   BWM (Binary WalkMesh) files define walkable surfaces for pathfinding and collision detection
   in Knights of the Old Republic (KotOR) games. BWM files are stored on disk with different
@@ -40,10 +40,10 @@ doc: |
   - Perimeters Array: Array of edge indices (WOK only)
 
   References:
-  - vendor/PyKotor/wiki/BWM-File-Format.md
-  - vendor/reone/src/libs/graphics/format/bwmreader.cpp:27-171
-  - vendor/xoreos/src/engines/kotorbase/path/walkmeshloader.cpp:73-248
-  - vendor/KotOR.js/src/odyssey/OdysseyWalkMesh.ts:452-473
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/BWM-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/bwmreader.cpp:27-171
+  - https://github.com/xoreos/xoreos/blob/master/src/engines/kotorbase/path/walkmeshloader.cpp:73-248
+  - https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/odyssey/OdysseyWalkMesh.ts:452-473
 
 seq:
   - id: header
@@ -80,37 +80,37 @@ instances:
   normals:
     pos: _root.data_table_offsets.normals_offset
     type: normals_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.face_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.face_count > 0
     doc: Array of face normal vectors (float3 triplets) - WOK only
 
   planar_distances:
     pos: _root.data_table_offsets.distances_offset
     type: planar_distances_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.face_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.face_count > 0
     doc: Array of planar distances (float32 per face) - WOK only
 
   aabb_nodes:
     pos: _root.data_table_offsets.aabb_offset
     type: aabb_nodes_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.aabb_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.aabb_count > 0
     doc: Array of AABB tree nodes for spatial acceleration - WOK only
 
   adjacencies:
     pos: _root.data_table_offsets.adjacency_offset
     type: adjacencies_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.adjacency_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.adjacency_count > 0
     doc: Array of adjacency indices (int32 triplets per walkable face) - WOK only
 
   edges:
     pos: _root.data_table_offsets.edge_offset
     type: edges_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.edge_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.edge_count > 0
     doc: Array of perimeter edges (edge_index, transition pairs) - WOK only
 
   perimeters:
     pos: _root.data_table_offsets.perimeter_offset
     type: perimeters_array
-    if: _root.walkmesh_properties.walkmesh_type == 1 && _root.data_table_offsets.perimeter_count > 0
+    if: _root.walkmesh_properties.walkmesh_type == 1 and _root.data_table_offsets.perimeter_count > 0
     doc: Array of perimeter markers (edge indices marking end of loops) - WOK only
 
 types:
@@ -134,7 +134,7 @@ types:
 
     instances:
       is_valid_bwm:
-        value: magic == "BWM " && version == "V1.0"
+        value: magic == "BWM " and version == "V1.0"
         doc: |
           Validation check that the file is a valid BWM file.
           Both magic and version must match expected values.

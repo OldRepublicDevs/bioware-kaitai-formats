@@ -24,10 +24,10 @@ doc: |
   1-byte viseme index (0-15). The format uses the 16-shape Preston Blair phoneme set.
   
   References:
-  - vendor/PyKotor/wiki/LIP-File-Format.md
-  - vendor/reone/src/libs/graphics/format/lipreader.cpp:27-42
-  - vendor/xoreos/src/graphics/aurora/lipfile.cpp
-  - vendor/KotOR.js/src/resource/LIPObject.ts:93-146
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/LIP-File-Format.md
+  - https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/lipreader.cpp:27-42
+  - https://github.com/xoreos/xoreos/blob/master/src/graphics/aurora/lipfile.cpp
+  - https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/LIPObject.ts:93-146
 
 seq:
   - id: file_type
