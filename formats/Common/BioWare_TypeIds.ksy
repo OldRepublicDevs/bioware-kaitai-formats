@@ -9,7 +9,7 @@ doc: |
   Why two enums?
   - `xoreos_file_type_id` mirrors `vendor/xoreos/src/aurora/types.h` (`enum FileType`) and is the
     canonical set of **engine-facing** numeric type IDs found in archives (KEY/BIF/ERF/RIM, etc).
-  - `pykotor_resource_type_id` mirrors `vendor/PyKotor/.../resource/type.py` (`class ResourceType`)
+  - `bioware_resource_type_id` mirrors `vendor/PyKotor/.../resource/type.py` (`class ResourceType`)
     and includes additional **toolset-only** IDs (e.g. XML/JSON abstractions).
   
   Important notes:
@@ -326,7 +326,7 @@ enums:
     30000: xds
     30001: wnd
     40000: xeositex
-  pykotor_resource_type_id:
+  bioware_resource_type_id:
     -1: invalid
     0: res
     1: bmp
