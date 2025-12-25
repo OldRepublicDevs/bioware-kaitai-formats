@@ -17,10 +17,10 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "Generating $Language code from Kaitai Struct definitions..." -ForegroundColor Cyan
 
-# Install kaitai-struct-compiler if not present
+# Check if kaitai-struct-compiler is available
 $kscInstalled = $false
 try {
-    $kscVersion = & ksc --version 2>&1
+    $kscVersion = & kaitai-struct-compiler --version 2>&1
     if ($LASTEXITCODE -eq 0 -and $kscVersion -match $KscVersion) {
         $kscInstalled = $true
         Write-Host "Kaitai Struct compiler $KscVersion is already installed" -ForegroundColor Green
@@ -74,7 +74,7 @@ foreach ($ksyFile in $ksyFiles) {
     Write-Host "  Processing: $relativePath" -ForegroundColor Gray
 
     try {
-        & ksc -t $Language -d $targetDir $ksyFile.FullName
+        & kaitai-struct-compiler -t $Language -d $targetDir $ksyFile.FullName
         if ($LASTEXITCODE -eq 0) {
             $successCount++
         } else {
