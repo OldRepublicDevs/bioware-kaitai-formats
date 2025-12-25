@@ -6,26 +6,50 @@ meta:
   file-extension: txi
   encoding: ASCII
   xref:
-    pykotor: vendor/PyKotor/wiki/TXI-File-Format.md
+    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/
     wiki: vendor/PyKotor/wiki/TXI-File-Format.md
 doc: |
   TXI (Texture Info) files are compact ASCII descriptors that attach metadata to TPC textures.
   They control mipmap usage, filtering, flipbook animation, environment mapping, font atlases,
   and platform-specific downsampling. Every TXI file is parsed at runtime to configure how
   a TPC image is rendered.
-  
-  Format:
-  - Plain-text KEY/value pairs
+
+  Format Structure:
+  - Line-based ASCII text file (UTF-8 or Windows-1252)
   - Commands are case-insensitive but conventionally lowercase
-  - Values can be integers, floats, booleans (0/1), ResRefs, or multi-line coordinate tables
-  - A single TXI can be appended to the end of a .tpc file or shipped as a sibling .txi file
-  
-  Many TXI files in the game installation are empty (0 bytes), serving as placeholders that
-  indicate the texture should use default rendering settings.
-  
+  - Empty TXI files (0 bytes) are valid and use default settings
+  - A TXI can be embedded at the end of a .tpc file or exist as a separate .txi file
+
+  Command Formats (from PyKotor implementation):
+  1. Simple commands: "command value" (e.g., "mipmap 0", "blending additive")
+  2. Multi-value commands: "command v1 v2 v3" (e.g., "channelscale 1.0 0.5 0.5")
+  3. Coordinate commands: "command count" followed by count coordinate lines
+     Coordinate format: "x y z" (normalized floats + int, typically z=0)
+
+  Parsing Behavior (matches PyKotor TXIReaderMode):
+  - Lines parsed sequentially, whitespace stripped
+  - Empty lines ignored
+  - Commands recognized by uppercase comparison against TXICommand enum
+  - Invalid commands logged but don't stop parsing
+  - Coordinate commands switch parser to coordinate mode until count reached
+  - Commands can interrupt coordinate parsing
+
+  All Supported Commands (from TXICommand enum in txi_data.py):
+  - alphamean, arturoheight, arturowidth, baselineheight, blending, bumpmapscaling, bumpmaptexture
+  - bumpyshinytexture, candownsample, caretindent, channelscale, channeltranslate, clamp, codepage
+  - cols, compresstexture, controllerscript, cube, decal, defaultbpp, defaultheight, defaultwidth
+  - distort, distortangle, distortionamplitude, downsamplefactor, downsamplemax, downsamplemin
+  - envmaptexture, filerange, filter, fontheight, fontwidth, fps, isbumpmap, isdiffusebumpmap
+  - islightmap, isspecularbumpmap, lowerrightcoords, maxsizehq, maxsizelq, minsizehq, minsizelq
+  - mipmap, numchars, numcharspersheet, numx, numy, ondemand, priority, proceduretype, rows
+  - spacingb, spacingr, speed, temporary, texturewidth, unique, upperleftcoords, wateralpha
+  - waterheight, waterwidth, xbox_downsample
+
   References:
-  - vendor/PyKotor/wiki/TXI-File-Format.md - Complete TXI command reference
-  - vendor/reone/src/libs/graphics/format/txireader.cpp - C++ TXI parser implementation
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/io_txi.py - Complete parser
+  - vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/txi/txi_data.py - Data structures
+  - vendor/PyKotor/wiki/TXI-File-Format.md - Format documentation
+  - vendor/reone/src/libs/graphics/format/txireader.cpp - C++ reference implementation
 
 seq:
   - id: content
@@ -33,18 +57,9 @@ seq:
     size-eos: true
     encoding: ASCII
     doc: |
-      Complete TXI file content as ASCII text.
-      Contains command/value pairs, one per line.
-      
-      Common commands:
-      - mipmap: 0/1 - Toggles engine mipmap usage
-      - filter: 0/1 - Enables bilinear filtering
-      - clamp: 0/1 - Forces address mode clamp
-      - blending: additive/punchthrough - Selects blending mode
-      - proceduretype: cycle - Enables flipbook animation
-      - numx, numy: int - Horizontal/vertical frame counts
-      - fps: float - Frames per second for playback
-      - cube: 0/1 - Marks texture as cube map
-      - And many more (see wiki documentation)
-      
-      Empty TXI files (0 bytes) are valid and indicate default settings.
+      Complete TXI file content as raw ASCII text.
+      The PyKotor parser processes this line-by-line with special handling for:
+      - Coordinate commands (upperleftcoords, lowerrightcoords) followed by coordinate data
+      - Multi-value commands (channelscale, channeltranslate, filerange)
+      - Boolean/numeric/string single-value commands
+      - Empty files (valid, indicates default settings)
