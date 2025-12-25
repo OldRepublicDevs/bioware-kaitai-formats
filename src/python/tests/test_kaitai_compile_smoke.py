@@ -59,11 +59,8 @@ EXPECTED_FAILURES = {
     Path("formats/LYT/LYT.ksy"),
     Path("formats/MDL/MDL_ASCII.ksy"),
     Path("formats/MDL/MDL.ksy"),
-    Path("formats/MDL/MDX.ksy"),
     Path("formats/PCC/PCC.ksy"),
     Path("formats/PLT/PLT.ksy"),
-    Path("formats/RIM/RIM.ksy"),
-    Path("formats/TPC/DDS.ksy"),
     Path("formats/TPC/TGA.ksy"),
     Path("formats/TPC/TPC.ksy"),
     Path("formats/WAV/WAV.ksy"),
@@ -80,7 +77,10 @@ EXPECTED_PASSES = {
     Path("formats/GFF/GFF.ksy"),
     Path("formats/GFF/Generics/ARE/ARE.ksy"),
     Path("formats/GFF/Generics/CNV/CNV.ksy"),
+    Path("formats/MDL/MDX.ksy"),
+    Path("formats/RIM/RIM.ksy"),
     Path("formats/SSF/SSF.ksy"),
+    Path("formats/TPC/DDS.ksy"),
     Path("formats/TwoDA/TwoDA.ksy"),
 }
 
