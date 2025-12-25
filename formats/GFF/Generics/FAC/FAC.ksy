@@ -32,7 +32,7 @@ doc: |
   where FactionID2 == 0 (PC faction) are often omitted since PC behavior is player-controlled.
 
   References:
-  - vendor/PyKotor/wiki/Bioware-Aurora-Faction.md (official BioWare documentation)
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/Bioware-Aurora-Faction.md (official BioWare documentation)
   - vendor/xoreos-docs/specs/bioware/Faction_Format.pdf (original PDF)
   - vendor/xoreos/src/aurora/gff3file.cpp
   - vendor/reone/src/libs/resource/parser/gff/fac.cpp

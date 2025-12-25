@@ -216,18 +216,15 @@ types:
       - id: name
         type: str
         encoding: UTF-16LE
-        size: name_size
+        size: (length < 0 ? -length : length) * 2
         doc: |
           Name string encoded as UTF-16LE (WCHAR).
           Size is absolute value of length * 2 bytes per character.
           Negative length indicates WCHAR count (use absolute value).
     
     instances:
-      name_size:
-        value: (length < 0 ? -length : length) * 2
-        doc: Size in bytes for name field (absolute value of length * 2)
       abs_length:
-        value: length < 0 ? (-length) : length
+        value: length < 0 ? -length : length
         doc: Absolute value of length for size calculation
       
       name_size:
