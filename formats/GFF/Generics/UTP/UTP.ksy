@@ -579,63 +579,81 @@ types:
 
 enums:
   gff_field_type:
-    0: uint8
-    doc: |
-      8-bit unsigned integer (byte).
-      Used in UTP for: Lockable, Locked, KeyRequired, AutoRemoveKey, OpenLockDC, CloseLockDC,
-      OpenLockDiff, Type, AnimationState, PaletteID, Hardness, Min1HP, NotBlastable, Plot,
-      Static, Useable, PartyInteract, HasInventory, BodyBag, Fort, Ref, Will, TrapDetectable,
-      TrapDetectDC, TrapDisarmable, DisarmDC, TrapFlag, TrapOneShot, TrapType.
-    1: int8
-    doc: |
-      8-bit signed integer (char).
-      Used in UTP for: OpenLockDiffMod (KotOR2 only, signed modifier).
-    2: uint16
-    doc: |
-      16-bit unsigned integer (word).
-      Used in UTP for: PortraitId.
-    3: int16
-    doc: |
-      16-bit signed integer (short).
-      Used in UTD for: HP (maximum hit points), CurrentHP (current hit points).
-    4: uint32
-    doc: |
-      32-bit unsigned integer (dword).
-      Used in UTP for: Faction (faction identifier), Appearance (appearance index into placeables.2da).
-    5: int32
-    doc: 32-bit signed integer (int)
-    6: uint64
-    doc: 64-bit unsigned integer (stored in field_data section)
-    7: int64
-    doc: 64-bit signed integer (stored in field_data section)
-    8: single
-    doc: 32-bit floating point (float)
-    9: double
-    doc: 64-bit floating point (stored in field_data section)
-    10: string
-    doc: |
-      Null-terminated string (CExoString, stored in field_data section).
-      Used in UTP for: Tag (placeable tag identifier), Comment (developer comment),
-      KeyName (tag of required KEY item).
-    11: resref
-    doc: |
-      Resource reference (ResRef, max 16 chars, stored in field_data section).
-      Used in UTP for: TemplateResRef (placeable template name), Conversation (dialog ResRef),
-      OnUsed, OnOpen, OnClosed, OnDamaged, OnDeath, OnDisarm, OnEndDialogue, OnFailToOpen,
-      OnHeartbeat, OnInvDisturbed, OnLock, OnMeleeAttacked, OnSpellCastAt, OnTrapTriggered,
-      OnUnlock, OnUserDefined (script hook ResRefs).
-    12: localized_string
-    doc: |
-      Localized string (CExoLocString, stored in field_data section).
-      Used in UTP for: LocName (localized placeable name with multiple language/gender support),
-      Description (placeable description, deprecated, not used by game engine).
-    13: binary
-    doc: Binary data blob (Void, stored in field_data section)
-    14: struct
-    doc: Nested struct (struct index stored inline)
-    15: list
-    doc: List of structs (offset to list_indices stored inline). UTP files use LIST type fields for ItemList (inventory items).
-    16: vector4
-    doc: Quaternion/Orientation (4×float, stored in field_data as Vector4)
-    17: vector3
-    doc: 3D vector (3×float, stored in field_data)
+    0:
+      id: uint8
+      doc: |
+        8-bit unsigned integer (byte).
+        Used in UTP for: Lockable, Locked, KeyRequired, AutoRemoveKey, OpenLockDC, CloseLockDC,
+        OpenLockDiff, Type, AnimationState, PaletteID, Hardness, Min1HP, NotBlastable, Plot,
+        Static, Useable, PartyInteract, HasInventory, BodyBag, Fort, Ref, Will, TrapDetectable,
+        TrapDetectDC, TrapDisarmable, DisarmDC, TrapFlag, TrapOneShot, TrapType.
+    1:
+      id: int8
+      doc: |
+        8-bit signed integer (char).
+        Used in UTP for: OpenLockDiffMod (KotOR2 only, signed modifier).
+    2:
+      id: uint16
+      doc: |
+        16-bit unsigned integer (word).
+        Used in UTP for: PortraitId.
+    3:
+      id: int16
+      doc: |
+        16-bit signed integer (short).
+        Used in UTP for: HP (maximum hit points), CurrentHP (current hit points).
+    4:
+      id: uint32
+      doc: |
+        32-bit unsigned integer (dword).
+        Used in UTP for: Faction (faction identifier), Appearance (appearance index into placeables.2da).
+    5:
+      id: int32
+      doc: 32-bit signed integer (int)
+    6:
+      id: uint64
+      doc: 64-bit unsigned integer (stored in field_data section)
+    7:
+      id: int64
+      doc: 64-bit signed integer (stored in field_data section)
+    8:
+      id: single
+      doc: 32-bit floating point (float)
+    9:
+      id: double
+      doc: 64-bit floating point (stored in field_data section)
+    10:
+      id: string
+      doc: |
+        Null-terminated string (CExoString, stored in field_data section).
+        Used in UTP for: Tag (placeable tag identifier), Comment (developer comment),
+        KeyName (tag of required KEY item).
+    11:
+      id: resref
+      doc: |
+        Resource reference (ResRef, max 16 chars, stored in field_data section).
+        Used in UTP for: TemplateResRef (placeable template name), Conversation (dialog ResRef),
+        OnUsed, OnOpen, OnClosed, OnDamaged, OnDeath, OnDisarm, OnEndDialogue, OnFailToOpen,
+        OnHeartbeat, OnInvDisturbed, OnLock, OnMeleeAttacked, OnSpellCastAt, OnTrapTriggered,
+        OnUnlock, OnUserDefined (script hook ResRefs).
+    12:
+      id: localized_string
+      doc: |
+        Localized string (CExoLocString, stored in field_data section).
+        Used in UTP for: LocName (localized placeable name with multiple language/gender support),
+        Description (placeable description, deprecated, not used by game engine).
+    13:
+      id: binary
+      doc: Binary data blob (Void, stored in field_data section)
+    14:
+      id: struct
+      doc: Nested struct (struct index stored inline)
+    15:
+      id: list
+      doc: List of structs (offset to list_indices stored inline). UTP files use LIST type fields for ItemList (inventory items).
+    16:
+      id: vector4
+      doc: Quaternion/Orientation (4×float, stored in field_data as Vector4)
+    17:
+      id: vector3
+      doc: 3D vector (3×float, stored in field_data)
