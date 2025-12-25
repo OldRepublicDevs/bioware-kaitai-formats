@@ -13,8 +13,9 @@ meta:
     pykotor_wiki_gff_pt: https://github.com/OldRepublicDevs/PyKotor/wiki/GFF-PT.md
     xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/gff3file.cpp
   imports:
-    - ../../GFF
-    - ../../XML/GFF_XML
+    - ../../GFF/gff
+    - ../../XML/gff_xml
+    - ../PT/pt
 doc: |
   PT XML format is a human-readable XML representation of PT (Plot) binary files.
   Uses GFF XML structure with root element <gff3> containing <struct> elements.
