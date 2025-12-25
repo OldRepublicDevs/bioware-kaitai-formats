@@ -84,7 +84,11 @@ types:
         encoding: ASCII
         size: 4
         doc: File format version. Typically "V3.2" for KotOR.
-        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+        valid: |
+          "V3.2"
+          "V3.3"
+          "V4.0"
+          "V4.1"
       
       - id: struct_array_offset
         type: u4

@@ -208,14 +208,17 @@ kaitai-struct-compiler -t csharp --dotnet-namespace <namespace> -d ./src/csharp 
 **Enum Syntax**:
 
 - **CRITICAL**: Enum values with `doc` must be objects with `id` and `doc` properties
-- **WRONG**: 
+- **WRONG**:
+
   ```yaml
   enums:
     my_enum:
       12: value_name
       doc: Documentation here
   ```
-- **CORRECT**: 
+
+- **CORRECT**:
+
   ```yaml
   enums:
     my_enum:

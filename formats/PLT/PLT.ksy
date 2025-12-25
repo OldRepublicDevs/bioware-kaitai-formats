@@ -1,5 +1,5 @@
 meta:
-  id: plt
+  id: plt_palette_texture
   title: BioWare PLT (Palette Texture) File Format
   license: MIT
   endian: le

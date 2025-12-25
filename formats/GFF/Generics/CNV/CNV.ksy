@@ -105,7 +105,11 @@ types:
           File format version. Typically "V4.0" or "V4.1" for Eclipse Engine games.
           Dragon Age Origins and Dragon Age 2 use V4.0, Mass Effect games may use V4.1.
           Other versions: "V3.2", "V3.3" for older BioWare games.
-        valid: ["V3.2", "V3.3", "V4.0", "V4.1"]
+        valid: |
+          "V3.2"
+          "V3.3"
+          "V4.0"
+          "V4.1"
 
       - id: struct_array_offset
         type: u4

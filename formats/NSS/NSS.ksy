@@ -37,7 +37,9 @@ seq:
       Optional UTF-8 BOM (Byte Order Mark) at the start of the file.
       If present, will be 0xFEFF (UTF-8 BOM).
       Most NSS files do not include a BOM.
-    valid: [0xFEFF, 0x0000]
+    valid: |
+      0xFEFF
+      0x0000
   
   - id: source_code
     type: str
