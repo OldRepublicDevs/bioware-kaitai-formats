@@ -19,7 +19,7 @@ class Key(KaitaiStruct):
     
     References:
     - https://github.com/OldRepublicDevs/PyKotor/wiki/KEY-File-Format.md
-    - vendor/xoreos-docs/specs/torlack/key.html
+    - https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/key.html
     - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/keyreader.cpp
     """
 

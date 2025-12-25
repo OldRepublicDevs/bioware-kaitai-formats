@@ -18,7 +18,7 @@ class Bif(KaitaiStruct):
     
     References:
     - https://github.com/OldRepublicDevs/PyKotor/wiki/BIF-File-Format.md
-    - vendor/xoreos-docs/specs/torlack/bif.html
+    - https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/bif.html
     - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/bifreader.cpp
     """
 

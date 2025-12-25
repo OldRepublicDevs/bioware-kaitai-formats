@@ -38,7 +38,7 @@ class Bwm(KaitaiStruct):
     - https://github.com/OldRepublicDevs/PyKotor/wiki/BWM-File-Format.md
     - https://github.com/seedhartha/reone/blob/master/src/libs/graphics/format/bwmreader.cpp:27-171
     - https://github.com/xoreos/xoreos/blob/master/src/engines/kotorbase/path/walkmeshloader.cpp:73-248
-    - vendor/KotOR.js/src/odyssey/OdysseyWalkMesh.ts:452-473
+    - https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/odyssey/OdysseyWalkMesh.ts:452-473
     """
     def __init__(self, _io, _parent=None, _root=None):
         super(Bwm, self).__init__(_io)
