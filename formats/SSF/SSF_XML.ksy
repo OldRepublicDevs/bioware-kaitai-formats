@@ -5,9 +5,27 @@ meta:
   endian: le
   file-extension: ssf.xml
   encoding: UTF-8
+  xref:
+    pykotor_library_ssf_binary: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf.py
+    pykotor_library_ssf_xml: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ssf/io_ssf_xml.py
+    reone: https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/ssf.cpp
+    pykotor_wiki_ssf: https://github.com/OldRepublicDevs/PyKotor/wiki/SSF-File-Format.md
+    xoreos: https://github.com/xoreos/xoreos/tree/master/src/aurora/ssffile.cpp
 doc: |
   SSF XML format is a human-readable XML representation of SSF (Soundset) binary files.
   Provides easier editing than binary SSF format.
+
+  References:
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ssf/ssf.py
+  - https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/ssf/io_ssf_xml.py
+  - https://github.com/seedhartha/reone/tree/master/src/libs/resource/parser/ssf.cpp
+  - https://github.com/OldRepublicDevs/PyKotor/wiki/SSF-File-Format.md
+  - https://github.com/xoreos/xoreos/tree/master/src/aurora/ssffile.cpp
+
+imports:
+  - ../GFF/GFF
+  - ../GFF/XML/GFF_XML
+  - ../SSF/SSF
 
 seq:
   - id: xml_content
