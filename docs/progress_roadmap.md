@@ -1,7 +1,13 @@
 # BioWare Kaitai Formats - Progress Roadmap
 
 **Last Updated:** 2025-01-27  
-**Status:** Comprehensive audit completed - see `docs/comprehensive_findings.md` for detailed findings
+**Status:** Comprehensive audit completed
+
+**See also:**
+- `docs/comprehensive_findings.md` - Detailed technical findings
+- `docs/comprehensive_audit_summary.md` - Executive summary and status
+- `docs/fix_progress.md` - Compilation fix patterns and progress
+- `docs/known_issues.md` - Known issues and solutions
 
 This document provides a comprehensive overview of all BioWare file format parsers, their implementation status, test coverage, and what remains to be done.
 
