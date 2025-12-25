@@ -63,9 +63,10 @@ types:
           Color map type:
           - 0 = No color map
           - 1 = Color map present
-        valid: |
-          0
-          1
+        valid:
+          any-of:
+            - 0
+            - 1
 
       - id: image_type
         type: u1
@@ -78,14 +79,15 @@ types:
           - 9 = Run-length encoded color-mapped
           - 10 = Run-length encoded true-color
           - 11 = Run-length encoded black-and-white
-        valid: |
-          0
-          1
-          2
-          3
-          9
-          10
-          11
+        valid:
+          any-of:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 9
+            - 10
+            - 11
 
       - id: color_map_origin
         type: u2
@@ -129,11 +131,12 @@ types:
           - 16 = ARGB 1-5-5-5
           - 24 = RGB
           - 32 = ARGB
-        valid: |
-          8
-          16
-          24
-          32
+        valid:
+          any-of:
+            - 8
+            - 16
+            - 24
+            - 32
 
       - id: image_descriptor
         type: u1
@@ -235,6 +238,7 @@ types:
         repeat: expr
         repeat-expr: 2
         doc: 'Binary terminator (period and null character: ".\\0")'
-        valid: |
-          0x2E
-          0x00
+        valid:
+          any-of:
+            - 0x2E
+            - 0x00

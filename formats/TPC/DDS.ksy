@@ -36,12 +36,13 @@ seq:
     doc: |
       Header size (124 for standard DDS, or height for BioWare variant).
       Used to determine format variant.
-    valid: |
-      124
-      1
-      2
-      4
-      8
+    valid:
+      any-of:
+        - 124
+        - 1
+        - 2
+        - 4
+        - 8
       16
       32
       64
