@@ -5,9 +5,9 @@ meta:
   endian: le
   file-extension: plt
   xref:
-    pykotor: vendor/PyKotor/wiki/PLT-File-Format.md
-    xoreos_docs: vendor/xoreos-docs/specs/torlack/plt.html
-    xoreos: vendor/xoreos/src/graphics/aurora/pltfile.cpp
+    pykotor_wiki_plt: https://github.com/OldRepublicDevs/PyKotor/wiki/PLT-File-Format.md
+    xoreos_docs_plt: https://github.com/xoreos/xoreos-docs/blob/master/specs/torlack/plt.html
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/graphics/aurora/pltfile.cpp
 doc: |
   PLT (Palette Texture) is a texture format used in Neverwinter Nights that allows runtime color
   palette selection. Instead of fixed colors, PLT files store palette group indices and color indices

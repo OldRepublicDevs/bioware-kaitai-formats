@@ -7,11 +7,11 @@ meta:
   file-extension: lyt
   ks-version: 0.11
   xref:
-    pykotor: vendor/PyKotor/Libraries/PyKotor/src/pykotor/resource/formats/lyt/
-    reone: vendor/reone/src/libs/resource/format/lytreader.cpp
-    xoreos: vendor/xoreos/src/aurora/lytfile.cpp
-    kotor_js: vendor/KotOR.js/src/resource/LYTObject.ts
-    kotor_unity: vendor/KotOR-Unity/Assets/Scripts/FileObjects/LYTObject.cs
+    pykotor: https://github.com/OldRepublicDevs/PyKotor/tree/master/Libraries/PyKotor/src/pykotor/resource/formats/lyt/
+    reone: https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/lytreader.cpp
+    xoreos: https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp
+    kotor_js: https://github.com/KotOR-Community-Patches/KotOR.js/blob/master/src/resource/LYTObject.ts
+    kotor_unity: https://github.com/KotOR-Community-Patches/KotOR-Unity/blob/master/Assets/Scripts/FileObjects/LYTObject.cs
     kotor_net: vendor/Kotor.NET/Kotor.NET/Formats/KotorLYT/LYT.cs
     wiki: vendor/PyKotor/wiki/LYT-File-Format.md
 doc: |
@@ -381,7 +381,7 @@ instances:
       Marks rooms that contain walkmesh geometry for pathfinding.
 
   is_valid_format:
-    value: has_valid_header && has_valid_footer
+    value: has_valid_header and has_valid_footer
     doc: |
       True if the file has both required header ("beginlayout") and footer ("donelayout").
       This provides basic format validation for LYT files.
