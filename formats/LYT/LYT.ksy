@@ -146,7 +146,7 @@ doc: |
   - https://github.com/OldRepublicDevs/PyKotor/wiki/LYT-File-Format.md - Complete format documentation
   - https://github.com/seedhartha/reone/blob/master/src/libs/resource/format/lytreader.cpp:37-77 - Room parsing implementation
   - https://github.com/xoreos/xoreos/blob/master/src/aurora/lytfile.cpp:98-200 - Complete parser with all sections
-  - Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py:17-165 - PyKotor parser/writer
+  - https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py:17-165 - PyKotor parser/writer
 
 seq:
   - id: raw_content
@@ -169,7 +169,7 @@ seq:
       - Footer: "donelayout"
 
       Application code should parse raw_content line-by-line to extract structured data.
-      See Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py for reference implementation.
+      See https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py for reference implementation.
 
       Line format details:
       - Lines are separated by \n or \r\n (Windows/Unix line endings)
@@ -259,7 +259,7 @@ types:
 
       Example: "M02ac_02h door_01 0 170.475 66.375 0.0 0.707107 0.0 0.0 -0.707107"
 
-      Reference: Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py:97-113
+      Reference: https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py:97-113
 
   doorhook_entry_xoreos:
     doc: |
