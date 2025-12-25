@@ -67,37 +67,38 @@ seq:
     type: gff_header
     doc: GFF file header (56 bytes total)
 
-  - id: label_array
+instances:
+  label_array:
     type: label_array
     if: header.label_count > 0
     pos: header.label_offset
     doc: Array of 16-byte null-padded field name labels
 
-  - id: struct_array
+  struct_array:
     type: struct_array
     if: header.struct_count > 0
     pos: header.struct_offset
     doc: Array of struct entries (12 bytes each)
 
-  - id: field_array
+  field_array:
     type: field_array
     if: header.field_count > 0
     pos: header.field_offset
     doc: Array of field entries (12 bytes each)
 
-  - id: field_data
+  field_data:
     type: field_data
     if: header.field_data_count > 0
     pos: header.field_data_offset
     doc: Storage area for complex field types (strings, binary, vectors, etc.)
 
-  - id: field_indices_array
+  field_indices_array:
     type: field_indices_array
     if: header.field_indices_count > 0
     pos: header.field_indices_offset
     doc: Array of field index arrays (used when structs have multiple fields)
 
-  - id: list_indices_array
+  list_indices_array:
     type: list_indices_array
     if: header.list_indices_count > 0
     pos: header.list_indices_offset
@@ -269,16 +270,32 @@ types:
           - List (15): Byte offset into list_indices_array (relative to list_indices_offset)
     instances:
       is_simple_type:
-        value: (field_type.value >= 0 && field_type.value <= 5) || field_type.value == 8
+        value: |
+          field_type == gff_field_type::uint8 or
+          field_type == gff_field_type::int8 or
+          field_type == gff_field_type::uint16 or
+          field_type == gff_field_type::int16 or
+          field_type == gff_field_type::uint32 or
+          field_type == gff_field_type::int32 or
+          field_type == gff_field_type::single
         doc: True if field stores data inline (simple types)
       is_complex_type:
-        value: (field_type.value >= 6 && field_type.value <= 13) || (field_type.value >= 16 && field_type.value <= 17)
+        value: |
+          field_type == gff_field_type::uint64 or
+          field_type == gff_field_type::int64 or
+          field_type == gff_field_type::double or
+          field_type == gff_field_type::string or
+          field_type == gff_field_type::resref or
+          field_type == gff_field_type::localized_string or
+          field_type == gff_field_type::binary or
+          field_type == gff_field_type::vector4 or
+          field_type == gff_field_type::vector3
         doc: True if field stores data in field_data section
       is_struct_type:
-        value: field_type.value == 14
+        value: field_type == gff_field_type::struct
         doc: True if field is a nested struct
       is_list_type:
-        value: field_type.value == 15
+        value: field_type == gff_field_type::list
         doc: True if field is a list of structs
       field_data_offset_value:
         value: _root.header.field_data_offset + data_or_offset
@@ -296,7 +313,6 @@ types:
   field_data:
     seq:
       - id: raw_data
-        type: str
         size: _root.header.field_data_count
         doc: |
           Raw field data storage. Individual field data entries are accessed via
@@ -324,7 +340,6 @@ types:
   list_indices_array:
     seq:
       - id: raw_data
-        type: str
         size: _root.header.list_indices_count
         doc: |
           Raw list indices data. List entries are accessed via offsets stored in
