@@ -37,32 +37,14 @@ def _resolve_ksc() -> str:
 # FIXME: This is a baseline list of known-failing formats under Kaitai Struct Compiler 0.11.
 # TODO: Keep this list shrinking: whenever you fix a format, move it to EXPECTED_PASSES.
 EXPECTED_FAILURES = {
-    Path("formats/BWM/BWM.ksy"),
     Path("formats/DA2S/DA2S.ksy"),
     Path("formats/DAS/DAS.ksy"),
-    Path("formats/GFF/Generics/DLG/DLG.ksy"),
-    Path("formats/GFF/Generics/FAC/FAC.ksy"),
-    Path("formats/GFF/Generics/GIT/GIT.ksy"),
-    Path("formats/GFF/Generics/GUI/GUI.ksy"),
-    Path("formats/GFF/Generics/GVT/GVT.ksy"),
-    Path("formats/GFF/Generics/IFO/IFO.ksy"),
-    Path("formats/GFF/Generics/NFO/NFO.ksy"),
-    Path("formats/GFF/Generics/PTH/PTH.ksy"),
-    Path("formats/GFF/Generics/UTC/UTC.ksy"),
-    Path("formats/GFF/Generics/UTD/UTD.ksy"),
-    Path("formats/GFF/Generics/UTE/UTE.ksy"),
-    Path("formats/GFF/Generics/UTM/UTM.ksy"),
-    Path("formats/GFF/Generics/UTP/UTP.ksy"),
-    Path("formats/GFF/Generics/UTS/UTS.ksy"),
-    Path("formats/GFF/Generics/UTT/UTT.ksy"),
     Path("formats/LYT/LYT.ksy"),
     Path("formats/MDL/MDL_ASCII.ksy"),
     Path("formats/MDL/MDL.ksy"),
     Path("formats/PCC/PCC.ksy"),
-    Path("formats/PLT/PLT.ksy"),
     Path("formats/TPC/TGA.ksy"),
     Path("formats/TPC/TPC.ksy"),
-    Path("formats/WAV/WAV.ksy"),
 }
 
 
