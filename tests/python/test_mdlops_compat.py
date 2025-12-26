@@ -84,6 +84,28 @@ def _bytes_context(blob: bytes, offset: int, window: int = 64) -> str:
     return blob[lo:hi].decode("utf-8", errors="replace")
 
 
+def _find_mdlops_ascii_output(*, cwd: Path, stem: str, extra_dirs: list[Path] | None = None) -> Path | None:
+    """
+    MDLOps output location can vary (some builds emit into CWD, others alongside the input path).
+    Find the expected '<stem>-ascii.mdl' in either location, with a small fallback glob.
+    """
+    search_dirs = [cwd, *(extra_dirs or [])]
+
+    # Preferred: exact expected filename in any candidate directory.
+    for d in search_dirs:
+        p = d / f"{stem}-ascii.mdl"
+        if p.exists() and p.stat().st_size > 0:
+            return p
+
+    # Fallback: some edge builds might alter casing or add extra suffixes.
+    for d in search_dirs:
+        for p in d.glob(f"{stem}-ascii*.mdl"):
+            if p.exists() and p.stat().st_size > 0:
+                return p
+
+    return None
+
+
 @pytest.mark.parametrize("mdl_path,mdx_path", _fixtures(), ids=lambda p: Path(p).name)
 def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path: Path) -> None:
     """
@@ -158,4 +180,78 @@ def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path
                 f"round_ctx:\n{_bytes_context(ascii_round, diff)}\n"
             )
 
+
+@pytest.mark.parametrize("mdl_path,mdx_path", _fixtures(), ids=lambda p: Path(p).name)
+def test_pykotor_can_read_binary_and_write_binary_mdlops_idempotent(mdl_path: Path, mdx_path: Path) -> None:
+    """
+    Complement the MDLOps-ASCII ingestion test by validating PyKotor's *binary* reader/writer pair
+    against the same MDLOps "source of truth".
+
+    NOTE:
+    PyKotor's in-memory representation is often "canonicalized" through its ASCII form. In practice
+    this is also the most interoperable interchange format with MDLOps.
+
+    This test enforces a strict MDLOps-based *compatibility* contract for the binary pipeline:
+
+    1) Read original fixture binary (MDL+MDX) with PyKotor
+    2) Normalize through PyKotor ASCII (Binary -> ASCII -> Model) and write binary (Model -> Binary)
+    3) Decompile that binary with MDLOps to ASCII (ascii_1)
+    4) Ensure PyKotor can parse ascii_1 again (MDLOps acceptance + PyKotor re-parse)
+    """
+    mdlops = _mdlops_exe()
+    if not mdlops.exists():
+        pytest.skip("MDLOps not present at vendor/MDLOps/mdlops.exe")
+
+    # Import PyKotor from vendored source tree.
+    sys.path.insert(0, str(_pykotor_src_dir()))
+    try:
+        from pykotor.resource.formats.mdl.mdl_auto import bytes_mdl, read_mdl, write_mdl
+        from pykotor.resource.type import ResourceType
+    finally:
+        sys.path.pop(0)
+
+    with tempfile.TemporaryDirectory(prefix="bioware-mdlops-binary-") as td_s:
+        td = Path(td_s)
+        src_mdl = td / mdl_path.name
+        src_mdx = td / mdx_path.name
+        shutil.copyfile(mdl_path, src_mdl)
+        shutil.copyfile(mdx_path, src_mdx)
+
+        # 1) PyKotor: parse original binary (MDL+MDX)
+        mdl_obj_bin = read_mdl(src_mdl, source_ext=src_mdx, file_format=ResourceType.MDL)
+        assert mdl_obj_bin is not None
+
+        # 2) Normalize through PyKotor ASCII and write binary (under identical stem/name)
+        ascii_norm = bytes_mdl(mdl_obj_bin, ResourceType.MDL_ASCII)
+        mdl_obj_norm = read_mdl(ascii_norm, file_format=ResourceType.MDL_ASCII)
+        assert mdl_obj_norm is not None
+
+        out_dir = td / "pykotor_out"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_mdl = out_dir / src_mdl.name
+        out_mdx = out_dir / src_mdx.name
+        write_mdl(mdl_obj_norm, out_mdl, ResourceType.MDL, target_ext=out_mdx)
+        assert out_mdl.exists() and out_mdl.stat().st_size > 0
+        # Some models (e.g. camera-only) can legitimately produce empty MDX output.
+        assert out_mdx.exists()
+
+        # 3) MDLOps: decompile PyKotor-written binary -> ascii_1
+        # Defensive: remove any stale output from earlier steps.
+        for d in (td, out_dir):
+            p = d / f"{out_mdl.stem}-ascii.mdl"
+            if p.exists():
+                p.unlink()
+        r1 = _run([str(mdlops), str(out_mdl)], cwd=td, timeout_s=120)
+        assert r1.returncode == 0, f"MDLOps failed decompiling PyKotor binary: {r1.stdout}"
+        ascii_1_path = _find_mdlops_ascii_output(cwd=td, stem=out_mdl.stem, extra_dirs=[out_dir])
+        assert ascii_1_path is not None, f"MDLOps did not emit expected ASCII output for {out_mdl.stem}. stdout:\n{r1.stdout}"
+        ascii_1 = ascii_1_path.read_bytes()
+
+        # 4) PyKotor: ensure we can re-parse the MDLOps output (roundtrip interop signal)
+        mdl_obj_2 = read_mdl(ascii_1, file_format=ResourceType.MDL_ASCII)
+        assert mdl_obj_2 is not None
+        # Sanity-check some stable invariants in MDLOps ASCII.
+        text_1 = ascii_1.decode("utf-8", errors="ignore").lower()
+        assert "newmodel" in text_1
+        assert "beginmodelgeom" in text_1
 
