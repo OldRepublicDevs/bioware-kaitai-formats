@@ -139,6 +139,19 @@ namespace {
             }
             return $this->_m_listIndicesArray;
         }
+        protected $_m_rootStructResolved;
+
+        /**
+         * Convenience "decoded" view of the root struct (struct_array[0]).
+         * This resolves field indices to field entries, resolves labels to strings,
+         * and decodes field values (including nested structs and lists) into typed instances.
+         */
+        public function rootStructResolved() {
+            if ($this->_m_rootStructResolved !== null)
+                return $this->_m_rootStructResolved;
+            $this->_m_rootStructResolved = new \Gff\ResolvedStruct(0, $this->_io, $this, $this->_root);
+            return $this->_m_rootStructResolved;
+        }
         protected $_m_structArray;
 
         /**
@@ -217,7 +230,7 @@ namespace Gff {
 
 namespace Gff {
     class FieldEntry extends \Kaitai\Struct\Struct {
-        public function __construct(\Kaitai\Struct\Stream $_io, ?\Gff\FieldArray $_parent = null, ?\Gff $_root = null) {
+        public function __construct(\Kaitai\Struct\Stream $_io, ?\Kaitai\Struct\Struct $_parent = null, ?\Gff $_root = null) {
             parent::__construct($_io, $_parent, $_root);
             $this->_read();
         }
@@ -521,9 +534,29 @@ namespace Gff {
     }
 }
 
+/**
+ * Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+ * This avoids leaking trailing `\0` bytes into generated-code consumers.
+ */
+
+namespace Gff {
+    class LabelEntryTerminated extends \Kaitai\Struct\Struct {
+        public function __construct(\Kaitai\Struct\Stream $_io, ?\Gff\ResolvedField $_parent = null, ?\Gff $_root = null) {
+            parent::__construct($_io, $_parent, $_root);
+            $this->_read();
+        }
+
+        private function _read() {
+            $this->_m_name = \Kaitai\Struct\Stream::bytesToStr(\Kaitai\Struct\Stream::bytesTerminate($this->_io->readBytes(16), 0, false), "ASCII");
+        }
+        protected $_m_name;
+        public function name() { return $this->_m_name; }
+    }
+}
+
 namespace Gff {
     class ListEntry extends \Kaitai\Struct\Struct {
-        public function __construct(\Kaitai\Struct\Stream $_io, ?\Kaitai\Struct\Struct $_parent = null, ?\Gff $_root = null) {
+        public function __construct(\Kaitai\Struct\Stream $_io, ?\Gff\ResolvedField $_parent = null, ?\Gff $_root = null) {
             parent::__construct($_io, $_parent, $_root);
             $this->_read();
         }
@@ -576,6 +609,396 @@ namespace Gff {
     }
 }
 
+/**
+ * A decoded field: includes resolved label string and decoded typed value.
+ * Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+ */
+
+namespace Gff {
+    class ResolvedField extends \Kaitai\Struct\Struct {
+        public function __construct(int $fieldIndex, \Kaitai\Struct\Stream $_io, ?\Gff\ResolvedStruct $_parent = null, ?\Gff $_root = null) {
+            parent::__construct($_io, $_parent, $_root);
+            $this->_m_fieldIndex = $fieldIndex;
+            $this->_read();
+        }
+
+        private function _read() {
+        }
+        protected $_m_entry;
+
+        /**
+         * Raw field entry at field_index
+         */
+        public function entry() {
+            if ($this->_m_entry !== null)
+                return $this->_m_entry;
+            $_pos = $this->_io->pos();
+            $this->_io->seek($this->_root()->header()->fieldOffset() + $this->fieldIndex() * 12);
+            $this->_m_entry = new \Gff\FieldEntry($this->_io, $this, $this->_root);
+            $this->_io->seek($_pos);
+            return $this->_m_entry;
+        }
+        protected $_m_fieldEntryPos;
+
+        /**
+         * Absolute file offset of this field entry (start of 12-byte record)
+         */
+        public function fieldEntryPos() {
+            if ($this->_m_fieldEntryPos !== null)
+                return $this->_m_fieldEntryPos;
+            $this->_m_fieldEntryPos = $this->_root()->header()->fieldOffset() + $this->fieldIndex() * 12;
+            return $this->_m_fieldEntryPos;
+        }
+        protected $_m_label;
+
+        /**
+         * Resolved field label string
+         */
+        public function label() {
+            if ($this->_m_label !== null)
+                return $this->_m_label;
+            $_pos = $this->_io->pos();
+            $this->_io->seek($this->_root()->header()->labelOffset() + $this->entry()->labelIndex() * 16);
+            $this->_m_label = new \Gff\LabelEntryTerminated($this->_io, $this, $this->_root);
+            $this->_io->seek($_pos);
+            return $this->_m_label;
+        }
+        protected $_m_listEntry;
+
+        /**
+         * Parsed list entry at offset (list indices)
+         */
+        public function listEntry() {
+            if ($this->_m_listEntry !== null)
+                return $this->_m_listEntry;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::LIST) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->listIndicesOffset() + $this->entry()->dataOrOffset());
+                $this->_m_listEntry = new \Gff\ListEntry($this->_io, $this, $this->_root);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_listEntry;
+        }
+        protected $_m_listStructs;
+
+        /**
+         * Resolved structs referenced by this list
+         */
+        public function listStructs() {
+            if ($this->_m_listStructs !== null)
+                return $this->_m_listStructs;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::LIST) {
+                $this->_m_listStructs = [];
+                $n = $this->listEntry()->numStructIndices();
+                for ($i = 0; $i < $n; $i++) {
+                    $this->_m_listStructs[] = new \Gff\ResolvedStruct($this->listEntry()->structIndices()[$i], $this->_io, $this, $this->_root);
+                }
+            }
+            return $this->_m_listStructs;
+        }
+        protected $_m_valueBinary;
+        public function valueBinary() {
+            if ($this->_m_valueBinary !== null)
+                return $this->_m_valueBinary;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::BINARY) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueBinary = new \BiowareCommon\BiowareBinaryData($this->_io);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueBinary;
+        }
+        protected $_m_valueDouble;
+        public function valueDouble() {
+            if ($this->_m_valueDouble !== null)
+                return $this->_m_valueDouble;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::DOUBLE) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueDouble = $this->_io->readF8le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueDouble;
+        }
+        protected $_m_valueInt16;
+        public function valueInt16() {
+            if ($this->_m_valueInt16 !== null)
+                return $this->_m_valueInt16;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::INT16) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueInt16 = $this->_io->readS2le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueInt16;
+        }
+        protected $_m_valueInt32;
+        public function valueInt32() {
+            if ($this->_m_valueInt32 !== null)
+                return $this->_m_valueInt32;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::INT32) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueInt32 = $this->_io->readS4le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueInt32;
+        }
+        protected $_m_valueInt64;
+        public function valueInt64() {
+            if ($this->_m_valueInt64 !== null)
+                return $this->_m_valueInt64;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::INT64) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueInt64 = $this->_io->readS8le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueInt64;
+        }
+        protected $_m_valueInt8;
+        public function valueInt8() {
+            if ($this->_m_valueInt8 !== null)
+                return $this->_m_valueInt8;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::INT8) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueInt8 = $this->_io->readS1();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueInt8;
+        }
+        protected $_m_valueLocalizedString;
+        public function valueLocalizedString() {
+            if ($this->_m_valueLocalizedString !== null)
+                return $this->_m_valueLocalizedString;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::LOCALIZED_STRING) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueLocalizedString = new \BiowareCommon\BiowareLocstring($this->_io);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueLocalizedString;
+        }
+        protected $_m_valueResref;
+        public function valueResref() {
+            if ($this->_m_valueResref !== null)
+                return $this->_m_valueResref;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::RESREF) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueResref = new \BiowareCommon\BiowareResref($this->_io);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueResref;
+        }
+        protected $_m_valueSingle;
+        public function valueSingle() {
+            if ($this->_m_valueSingle !== null)
+                return $this->_m_valueSingle;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::SINGLE) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueSingle = $this->_io->readF4le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueSingle;
+        }
+        protected $_m_valueString;
+        public function valueString() {
+            if ($this->_m_valueString !== null)
+                return $this->_m_valueString;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::STRING) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueString = new \BiowareCommon\BiowareCexoString($this->_io);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueString;
+        }
+        protected $_m_valueStruct;
+
+        /**
+         * Nested struct (struct index = entry.data_or_offset)
+         */
+        public function valueStruct() {
+            if ($this->_m_valueStruct !== null)
+                return $this->_m_valueStruct;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::STRUCT) {
+                $this->_m_valueStruct = new \Gff\ResolvedStruct($this->entry()->dataOrOffset(), $this->_io, $this, $this->_root);
+            }
+            return $this->_m_valueStruct;
+        }
+        protected $_m_valueUint16;
+        public function valueUint16() {
+            if ($this->_m_valueUint16 !== null)
+                return $this->_m_valueUint16;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::UINT16) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueUint16 = $this->_io->readU2le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueUint16;
+        }
+        protected $_m_valueUint32;
+        public function valueUint32() {
+            if ($this->_m_valueUint32 !== null)
+                return $this->_m_valueUint32;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::UINT32) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueUint32 = $this->_io->readU4le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueUint32;
+        }
+        protected $_m_valueUint64;
+        public function valueUint64() {
+            if ($this->_m_valueUint64 !== null)
+                return $this->_m_valueUint64;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::UINT64) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueUint64 = $this->_io->readU8le();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueUint64;
+        }
+        protected $_m_valueUint8;
+        public function valueUint8() {
+            if ($this->_m_valueUint8 !== null)
+                return $this->_m_valueUint8;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::UINT8) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->fieldEntryPos() + 8);
+                $this->_m_valueUint8 = $this->_io->readU1();
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueUint8;
+        }
+        protected $_m_valueVector3;
+        public function valueVector3() {
+            if ($this->_m_valueVector3 !== null)
+                return $this->_m_valueVector3;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::VECTOR3) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueVector3 = new \BiowareCommon\BiowareVector3($this->_io);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueVector3;
+        }
+        protected $_m_valueVector4;
+        public function valueVector4() {
+            if ($this->_m_valueVector4 !== null)
+                return $this->_m_valueVector4;
+            if ($this->entry()->fieldType() == \Gff\GffFieldType::VECTOR4) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldDataOffset() + $this->entry()->dataOrOffset());
+                $this->_m_valueVector4 = new \BiowareCommon\BiowareVector4($this->_io);
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_valueVector4;
+        }
+        protected $_m_fieldIndex;
+
+        /**
+         * Index into field_array
+         */
+        public function fieldIndex() { return $this->_m_fieldIndex; }
+    }
+}
+
+/**
+ * A decoded struct node: resolves field indices -> field entries -> typed values,
+ * and recursively resolves nested structs and lists.
+ */
+
+namespace Gff {
+    class ResolvedStruct extends \Kaitai\Struct\Struct {
+        public function __construct(int $structIndex, \Kaitai\Struct\Stream $_io, ?\Kaitai\Struct\Struct $_parent = null, ?\Gff $_root = null) {
+            parent::__construct($_io, $_parent, $_root);
+            $this->_m_structIndex = $structIndex;
+            $this->_read();
+        }
+
+        private function _read() {
+        }
+        protected $_m_entry;
+
+        /**
+         * Raw struct entry at struct_index
+         */
+        public function entry() {
+            if ($this->_m_entry !== null)
+                return $this->_m_entry;
+            $_pos = $this->_io->pos();
+            $this->_io->seek($this->_root()->header()->structOffset() + $this->structIndex() * 12);
+            $this->_m_entry = new \Gff\StructEntry($this->_io, $this, $this->_root);
+            $this->_io->seek($_pos);
+            return $this->_m_entry;
+        }
+        protected $_m_fieldIndices;
+
+        /**
+         * Field indices for this struct (only present when field_count > 1).
+         * When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+         */
+        public function fieldIndices() {
+            if ($this->_m_fieldIndices !== null)
+                return $this->_m_fieldIndices;
+            if ($this->entry()->fieldCount() > 1) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->_root()->header()->fieldIndicesOffset() + $this->entry()->dataOrOffset());
+                $this->_m_fieldIndices = [];
+                $n = $this->entry()->fieldCount();
+                for ($i = 0; $i < $n; $i++) {
+                    $this->_m_fieldIndices[] = $this->_io->readU4le();
+                }
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_fieldIndices;
+        }
+        protected $_m_fields;
+
+        /**
+         * Resolved fields (multi-field struct)
+         */
+        public function fields() {
+            if ($this->_m_fields !== null)
+                return $this->_m_fields;
+            if ($this->entry()->fieldCount() > 1) {
+                $this->_m_fields = [];
+                $n = $this->entry()->fieldCount();
+                for ($i = 0; $i < $n; $i++) {
+                    $this->_m_fields[] = new \Gff\ResolvedField($this->fieldIndices()[$i], $this->_io, $this, $this->_root);
+                }
+            }
+            return $this->_m_fields;
+        }
+        protected $_m_singleField;
+
+        /**
+         * Resolved field (single-field struct)
+         */
+        public function singleField() {
+            if ($this->_m_singleField !== null)
+                return $this->_m_singleField;
+            if ($this->entry()->fieldCount() == 1) {
+                $this->_m_singleField = new \Gff\ResolvedField($this->entry()->dataOrOffset(), $this->_io, $this, $this->_root);
+            }
+            return $this->_m_singleField;
+        }
+        protected $_m_structIndex;
+
+        /**
+         * Index into struct_array
+         */
+        public function structIndex() { return $this->_m_structIndex; }
+    }
+}
+
 namespace Gff {
     class StructArray extends \Kaitai\Struct\Struct {
         public function __construct(\Kaitai\Struct\Stream $_io, ?\Gff $_parent = null, ?\Gff $_root = null) {
@@ -601,7 +1024,7 @@ namespace Gff {
 
 namespace Gff {
     class StructEntry extends \Kaitai\Struct\Struct {
-        public function __construct(\Kaitai\Struct\Stream $_io, ?\Gff\StructArray $_parent = null, ?\Gff $_root = null) {
+        public function __construct(\Kaitai\Struct\Stream $_io, ?\Kaitai\Struct\Struct $_parent = null, ?\Gff $_root = null) {
             parent::__construct($_io, $_parent, $_root);
             $this->_read();
         }

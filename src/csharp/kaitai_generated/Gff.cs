@@ -90,6 +90,7 @@ namespace Kaitai
             f_fieldIndicesArray = false;
             f_labelArray = false;
             f_listIndicesArray = false;
+            f_rootStructResolved = false;
             f_structArray = false;
             _read();
         }
@@ -173,7 +174,7 @@ namespace Kaitai
                 return new FieldEntry(new KaitaiStream(fileName));
             }
 
-            public FieldEntry(KaitaiStream p__io, Gff.FieldArray p__parent = null, Gff p__root = null) : base(p__io)
+            public FieldEntry(KaitaiStream p__io, KaitaiStruct p__parent = null, Gff p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -321,7 +322,7 @@ namespace Kaitai
             private uint _labelIndex;
             private uint _dataOrOffset;
             private Gff m_root;
-            private Gff.FieldArray m_parent;
+            private KaitaiStruct m_parent;
 
             /// <summary>
             /// Field data type (see gff_field_type enum):
@@ -346,7 +347,7 @@ namespace Kaitai
             /// </summary>
             public uint DataOrOffset { get { return _dataOrOffset; } }
             public Gff M_Root { get { return m_root; } }
-            public Gff.FieldArray M_Parent { get { return m_parent; } }
+            public KaitaiStruct M_Parent { get { return m_parent; } }
         }
         public partial class FieldIndicesArray : KaitaiStruct
         {
@@ -566,6 +567,35 @@ namespace Kaitai
             public Gff M_Root { get { return m_root; } }
             public Gff.LabelArray M_Parent { get { return m_parent; } }
         }
+
+        /// <summary>
+        /// Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+        /// This avoids leaking trailing `\0` bytes into generated-code consumers.
+        /// </summary>
+        public partial class LabelEntryTerminated : KaitaiStruct
+        {
+            public static LabelEntryTerminated FromFile(string fileName)
+            {
+                return new LabelEntryTerminated(new KaitaiStream(fileName));
+            }
+
+            public LabelEntryTerminated(KaitaiStream p__io, Gff.ResolvedField p__parent = null, Gff p__root = null) : base(p__io)
+            {
+                m_parent = p__parent;
+                m_root = p__root;
+                _read();
+            }
+            private void _read()
+            {
+                _name = System.Text.Encoding.GetEncoding("ASCII").GetString(KaitaiStream.BytesTerminate(m_io.ReadBytes(16), 0, false));
+            }
+            private string _name;
+            private Gff m_root;
+            private Gff.ResolvedField m_parent;
+            public string Name { get { return _name; } }
+            public Gff M_Root { get { return m_root; } }
+            public Gff.ResolvedField M_Parent { get { return m_parent; } }
+        }
         public partial class ListEntry : KaitaiStruct
         {
             public static ListEntry FromFile(string fileName)
@@ -573,7 +603,7 @@ namespace Kaitai
                 return new ListEntry(new KaitaiStream(fileName));
             }
 
-            public ListEntry(KaitaiStream p__io, KaitaiStruct p__parent = null, Gff p__root = null) : base(p__io)
+            public ListEntry(KaitaiStream p__io, Gff.ResolvedField p__parent = null, Gff p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -591,7 +621,7 @@ namespace Kaitai
             private uint _numStructIndices;
             private List<uint> _structIndices;
             private Gff m_root;
-            private KaitaiStruct m_parent;
+            private Gff.ResolvedField m_parent;
 
             /// <summary>
             /// Number of struct indices in this list
@@ -603,7 +633,7 @@ namespace Kaitai
             /// </summary>
             public List<uint> StructIndices { get { return _structIndices; } }
             public Gff M_Root { get { return m_root; } }
-            public KaitaiStruct M_Parent { get { return m_parent; } }
+            public Gff.ResolvedField M_Parent { get { return m_parent; } }
         }
         public partial class ListIndicesArray : KaitaiStruct
         {
@@ -638,6 +668,586 @@ namespace Kaitai
             public byte[] RawData { get { return _rawData; } }
             public Gff M_Root { get { return m_root; } }
             public Gff M_Parent { get { return m_parent; } }
+        }
+
+        /// <summary>
+        /// A decoded field: includes resolved label string and decoded typed value.
+        /// Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+        /// </summary>
+        public partial class ResolvedField : KaitaiStruct
+        {
+            public ResolvedField(uint p_fieldIndex, KaitaiStream p__io, Gff.ResolvedStruct p__parent = null, Gff p__root = null) : base(p__io)
+            {
+                m_parent = p__parent;
+                m_root = p__root;
+                _fieldIndex = p_fieldIndex;
+                f_entry = false;
+                f_fieldEntryPos = false;
+                f_label = false;
+                f_listEntry = false;
+                f_listStructs = false;
+                f_valueBinary = false;
+                f_valueDouble = false;
+                f_valueInt16 = false;
+                f_valueInt32 = false;
+                f_valueInt64 = false;
+                f_valueInt8 = false;
+                f_valueLocalizedString = false;
+                f_valueResref = false;
+                f_valueSingle = false;
+                f_valueString = false;
+                f_valueStruct = false;
+                f_valueUint16 = false;
+                f_valueUint32 = false;
+                f_valueUint64 = false;
+                f_valueUint8 = false;
+                f_valueVector3 = false;
+                f_valueVector4 = false;
+                _read();
+            }
+            private void _read()
+            {
+            }
+            private bool f_entry;
+            private FieldEntry _entry;
+
+            /// <summary>
+            /// Raw field entry at field_index
+            /// </summary>
+            public FieldEntry Entry
+            {
+                get
+                {
+                    if (f_entry)
+                        return _entry;
+                    f_entry = true;
+                    long _pos = m_io.Pos;
+                    m_io.Seek(M_Root.Header.FieldOffset + FieldIndex * 12);
+                    _entry = new FieldEntry(m_io, this, m_root);
+                    m_io.Seek(_pos);
+                    return _entry;
+                }
+            }
+            private bool f_fieldEntryPos;
+            private int _fieldEntryPos;
+
+            /// <summary>
+            /// Absolute file offset of this field entry (start of 12-byte record)
+            /// </summary>
+            public int FieldEntryPos
+            {
+                get
+                {
+                    if (f_fieldEntryPos)
+                        return _fieldEntryPos;
+                    f_fieldEntryPos = true;
+                    _fieldEntryPos = (int) (M_Root.Header.FieldOffset + FieldIndex * 12);
+                    return _fieldEntryPos;
+                }
+            }
+            private bool f_label;
+            private LabelEntryTerminated _label;
+
+            /// <summary>
+            /// Resolved field label string
+            /// </summary>
+            public LabelEntryTerminated Label
+            {
+                get
+                {
+                    if (f_label)
+                        return _label;
+                    f_label = true;
+                    long _pos = m_io.Pos;
+                    m_io.Seek(M_Root.Header.LabelOffset + Entry.LabelIndex * 16);
+                    _label = new LabelEntryTerminated(m_io, this, m_root);
+                    m_io.Seek(_pos);
+                    return _label;
+                }
+            }
+            private bool f_listEntry;
+            private ListEntry _listEntry;
+
+            /// <summary>
+            /// Parsed list entry at offset (list indices)
+            /// </summary>
+            public ListEntry ListEntry
+            {
+                get
+                {
+                    if (f_listEntry)
+                        return _listEntry;
+                    f_listEntry = true;
+                    if (Entry.FieldType == Gff.GffFieldType.List) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.ListIndicesOffset + Entry.DataOrOffset);
+                        _listEntry = new ListEntry(m_io, this, m_root);
+                        m_io.Seek(_pos);
+                    }
+                    return _listEntry;
+                }
+            }
+            private bool f_listStructs;
+            private List<ResolvedStruct> _listStructs;
+
+            /// <summary>
+            /// Resolved structs referenced by this list
+            /// </summary>
+            public List<ResolvedStruct> ListStructs
+            {
+                get
+                {
+                    if (f_listStructs)
+                        return _listStructs;
+                    f_listStructs = true;
+                    if (Entry.FieldType == Gff.GffFieldType.List) {
+                        _listStructs = new List<ResolvedStruct>();
+                        for (var i = 0; i < ListEntry.NumStructIndices; i++)
+                        {
+                            _listStructs.Add(new ResolvedStruct(ListEntry.StructIndices[i], m_io, this, m_root));
+                        }
+                    }
+                    return _listStructs;
+                }
+            }
+            private bool f_valueBinary;
+            private BiowareCommon.BiowareBinaryData _valueBinary;
+            public BiowareCommon.BiowareBinaryData ValueBinary
+            {
+                get
+                {
+                    if (f_valueBinary)
+                        return _valueBinary;
+                    f_valueBinary = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Binary) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueBinary = new BiowareCommon.BiowareBinaryData(m_io);
+                        m_io.Seek(_pos);
+                    }
+                    return _valueBinary;
+                }
+            }
+            private bool f_valueDouble;
+            private double? _valueDouble;
+            public double? ValueDouble
+            {
+                get
+                {
+                    if (f_valueDouble)
+                        return _valueDouble;
+                    f_valueDouble = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Double) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueDouble = m_io.ReadF8le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueDouble;
+                }
+            }
+            private bool f_valueInt16;
+            private short? _valueInt16;
+            public short? ValueInt16
+            {
+                get
+                {
+                    if (f_valueInt16)
+                        return _valueInt16;
+                    f_valueInt16 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Int16) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueInt16 = m_io.ReadS2le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueInt16;
+                }
+            }
+            private bool f_valueInt32;
+            private int? _valueInt32;
+            public int? ValueInt32
+            {
+                get
+                {
+                    if (f_valueInt32)
+                        return _valueInt32;
+                    f_valueInt32 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Int32) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueInt32 = m_io.ReadS4le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueInt32;
+                }
+            }
+            private bool f_valueInt64;
+            private long? _valueInt64;
+            public long? ValueInt64
+            {
+                get
+                {
+                    if (f_valueInt64)
+                        return _valueInt64;
+                    f_valueInt64 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Int64) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueInt64 = m_io.ReadS8le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueInt64;
+                }
+            }
+            private bool f_valueInt8;
+            private sbyte? _valueInt8;
+            public sbyte? ValueInt8
+            {
+                get
+                {
+                    if (f_valueInt8)
+                        return _valueInt8;
+                    f_valueInt8 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Int8) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueInt8 = m_io.ReadS1();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueInt8;
+                }
+            }
+            private bool f_valueLocalizedString;
+            private BiowareCommon.BiowareLocstring _valueLocalizedString;
+            public BiowareCommon.BiowareLocstring ValueLocalizedString
+            {
+                get
+                {
+                    if (f_valueLocalizedString)
+                        return _valueLocalizedString;
+                    f_valueLocalizedString = true;
+                    if (Entry.FieldType == Gff.GffFieldType.LocalizedString) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueLocalizedString = new BiowareCommon.BiowareLocstring(m_io);
+                        m_io.Seek(_pos);
+                    }
+                    return _valueLocalizedString;
+                }
+            }
+            private bool f_valueResref;
+            private BiowareCommon.BiowareResref _valueResref;
+            public BiowareCommon.BiowareResref ValueResref
+            {
+                get
+                {
+                    if (f_valueResref)
+                        return _valueResref;
+                    f_valueResref = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Resref) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueResref = new BiowareCommon.BiowareResref(m_io);
+                        m_io.Seek(_pos);
+                    }
+                    return _valueResref;
+                }
+            }
+            private bool f_valueSingle;
+            private float? _valueSingle;
+            public float? ValueSingle
+            {
+                get
+                {
+                    if (f_valueSingle)
+                        return _valueSingle;
+                    f_valueSingle = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Single) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueSingle = m_io.ReadF4le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueSingle;
+                }
+            }
+            private bool f_valueString;
+            private BiowareCommon.BiowareCexoString _valueString;
+            public BiowareCommon.BiowareCexoString ValueString
+            {
+                get
+                {
+                    if (f_valueString)
+                        return _valueString;
+                    f_valueString = true;
+                    if (Entry.FieldType == Gff.GffFieldType.String) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueString = new BiowareCommon.BiowareCexoString(m_io);
+                        m_io.Seek(_pos);
+                    }
+                    return _valueString;
+                }
+            }
+            private bool f_valueStruct;
+            private ResolvedStruct _valueStruct;
+
+            /// <summary>
+            /// Nested struct (struct index = entry.data_or_offset)
+            /// </summary>
+            public ResolvedStruct ValueStruct
+            {
+                get
+                {
+                    if (f_valueStruct)
+                        return _valueStruct;
+                    f_valueStruct = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Struct) {
+                        _valueStruct = new ResolvedStruct(Entry.DataOrOffset, m_io, this, m_root);
+                    }
+                    return _valueStruct;
+                }
+            }
+            private bool f_valueUint16;
+            private ushort? _valueUint16;
+            public ushort? ValueUint16
+            {
+                get
+                {
+                    if (f_valueUint16)
+                        return _valueUint16;
+                    f_valueUint16 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Uint16) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueUint16 = m_io.ReadU2le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueUint16;
+                }
+            }
+            private bool f_valueUint32;
+            private uint? _valueUint32;
+            public uint? ValueUint32
+            {
+                get
+                {
+                    if (f_valueUint32)
+                        return _valueUint32;
+                    f_valueUint32 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Uint32) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueUint32 = m_io.ReadU4le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueUint32;
+                }
+            }
+            private bool f_valueUint64;
+            private ulong? _valueUint64;
+            public ulong? ValueUint64
+            {
+                get
+                {
+                    if (f_valueUint64)
+                        return _valueUint64;
+                    f_valueUint64 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Uint64) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueUint64 = m_io.ReadU8le();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueUint64;
+                }
+            }
+            private bool f_valueUint8;
+            private byte? _valueUint8;
+            public byte? ValueUint8
+            {
+                get
+                {
+                    if (f_valueUint8)
+                        return _valueUint8;
+                    f_valueUint8 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Uint8) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(FieldEntryPos + 8);
+                        _valueUint8 = m_io.ReadU1();
+                        m_io.Seek(_pos);
+                    }
+                    return _valueUint8;
+                }
+            }
+            private bool f_valueVector3;
+            private BiowareCommon.BiowareVector3 _valueVector3;
+            public BiowareCommon.BiowareVector3 ValueVector3
+            {
+                get
+                {
+                    if (f_valueVector3)
+                        return _valueVector3;
+                    f_valueVector3 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Vector3) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueVector3 = new BiowareCommon.BiowareVector3(m_io);
+                        m_io.Seek(_pos);
+                    }
+                    return _valueVector3;
+                }
+            }
+            private bool f_valueVector4;
+            private BiowareCommon.BiowareVector4 _valueVector4;
+            public BiowareCommon.BiowareVector4 ValueVector4
+            {
+                get
+                {
+                    if (f_valueVector4)
+                        return _valueVector4;
+                    f_valueVector4 = true;
+                    if (Entry.FieldType == Gff.GffFieldType.Vector4) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldDataOffset + Entry.DataOrOffset);
+                        _valueVector4 = new BiowareCommon.BiowareVector4(m_io);
+                        m_io.Seek(_pos);
+                    }
+                    return _valueVector4;
+                }
+            }
+            private uint _fieldIndex;
+            private Gff m_root;
+            private Gff.ResolvedStruct m_parent;
+
+            /// <summary>
+            /// Index into field_array
+            /// </summary>
+            public uint FieldIndex { get { return _fieldIndex; } }
+            public Gff M_Root { get { return m_root; } }
+            public Gff.ResolvedStruct M_Parent { get { return m_parent; } }
+        }
+
+        /// <summary>
+        /// A decoded struct node: resolves field indices -&gt; field entries -&gt; typed values,
+        /// and recursively resolves nested structs and lists.
+        /// </summary>
+        public partial class ResolvedStruct : KaitaiStruct
+        {
+            public ResolvedStruct(uint p_structIndex, KaitaiStream p__io, KaitaiStruct p__parent = null, Gff p__root = null) : base(p__io)
+            {
+                m_parent = p__parent;
+                m_root = p__root;
+                _structIndex = p_structIndex;
+                f_entry = false;
+                f_fieldIndices = false;
+                f_fields = false;
+                f_singleField = false;
+                _read();
+            }
+            private void _read()
+            {
+            }
+            private bool f_entry;
+            private StructEntry _entry;
+
+            /// <summary>
+            /// Raw struct entry at struct_index
+            /// </summary>
+            public StructEntry Entry
+            {
+                get
+                {
+                    if (f_entry)
+                        return _entry;
+                    f_entry = true;
+                    long _pos = m_io.Pos;
+                    m_io.Seek(M_Root.Header.StructOffset + StructIndex * 12);
+                    _entry = new StructEntry(m_io, this, m_root);
+                    m_io.Seek(_pos);
+                    return _entry;
+                }
+            }
+            private bool f_fieldIndices;
+            private List<uint> _fieldIndices;
+
+            /// <summary>
+            /// Field indices for this struct (only present when field_count &gt; 1).
+            /// When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+            /// </summary>
+            public List<uint> FieldIndices
+            {
+                get
+                {
+                    if (f_fieldIndices)
+                        return _fieldIndices;
+                    f_fieldIndices = true;
+                    if (Entry.FieldCount > 1) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(M_Root.Header.FieldIndicesOffset + Entry.DataOrOffset);
+                        _fieldIndices = new List<uint>();
+                        for (var i = 0; i < Entry.FieldCount; i++)
+                        {
+                            _fieldIndices.Add(m_io.ReadU4le());
+                        }
+                        m_io.Seek(_pos);
+                    }
+                    return _fieldIndices;
+                }
+            }
+            private bool f_fields;
+            private List<ResolvedField> _fields;
+
+            /// <summary>
+            /// Resolved fields (multi-field struct)
+            /// </summary>
+            public List<ResolvedField> Fields
+            {
+                get
+                {
+                    if (f_fields)
+                        return _fields;
+                    f_fields = true;
+                    if (Entry.FieldCount > 1) {
+                        _fields = new List<ResolvedField>();
+                        for (var i = 0; i < Entry.FieldCount; i++)
+                        {
+                            _fields.Add(new ResolvedField(FieldIndices[i], m_io, this, m_root));
+                        }
+                    }
+                    return _fields;
+                }
+            }
+            private bool f_singleField;
+            private ResolvedField _singleField;
+
+            /// <summary>
+            /// Resolved field (single-field struct)
+            /// </summary>
+            public ResolvedField SingleField
+            {
+                get
+                {
+                    if (f_singleField)
+                        return _singleField;
+                    f_singleField = true;
+                    if (Entry.FieldCount == 1) {
+                        _singleField = new ResolvedField(Entry.DataOrOffset, m_io, this, m_root);
+                    }
+                    return _singleField;
+                }
+            }
+            private uint _structIndex;
+            private Gff m_root;
+            private KaitaiStruct m_parent;
+
+            /// <summary>
+            /// Index into struct_array
+            /// </summary>
+            public uint StructIndex { get { return _structIndex; } }
+            public Gff M_Root { get { return m_root; } }
+            public KaitaiStruct M_Parent { get { return m_parent; } }
         }
         public partial class StructArray : KaitaiStruct
         {
@@ -678,7 +1288,7 @@ namespace Kaitai
                 return new StructEntry(new KaitaiStream(fileName));
             }
 
-            public StructEntry(KaitaiStream p__io, Gff.StructArray p__parent = null, Gff p__root = null) : base(p__io)
+            public StructEntry(KaitaiStream p__io, KaitaiStruct p__parent = null, Gff p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -770,7 +1380,7 @@ namespace Kaitai
             private uint _dataOrOffset;
             private uint _fieldCount;
             private Gff m_root;
-            private Gff.StructArray m_parent;
+            private KaitaiStruct m_parent;
 
             /// <summary>
             /// Structure type identifier. Often 0xFFFFFFFF (-1) for generic structs.
@@ -792,7 +1402,7 @@ namespace Kaitai
             /// </summary>
             public uint FieldCount { get { return _fieldCount; } }
             public Gff M_Root { get { return m_root; } }
-            public Gff.StructArray M_Parent { get { return m_parent; } }
+            public KaitaiStruct M_Parent { get { return m_parent; } }
         }
         private bool f_fieldArray;
         private FieldArray _fieldArray;
@@ -902,6 +1512,25 @@ namespace Kaitai
                     m_io.Seek(_pos);
                 }
                 return _listIndicesArray;
+            }
+        }
+        private bool f_rootStructResolved;
+        private ResolvedStruct _rootStructResolved;
+
+        /// <summary>
+        /// Convenience &quot;decoded&quot; view of the root struct (struct_array[0]).
+        /// This resolves field indices to field entries, resolves labels to strings,
+        /// and decodes field values (including nested structs and lists) into typed instances.
+        /// </summary>
+        public ResolvedStruct RootStructResolved
+        {
+            get
+            {
+                if (f_rootStructResolved)
+                    return _rootStructResolved;
+                f_rootStructResolved = true;
+                _rootStructResolved = new ResolvedStruct(0, m_io, this, m_root);
+                return _rootStructResolved;
             }
         }
         private bool f_structArray;

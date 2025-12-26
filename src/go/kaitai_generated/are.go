@@ -38,6 +38,8 @@ type Are struct {
 	_parent kaitai.Struct
 	_f_fileTypeValid bool
 	fileTypeValid bool
+	_f_rootStructResolved bool
+	rootStructResolved *Gff_ResolvedStruct
 	_f_versionValid bool
 	versionValid bool
 }
@@ -74,6 +76,24 @@ func (this *Are) FileTypeValid() (v bool, err error) {
 	this._f_fileTypeValid = true
 	this.fileTypeValid = bool(this.GffData.Header.FileType == "ARE ")
 	return this.fileTypeValid, nil
+}
+
+/**
+ * Convenience access to the decoded GFF root struct (struct_array[0]).
+ * Use this to iterate all resolved fields (label + typed value), including:
+ * "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+ */
+func (this *Are) RootStructResolved() (v *Gff_ResolvedStruct, err error) {
+	if (this._f_rootStructResolved) {
+		return this.rootStructResolved, nil
+	}
+	this._f_rootStructResolved = true
+	tmp2, err := this.GffData.RootStructResolved()
+	if err != nil {
+		return nil, err
+	}
+	this.rootStructResolved = tmp2
+	return this.rootStructResolved, nil
 }
 
 /**

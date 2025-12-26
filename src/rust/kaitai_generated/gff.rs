@@ -11,6 +11,12 @@ use kaitai::*;
 use std::convert::{TryFrom, TryInto};
 use std::cell::{Ref, Cell, RefCell};
 use std::rc::{Rc, Weak};
+use super::bioware_common::BiowareCommon_BiowareLocstring;
+use super::bioware_common::BiowareCommon_BiowareCexoString;
+use super::bioware_common::BiowareCommon_BiowareResref;
+use super::bioware_common::BiowareCommon_BiowareBinaryData;
+use super::bioware_common::BiowareCommon_BiowareVector4;
+use super::bioware_common::BiowareCommon_BiowareVector3;
 
 /**
  * GFF (Generic File Format) is BioWare's universal container format for structured game data.
@@ -77,6 +83,8 @@ pub struct Gff {
     label_array: RefCell<OptRc<Gff_LabelArray>>,
     f_list_indices_array: Cell<bool>,
     list_indices_array: RefCell<OptRc<Gff_ListIndicesArray>>,
+    f_root_struct_resolved: Cell<bool>,
+    root_struct_resolved: RefCell<OptRc<Gff_ResolvedStruct>>,
     f_struct_array: Cell<bool>,
     struct_array: RefCell<OptRc<Gff_StructArray>>,
 }
@@ -217,6 +225,27 @@ impl Gff {
             _io.seek(_pos)?;
         }
         Ok(self.list_indices_array.borrow())
+    }
+
+    /**
+     * Convenience "decoded" view of the root struct (struct_array[0]).
+     * This resolves field indices to field entries, resolves labels to strings,
+     * and decodes field values (including nested structs and lists) into typed instances.
+     */
+    pub fn root_struct_resolved(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_ResolvedStruct>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_root_struct_resolved.get() {
+            return Ok(self.root_struct_resolved.borrow());
+        }
+        let f = |t : &mut Gff_ResolvedStruct| Ok(t.set_params((0).try_into().map_err(|_| KError::CastError)?));
+        let t = Self::read_into_with_init::<_, Gff_ResolvedStruct>(&*_io, Some(self._root.clone()), None, &f)?.into();
+        *self.root_struct_resolved.borrow_mut() = t;
+        Ok(self.root_struct_resolved.borrow())
     }
 
     /**
@@ -365,7 +394,7 @@ impl KStruct for Gff_FieldArray {
         *self_rc.entries.borrow_mut() = Vec::new();
         let l_entries = *_r.header().field_count();
         for _i in 0..l_entries {
-            let t = Self::read_into::<_, Gff_FieldEntry>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+            let t = Self::read_into::<_, Gff_FieldEntry>(&*_io, Some(self_rc._root.clone()), None)?.into();
             self_rc.entries.borrow_mut().push(t);
         }
         Ok(())
@@ -446,7 +475,7 @@ impl Gff_FieldData {
 #[derive(Default, Debug, Clone)]
 pub struct Gff_FieldEntry {
     pub _root: SharedType<Gff>,
-    pub _parent: SharedType<Gff_FieldArray>,
+    pub _parent: SharedType<KStructUnit>,
     pub _self: SharedType<Self>,
     field_type: RefCell<Gff_GffFieldType>,
     label_index: RefCell<u32>,
@@ -469,7 +498,7 @@ pub struct Gff_FieldEntry {
 }
 impl KStruct for Gff_FieldEntry {
     type Root = Gff;
-    type Parent = Gff_FieldArray;
+    type Parent = KStructUnit;
 
     fn read<S: KStream>(
         self_rc: &OptRc<Self>,
@@ -1008,10 +1037,57 @@ impl Gff_LabelEntry {
     }
 }
 
+/**
+ * Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+ * This avoids leaking trailing `\0` bytes into generated-code consumers.
+ */
+
+#[derive(Default, Debug, Clone)]
+pub struct Gff_LabelEntryTerminated {
+    pub _root: SharedType<Gff>,
+    pub _parent: SharedType<Gff_ResolvedField>,
+    pub _self: SharedType<Self>,
+    name: RefCell<String>,
+    _io: RefCell<BytesReader>,
+}
+impl KStruct for Gff_LabelEntryTerminated {
+    type Root = Gff;
+    type Parent = Gff_ResolvedField;
+
+    fn read<S: KStream>(
+        self_rc: &OptRc<Self>,
+        _io: &S,
+        _root: SharedType<Self::Root>,
+        _parent: SharedType<Self::Parent>,
+    ) -> KResult<()> {
+        *self_rc._io.borrow_mut() = _io.clone();
+        self_rc._root.set(_root.get());
+        self_rc._parent.set(_parent.get());
+        self_rc._self.set(Ok(self_rc.clone()));
+        let _rrc = self_rc._root.get_value().borrow().upgrade();
+        let _prc = self_rc._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        *self_rc.name.borrow_mut() = bytes_to_str(&bytes_terminate(&_io.read_bytes(16 as usize)?.into(), 0, false).into(), "ASCII")?;
+        Ok(())
+    }
+}
+impl Gff_LabelEntryTerminated {
+}
+impl Gff_LabelEntryTerminated {
+    pub fn name(&self) -> Ref<'_, String> {
+        self.name.borrow()
+    }
+}
+impl Gff_LabelEntryTerminated {
+    pub fn _io(&self) -> Ref<'_, BytesReader> {
+        self._io.borrow()
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct Gff_ListEntry {
     pub _root: SharedType<Gff>,
-    pub _parent: SharedType<KStructUnit>,
+    pub _parent: SharedType<Gff_ResolvedField>,
     pub _self: SharedType<Self>,
     num_struct_indices: RefCell<u32>,
     struct_indices: RefCell<Vec<u32>>,
@@ -1019,7 +1095,7 @@ pub struct Gff_ListEntry {
 }
 impl KStruct for Gff_ListEntry {
     type Root = Gff;
-    type Parent = KStructUnit;
+    type Parent = Gff_ResolvedField;
 
     fn read<S: KStream>(
         self_rc: &OptRc<Self>,
@@ -1121,6 +1197,690 @@ impl Gff_ListIndicesArray {
     }
 }
 
+/**
+ * A decoded field: includes resolved label string and decoded typed value.
+ * Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+ */
+
+#[derive(Default, Debug, Clone)]
+pub struct Gff_ResolvedField {
+    pub _root: SharedType<Gff>,
+    pub _parent: SharedType<Gff_ResolvedStruct>,
+    pub _self: SharedType<Self>,
+    field_index: RefCell<u32>,
+    _io: RefCell<BytesReader>,
+    f_entry: Cell<bool>,
+    entry: RefCell<OptRc<Gff_FieldEntry>>,
+    f_field_entry_pos: Cell<bool>,
+    field_entry_pos: RefCell<i32>,
+    f_label: Cell<bool>,
+    label: RefCell<OptRc<Gff_LabelEntryTerminated>>,
+    f_list_entry: Cell<bool>,
+    list_entry: RefCell<OptRc<Gff_ListEntry>>,
+    f_list_structs: Cell<bool>,
+    list_structs: RefCell<Vec<OptRc<Gff_ResolvedStruct>>>,
+    f_value_binary: Cell<bool>,
+    value_binary: RefCell<OptRc<BiowareCommon_BiowareBinaryData>>,
+    f_value_double: Cell<bool>,
+    value_double: RefCell<f64>,
+    f_value_int16: Cell<bool>,
+    value_int16: RefCell<i16>,
+    f_value_int32: Cell<bool>,
+    value_int32: RefCell<i32>,
+    f_value_int64: Cell<bool>,
+    value_int64: RefCell<i64>,
+    f_value_int8: Cell<bool>,
+    value_int8: RefCell<i8>,
+    f_value_localized_string: Cell<bool>,
+    value_localized_string: RefCell<OptRc<BiowareCommon_BiowareLocstring>>,
+    f_value_resref: Cell<bool>,
+    value_resref: RefCell<OptRc<BiowareCommon_BiowareResref>>,
+    f_value_single: Cell<bool>,
+    value_single: RefCell<f32>,
+    f_value_string: Cell<bool>,
+    value_string: RefCell<OptRc<BiowareCommon_BiowareCexoString>>,
+    f_value_struct: Cell<bool>,
+    value_struct: RefCell<OptRc<Gff_ResolvedStruct>>,
+    f_value_uint16: Cell<bool>,
+    value_uint16: RefCell<u16>,
+    f_value_uint32: Cell<bool>,
+    value_uint32: RefCell<u32>,
+    f_value_uint64: Cell<bool>,
+    value_uint64: RefCell<u64>,
+    f_value_uint8: Cell<bool>,
+    value_uint8: RefCell<u8>,
+    f_value_vector3: Cell<bool>,
+    value_vector3: RefCell<OptRc<BiowareCommon_BiowareVector3>>,
+    f_value_vector4: Cell<bool>,
+    value_vector4: RefCell<OptRc<BiowareCommon_BiowareVector4>>,
+}
+impl KStruct for Gff_ResolvedField {
+    type Root = Gff;
+    type Parent = Gff_ResolvedStruct;
+
+    fn read<S: KStream>(
+        self_rc: &OptRc<Self>,
+        _io: &S,
+        _root: SharedType<Self::Root>,
+        _parent: SharedType<Self::Parent>,
+    ) -> KResult<()> {
+        *self_rc._io.borrow_mut() = _io.clone();
+        self_rc._root.set(_root.get());
+        self_rc._parent.set(_parent.get());
+        self_rc._self.set(Ok(self_rc.clone()));
+        let _rrc = self_rc._root.get_value().borrow().upgrade();
+        let _prc = self_rc._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        Ok(())
+    }
+}
+impl Gff_ResolvedField {
+    pub fn field_index(&self) -> Ref<'_, u32> {
+        self.field_index.borrow()
+    }
+}
+impl Gff_ResolvedField {
+    pub fn set_params(&mut self, field_index: u32) {
+        *self.field_index.borrow_mut() = field_index;
+    }
+}
+impl Gff_ResolvedField {
+
+    /**
+     * Raw field entry at field_index
+     */
+    pub fn entry(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_FieldEntry>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_entry.get() {
+            return Ok(self.entry.borrow());
+        }
+        let _pos = _io.pos();
+        _io.seek(((*_r.header().field_offset() as i32) + (((*self.field_index() as u32) * (12 as u32)) as i32)) as usize)?;
+        let t = Self::read_into::<_, Gff_FieldEntry>(&*_io, Some(self._root.clone()), None)?.into();
+        *self.entry.borrow_mut() = t;
+        _io.seek(_pos)?;
+        Ok(self.entry.borrow())
+    }
+
+    /**
+     * Absolute file offset of this field entry (start of 12-byte record)
+     */
+    pub fn field_entry_pos(
+        &self
+    ) -> KResult<Ref<'_, i32>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_field_entry_pos.get() {
+            return Ok(self.field_entry_pos.borrow());
+        }
+        self.f_field_entry_pos.set(true);
+        *self.field_entry_pos.borrow_mut() = (((*_r.header().field_offset() as i32) + (((*self.field_index() as u32) * (12 as u32)) as i32))) as i32;
+        Ok(self.field_entry_pos.borrow())
+    }
+
+    /**
+     * Resolved field label string
+     */
+    pub fn label(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_LabelEntryTerminated>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_label.get() {
+            return Ok(self.label.borrow());
+        }
+        let _pos = _io.pos();
+        _io.seek(((*_r.header().label_offset() as i32) + (((*self.entry()?.label_index() as u32) * (16 as u32)) as i32)) as usize)?;
+        let t = Self::read_into::<_, Gff_LabelEntryTerminated>(&*_io, Some(self._root.clone()), Some(self._self.clone()))?.into();
+        *self.label.borrow_mut() = t;
+        _io.seek(_pos)?;
+        Ok(self.label.borrow())
+    }
+
+    /**
+     * Parsed list entry at offset (list indices)
+     */
+    pub fn list_entry(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_ListEntry>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_list_entry.get() {
+            return Ok(self.list_entry.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::List {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().list_indices_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, Gff_ListEntry>(&*_io, Some(self._root.clone()), Some(self._self.clone()))?.into();
+            *self.list_entry.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.list_entry.borrow())
+    }
+
+    /**
+     * Resolved structs referenced by this list
+     */
+    pub fn list_structs(
+        &self
+    ) -> KResult<Ref<'_, Vec<OptRc<Gff_ResolvedStruct>>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_list_structs.get() {
+            return Ok(self.list_structs.borrow());
+        }
+        self.f_list_structs.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::List {
+            *self.list_structs.borrow_mut() = Vec::new();
+            let l_list_structs = *self.list_entry()?.num_struct_indices();
+            for _i in 0..l_list_structs {
+                let f = |t : &mut Gff_ResolvedStruct| Ok(t.set_params((self.list_entry()?.struct_indices()[_i as usize]).try_into().map_err(|_| KError::CastError)?));
+                let t = Self::read_into_with_init::<_, Gff_ResolvedStruct>(&*_io, Some(self._root.clone()), None, &f)?.into();
+                self.list_structs.borrow_mut().push(t);
+            }
+        }
+        Ok(self.list_structs.borrow())
+    }
+    pub fn value_binary(
+        &self
+    ) -> KResult<Ref<'_, OptRc<BiowareCommon_BiowareBinaryData>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_binary.get() {
+            return Ok(self.value_binary.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::Binary {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, BiowareCommon_BiowareBinaryData>(&*_io, None, None)?.into();
+            *self.value_binary.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_binary.borrow())
+    }
+    pub fn value_double(
+        &self
+    ) -> KResult<Ref<'_, f64>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_double.get() {
+            return Ok(self.value_double.borrow());
+        }
+        self.f_value_double.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Double {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            *self.value_double.borrow_mut() = _io.read_f8le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_double.borrow())
+    }
+    pub fn value_int16(
+        &self
+    ) -> KResult<Ref<'_, i16>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_int16.get() {
+            return Ok(self.value_int16.borrow());
+        }
+        self.f_value_int16.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Int16 {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_int16.borrow_mut() = _io.read_s2le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_int16.borrow())
+    }
+    pub fn value_int32(
+        &self
+    ) -> KResult<Ref<'_, i32>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_int32.get() {
+            return Ok(self.value_int32.borrow());
+        }
+        self.f_value_int32.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Int32 {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_int32.borrow_mut() = _io.read_s4le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_int32.borrow())
+    }
+    pub fn value_int64(
+        &self
+    ) -> KResult<Ref<'_, i64>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_int64.get() {
+            return Ok(self.value_int64.borrow());
+        }
+        self.f_value_int64.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Int64 {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            *self.value_int64.borrow_mut() = _io.read_s8le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_int64.borrow())
+    }
+    pub fn value_int8(
+        &self
+    ) -> KResult<Ref<'_, i8>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_int8.get() {
+            return Ok(self.value_int8.borrow());
+        }
+        self.f_value_int8.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Int8 {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_int8.borrow_mut() = _io.read_s1()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_int8.borrow())
+    }
+    pub fn value_localized_string(
+        &self
+    ) -> KResult<Ref<'_, OptRc<BiowareCommon_BiowareLocstring>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_localized_string.get() {
+            return Ok(self.value_localized_string.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::LocalizedString {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, BiowareCommon_BiowareLocstring>(&*_io, None, None)?.into();
+            *self.value_localized_string.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_localized_string.borrow())
+    }
+    pub fn value_resref(
+        &self
+    ) -> KResult<Ref<'_, OptRc<BiowareCommon_BiowareResref>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_resref.get() {
+            return Ok(self.value_resref.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::Resref {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, BiowareCommon_BiowareResref>(&*_io, None, None)?.into();
+            *self.value_resref.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_resref.borrow())
+    }
+    pub fn value_single(
+        &self
+    ) -> KResult<Ref<'_, f32>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_single.get() {
+            return Ok(self.value_single.borrow());
+        }
+        self.f_value_single.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Single {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_single.borrow_mut() = _io.read_f4le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_single.borrow())
+    }
+    pub fn value_string(
+        &self
+    ) -> KResult<Ref<'_, OptRc<BiowareCommon_BiowareCexoString>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_string.get() {
+            return Ok(self.value_string.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::String {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, BiowareCommon_BiowareCexoString>(&*_io, None, None)?.into();
+            *self.value_string.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_string.borrow())
+    }
+
+    /**
+     * Nested struct (struct index = entry.data_or_offset)
+     */
+    pub fn value_struct(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_ResolvedStruct>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_struct.get() {
+            return Ok(self.value_struct.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::Struct {
+            let f = |t : &mut Gff_ResolvedStruct| Ok(t.set_params((*self.entry()?.data_or_offset()).try_into().map_err(|_| KError::CastError)?));
+            let t = Self::read_into_with_init::<_, Gff_ResolvedStruct>(&*_io, Some(self._root.clone()), None, &f)?.into();
+            *self.value_struct.borrow_mut() = t;
+        }
+        Ok(self.value_struct.borrow())
+    }
+    pub fn value_uint16(
+        &self
+    ) -> KResult<Ref<'_, u16>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_uint16.get() {
+            return Ok(self.value_uint16.borrow());
+        }
+        self.f_value_uint16.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Uint16 {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_uint16.borrow_mut() = _io.read_u2le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_uint16.borrow())
+    }
+    pub fn value_uint32(
+        &self
+    ) -> KResult<Ref<'_, u32>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_uint32.get() {
+            return Ok(self.value_uint32.borrow());
+        }
+        self.f_value_uint32.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Uint32 {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_uint32.borrow_mut() = _io.read_u4le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_uint32.borrow())
+    }
+    pub fn value_uint64(
+        &self
+    ) -> KResult<Ref<'_, u64>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_uint64.get() {
+            return Ok(self.value_uint64.borrow());
+        }
+        self.f_value_uint64.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Uint64 {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            *self.value_uint64.borrow_mut() = _io.read_u8le()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_uint64.borrow())
+    }
+    pub fn value_uint8(
+        &self
+    ) -> KResult<Ref<'_, u8>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_uint8.get() {
+            return Ok(self.value_uint8.borrow());
+        }
+        self.f_value_uint8.set(true);
+        if *self.entry()?.field_type() == Gff_GffFieldType::Uint8 {
+            let _pos = _io.pos();
+            _io.seek(((*self.field_entry_pos()? as i32) + (8 as i32)) as usize)?;
+            *self.value_uint8.borrow_mut() = _io.read_u1()?.into();
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_uint8.borrow())
+    }
+    pub fn value_vector3(
+        &self
+    ) -> KResult<Ref<'_, OptRc<BiowareCommon_BiowareVector3>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_vector3.get() {
+            return Ok(self.value_vector3.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::Vector3 {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, BiowareCommon_BiowareVector3>(&*_io, None, None)?.into();
+            *self.value_vector3.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_vector3.borrow())
+    }
+    pub fn value_vector4(
+        &self
+    ) -> KResult<Ref<'_, OptRc<BiowareCommon_BiowareVector4>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_value_vector4.get() {
+            return Ok(self.value_vector4.borrow());
+        }
+        if *self.entry()?.field_type() == Gff_GffFieldType::Vector4 {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_data_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            let t = Self::read_into::<_, BiowareCommon_BiowareVector4>(&*_io, None, None)?.into();
+            *self.value_vector4.borrow_mut() = t;
+            _io.seek(_pos)?;
+        }
+        Ok(self.value_vector4.borrow())
+    }
+}
+impl Gff_ResolvedField {
+    pub fn _io(&self) -> Ref<'_, BytesReader> {
+        self._io.borrow()
+    }
+}
+
+/**
+ * A decoded struct node: resolves field indices -> field entries -> typed values,
+ * and recursively resolves nested structs and lists.
+ */
+
+#[derive(Default, Debug, Clone)]
+pub struct Gff_ResolvedStruct {
+    pub _root: SharedType<Gff>,
+    pub _parent: SharedType<KStructUnit>,
+    pub _self: SharedType<Self>,
+    struct_index: RefCell<u32>,
+    _io: RefCell<BytesReader>,
+    f_entry: Cell<bool>,
+    entry: RefCell<OptRc<Gff_StructEntry>>,
+    f_field_indices: Cell<bool>,
+    field_indices: RefCell<Vec<u32>>,
+    f_fields: Cell<bool>,
+    fields: RefCell<Vec<OptRc<Gff_ResolvedField>>>,
+    f_single_field: Cell<bool>,
+    single_field: RefCell<OptRc<Gff_ResolvedField>>,
+}
+impl KStruct for Gff_ResolvedStruct {
+    type Root = Gff;
+    type Parent = KStructUnit;
+
+    fn read<S: KStream>(
+        self_rc: &OptRc<Self>,
+        _io: &S,
+        _root: SharedType<Self::Root>,
+        _parent: SharedType<Self::Parent>,
+    ) -> KResult<()> {
+        *self_rc._io.borrow_mut() = _io.clone();
+        self_rc._root.set(_root.get());
+        self_rc._parent.set(_parent.get());
+        self_rc._self.set(Ok(self_rc.clone()));
+        let _rrc = self_rc._root.get_value().borrow().upgrade();
+        let _prc = self_rc._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        Ok(())
+    }
+}
+impl Gff_ResolvedStruct {
+    pub fn struct_index(&self) -> Ref<'_, u32> {
+        self.struct_index.borrow()
+    }
+}
+impl Gff_ResolvedStruct {
+    pub fn set_params(&mut self, struct_index: u32) {
+        *self.struct_index.borrow_mut() = struct_index;
+    }
+}
+impl Gff_ResolvedStruct {
+
+    /**
+     * Raw struct entry at struct_index
+     */
+    pub fn entry(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_StructEntry>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_entry.get() {
+            return Ok(self.entry.borrow());
+        }
+        let _pos = _io.pos();
+        _io.seek(((*_r.header().struct_offset() as i32) + (((*self.struct_index() as u32) * (12 as u32)) as i32)) as usize)?;
+        let t = Self::read_into::<_, Gff_StructEntry>(&*_io, Some(self._root.clone()), None)?.into();
+        *self.entry.borrow_mut() = t;
+        _io.seek(_pos)?;
+        Ok(self.entry.borrow())
+    }
+
+    /**
+     * Field indices for this struct (only present when field_count > 1).
+     * When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+     */
+    pub fn field_indices(
+        &self
+    ) -> KResult<Ref<'_, Vec<u32>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_field_indices.get() {
+            return Ok(self.field_indices.borrow());
+        }
+        self.f_field_indices.set(true);
+        if ((*self.entry()?.field_count() as u32) > (1 as u32)) {
+            let _pos = _io.pos();
+            _io.seek(((*_r.header().field_indices_offset() as u32) + (*self.entry()?.data_or_offset() as u32)) as usize)?;
+            *self.field_indices.borrow_mut() = Vec::new();
+            let l_field_indices = *self.entry()?.field_count();
+            for _i in 0..l_field_indices {
+                self.field_indices.borrow_mut().push(_io.read_u4le()?.into());
+            }
+            _io.seek(_pos)?;
+        }
+        Ok(self.field_indices.borrow())
+    }
+
+    /**
+     * Resolved fields (multi-field struct)
+     */
+    pub fn fields(
+        &self
+    ) -> KResult<Ref<'_, Vec<OptRc<Gff_ResolvedField>>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_fields.get() {
+            return Ok(self.fields.borrow());
+        }
+        self.f_fields.set(true);
+        if ((*self.entry()?.field_count() as u32) > (1 as u32)) {
+            *self.fields.borrow_mut() = Vec::new();
+            let l_fields = *self.entry()?.field_count();
+            for _i in 0..l_fields {
+                let f = |t : &mut Gff_ResolvedField| Ok(t.set_params((self.field_indices()?[_i as usize]).try_into().map_err(|_| KError::CastError)?));
+                let t = Self::read_into_with_init::<_, Gff_ResolvedField>(&*_io, Some(self._root.clone()), Some(self._self.clone()), &f)?.into();
+                self.fields.borrow_mut().push(t);
+            }
+        }
+        Ok(self.fields.borrow())
+    }
+
+    /**
+     * Resolved field (single-field struct)
+     */
+    pub fn single_field(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_ResolvedField>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_single_field.get() {
+            return Ok(self.single_field.borrow());
+        }
+        if ((*self.entry()?.field_count() as u32) == (1 as u32)) {
+            let f = |t : &mut Gff_ResolvedField| Ok(t.set_params((*self.entry()?.data_or_offset()).try_into().map_err(|_| KError::CastError)?));
+            let t = Self::read_into_with_init::<_, Gff_ResolvedField>(&*_io, Some(self._root.clone()), Some(self._self.clone()), &f)?.into();
+            *self.single_field.borrow_mut() = t;
+        }
+        Ok(self.single_field.borrow())
+    }
+}
+impl Gff_ResolvedStruct {
+    pub fn _io(&self) -> Ref<'_, BytesReader> {
+        self._io.borrow()
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct Gff_StructArray {
     pub _root: SharedType<Gff>,
@@ -1149,7 +1909,7 @@ impl KStruct for Gff_StructArray {
         *self_rc.entries.borrow_mut() = Vec::new();
         let l_entries = *_r.header().struct_count();
         for _i in 0..l_entries {
-            let t = Self::read_into::<_, Gff_StructEntry>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+            let t = Self::read_into::<_, Gff_StructEntry>(&*_io, Some(self_rc._root.clone()), None)?.into();
             self_rc.entries.borrow_mut().push(t);
         }
         Ok(())
@@ -1175,7 +1935,7 @@ impl Gff_StructArray {
 #[derive(Default, Debug, Clone)]
 pub struct Gff_StructEntry {
     pub _root: SharedType<Gff>,
-    pub _parent: SharedType<Gff_StructArray>,
+    pub _parent: SharedType<KStructUnit>,
     pub _self: SharedType<Self>,
     struct_id: RefCell<i32>,
     data_or_offset: RefCell<u32>,
@@ -1192,7 +1952,7 @@ pub struct Gff_StructEntry {
 }
 impl KStruct for Gff_StructEntry {
     type Root = Gff;
-    type Parent = Gff_StructArray;
+    type Parent = KStructUnit;
 
     fn read<S: KStream>(
         self_rc: &OptRc<Self>,

@@ -51,6 +51,19 @@ namespace {
             $this->_m_fileTypeValid = $this->gffData()->header()->fileType() == "ARE ";
             return $this->_m_fileTypeValid;
         }
+        protected $_m_rootStructResolved;
+
+        /**
+         * Convenience access to the decoded GFF root struct (struct_array[0]).
+         * Use this to iterate all resolved fields (label + typed value), including:
+         * "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+         */
+        public function rootStructResolved() {
+            if ($this->_m_rootStructResolved !== null)
+                return $this->_m_rootStructResolved;
+            $this->_m_rootStructResolved = $this->gffData()->rootStructResolved();
+            return $this->_m_rootStructResolved;
+        }
         protected $_m_versionValid;
 
         /**

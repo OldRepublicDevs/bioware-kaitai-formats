@@ -55,6 +55,16 @@ class Are < Kaitai::Struct::Struct
   end
 
   ##
+  # Convenience access to the decoded GFF root struct (struct_array[0]).
+  # Use this to iterate all resolved fields (label + typed value), including:
+  # "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+  def root_struct_resolved
+    return @root_struct_resolved unless @root_struct_resolved.nil?
+    @root_struct_resolved = gff_data.root_struct_resolved
+    @root_struct_resolved
+  end
+
+  ##
   # Validates GFF version is supported
   def version_valid
     return @version_valid unless @version_valid.nil?

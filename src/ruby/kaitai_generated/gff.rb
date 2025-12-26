@@ -1,6 +1,7 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 require 'kaitai/struct/struct'
+require_relative 'bioware_common'
 
 unless Gem::Version.new(Kaitai::Struct::VERSION) >= Gem::Version.new('0.11')
   raise "Incompatible Kaitai Struct Ruby API: 0.11 or later is required, but you have #{Kaitai::Struct::VERSION}"
@@ -360,6 +361,22 @@ class Gff < Kaitai::Struct::Struct
     # Application code should trim trailing null bytes when using this field.
     attr_reader :name
   end
+
+  ##
+  # Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+  # This avoids leaking trailing `\0` bytes into generated-code consumers.
+  class LabelEntryTerminated < Kaitai::Struct::Struct
+    def initialize(_io, _parent = nil, _root = nil)
+      super(_io, _parent, _root)
+      _read
+    end
+
+    def _read
+      @name = (Kaitai::Struct::Stream::bytes_terminate(@_io.read_bytes(16), 0, false)).force_encoding("ASCII").encode('UTF-8')
+      self
+    end
+    attr_reader :name
+  end
   class ListEntry < Kaitai::Struct::Struct
     def initialize(_io, _parent = nil, _root = nil)
       super(_io, _parent, _root)
@@ -403,6 +420,321 @@ class Gff < Kaitai::Struct::Struct
     # offsets stored in list-type field entries, not as a sequential array.
     # Use list_entry type to parse individual entries at specific offsets.
     attr_reader :raw_data
+  end
+
+  ##
+  # A decoded field: includes resolved label string and decoded typed value.
+  # Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+  class ResolvedField < Kaitai::Struct::Struct
+    def initialize(_io, _parent = nil, _root = nil, field_index)
+      super(_io, _parent, _root)
+      @field_index = field_index
+      _read
+    end
+
+    def _read
+      self
+    end
+
+    ##
+    # Raw field entry at field_index
+    def entry
+      return @entry unless @entry.nil?
+      _pos = @_io.pos
+      @_io.seek(_root.header.field_offset + field_index * 12)
+      @entry = FieldEntry.new(@_io, self, @_root)
+      @_io.seek(_pos)
+      @entry
+    end
+
+    ##
+    # Absolute file offset of this field entry (start of 12-byte record)
+    def field_entry_pos
+      return @field_entry_pos unless @field_entry_pos.nil?
+      @field_entry_pos = _root.header.field_offset + field_index * 12
+      @field_entry_pos
+    end
+
+    ##
+    # Resolved field label string
+    def label
+      return @label unless @label.nil?
+      _pos = @_io.pos
+      @_io.seek(_root.header.label_offset + entry.label_index * 16)
+      @label = LabelEntryTerminated.new(@_io, self, @_root)
+      @_io.seek(_pos)
+      @label
+    end
+
+    ##
+    # Parsed list entry at offset (list indices)
+    def list_entry
+      return @list_entry unless @list_entry.nil?
+      if entry.field_type == :gff_field_type_list
+        _pos = @_io.pos
+        @_io.seek(_root.header.list_indices_offset + entry.data_or_offset)
+        @list_entry = ListEntry.new(@_io, self, @_root)
+        @_io.seek(_pos)
+      end
+      @list_entry
+    end
+
+    ##
+    # Resolved structs referenced by this list
+    def list_structs
+      return @list_structs unless @list_structs.nil?
+      if entry.field_type == :gff_field_type_list
+        @list_structs = []
+        (list_entry.num_struct_indices).times { |i|
+          @list_structs << ResolvedStruct.new(@_io, self, @_root, list_entry.struct_indices[i])
+        }
+      end
+      @list_structs
+    end
+    def value_binary
+      return @value_binary unless @value_binary.nil?
+      if entry.field_type == :gff_field_type_binary
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_binary = BiowareCommon::BiowareBinaryData.new(@_io)
+        @_io.seek(_pos)
+      end
+      @value_binary
+    end
+    def value_double
+      return @value_double unless @value_double.nil?
+      if entry.field_type == :gff_field_type_double
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_double = @_io.read_f8le
+        @_io.seek(_pos)
+      end
+      @value_double
+    end
+    def value_int16
+      return @value_int16 unless @value_int16.nil?
+      if entry.field_type == :gff_field_type_int16
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_int16 = @_io.read_s2le
+        @_io.seek(_pos)
+      end
+      @value_int16
+    end
+    def value_int32
+      return @value_int32 unless @value_int32.nil?
+      if entry.field_type == :gff_field_type_int32
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_int32 = @_io.read_s4le
+        @_io.seek(_pos)
+      end
+      @value_int32
+    end
+    def value_int64
+      return @value_int64 unless @value_int64.nil?
+      if entry.field_type == :gff_field_type_int64
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_int64 = @_io.read_s8le
+        @_io.seek(_pos)
+      end
+      @value_int64
+    end
+    def value_int8
+      return @value_int8 unless @value_int8.nil?
+      if entry.field_type == :gff_field_type_int8
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_int8 = @_io.read_s1
+        @_io.seek(_pos)
+      end
+      @value_int8
+    end
+    def value_localized_string
+      return @value_localized_string unless @value_localized_string.nil?
+      if entry.field_type == :gff_field_type_localized_string
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_localized_string = BiowareCommon::BiowareLocstring.new(@_io)
+        @_io.seek(_pos)
+      end
+      @value_localized_string
+    end
+    def value_resref
+      return @value_resref unless @value_resref.nil?
+      if entry.field_type == :gff_field_type_resref
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_resref = BiowareCommon::BiowareResref.new(@_io)
+        @_io.seek(_pos)
+      end
+      @value_resref
+    end
+    def value_single
+      return @value_single unless @value_single.nil?
+      if entry.field_type == :gff_field_type_single
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_single = @_io.read_f4le
+        @_io.seek(_pos)
+      end
+      @value_single
+    end
+    def value_string
+      return @value_string unless @value_string.nil?
+      if entry.field_type == :gff_field_type_string
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_string = BiowareCommon::BiowareCexoString.new(@_io)
+        @_io.seek(_pos)
+      end
+      @value_string
+    end
+
+    ##
+    # Nested struct (struct index = entry.data_or_offset)
+    def value_struct
+      return @value_struct unless @value_struct.nil?
+      if entry.field_type == :gff_field_type_struct
+        @value_struct = ResolvedStruct.new(@_io, self, @_root, entry.data_or_offset)
+      end
+      @value_struct
+    end
+    def value_uint16
+      return @value_uint16 unless @value_uint16.nil?
+      if entry.field_type == :gff_field_type_uint16
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_uint16 = @_io.read_u2le
+        @_io.seek(_pos)
+      end
+      @value_uint16
+    end
+    def value_uint32
+      return @value_uint32 unless @value_uint32.nil?
+      if entry.field_type == :gff_field_type_uint32
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_uint32 = @_io.read_u4le
+        @_io.seek(_pos)
+      end
+      @value_uint32
+    end
+    def value_uint64
+      return @value_uint64 unless @value_uint64.nil?
+      if entry.field_type == :gff_field_type_uint64
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_uint64 = @_io.read_u8le
+        @_io.seek(_pos)
+      end
+      @value_uint64
+    end
+    def value_uint8
+      return @value_uint8 unless @value_uint8.nil?
+      if entry.field_type == :gff_field_type_uint8
+        _pos = @_io.pos
+        @_io.seek(field_entry_pos + 8)
+        @value_uint8 = @_io.read_u1
+        @_io.seek(_pos)
+      end
+      @value_uint8
+    end
+    def value_vector3
+      return @value_vector3 unless @value_vector3.nil?
+      if entry.field_type == :gff_field_type_vector3
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_vector3 = BiowareCommon::BiowareVector3.new(@_io)
+        @_io.seek(_pos)
+      end
+      @value_vector3
+    end
+    def value_vector4
+      return @value_vector4 unless @value_vector4.nil?
+      if entry.field_type == :gff_field_type_vector4
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_data_offset + entry.data_or_offset)
+        @value_vector4 = BiowareCommon::BiowareVector4.new(@_io)
+        @_io.seek(_pos)
+      end
+      @value_vector4
+    end
+
+    ##
+    # Index into field_array
+    attr_reader :field_index
+  end
+
+  ##
+  # A decoded struct node: resolves field indices -> field entries -> typed values,
+  # and recursively resolves nested structs and lists.
+  class ResolvedStruct < Kaitai::Struct::Struct
+    def initialize(_io, _parent = nil, _root = nil, struct_index)
+      super(_io, _parent, _root)
+      @struct_index = struct_index
+      _read
+    end
+
+    def _read
+      self
+    end
+
+    ##
+    # Raw struct entry at struct_index
+    def entry
+      return @entry unless @entry.nil?
+      _pos = @_io.pos
+      @_io.seek(_root.header.struct_offset + struct_index * 12)
+      @entry = StructEntry.new(@_io, self, @_root)
+      @_io.seek(_pos)
+      @entry
+    end
+
+    ##
+    # Field indices for this struct (only present when field_count > 1).
+    # When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+    def field_indices
+      return @field_indices unless @field_indices.nil?
+      if entry.field_count > 1
+        _pos = @_io.pos
+        @_io.seek(_root.header.field_indices_offset + entry.data_or_offset)
+        @field_indices = []
+        (entry.field_count).times { |i|
+          @field_indices << @_io.read_u4le
+        }
+        @_io.seek(_pos)
+      end
+      @field_indices
+    end
+
+    ##
+    # Resolved fields (multi-field struct)
+    def fields
+      return @fields unless @fields.nil?
+      if entry.field_count > 1
+        @fields = []
+        (entry.field_count).times { |i|
+          @fields << ResolvedField.new(@_io, self, @_root, field_indices[i])
+        }
+      end
+      @fields
+    end
+
+    ##
+    # Resolved field (single-field struct)
+    def single_field
+      return @single_field unless @single_field.nil?
+      if entry.field_count == 1
+        @single_field = ResolvedField.new(@_io, self, @_root, entry.data_or_offset)
+      end
+      @single_field
+    end
+
+    ##
+    # Index into struct_array
+    attr_reader :struct_index
   end
   class StructArray < Kaitai::Struct::Struct
     def initialize(_io, _parent = nil, _root = nil)
@@ -552,6 +884,16 @@ class Gff < Kaitai::Struct::Struct
       @_io.seek(_pos)
     end
     @list_indices_array
+  end
+
+  ##
+  # Convenience "decoded" view of the root struct (struct_array[0]).
+  # This resolves field indices to field entries, resolves labels to strings,
+  # and decodes field values (including nested structs and lists) into typed instances.
+  def root_struct_resolved
+    return @root_struct_resolved unless @root_struct_resolved.nil?
+    @root_struct_resolved = ResolvedStruct.new(@_io, self, @_root, 0)
+    @root_struct_resolved
   end
 
   ##

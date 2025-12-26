@@ -51,6 +51,8 @@ pub struct Are {
     _io: RefCell<BytesReader>,
     f_file_type_valid: Cell<bool>,
     file_type_valid: RefCell<bool>,
+    f_root_struct_resolved: Cell<bool>,
+    root_struct_resolved: RefCell<OptRc<Gff_ResolvedStruct>>,
     f_version_valid: Cell<bool>,
     version_valid: RefCell<bool>,
 }
@@ -94,6 +96,25 @@ impl Are {
         self.f_file_type_valid.set(true);
         *self.file_type_valid.borrow_mut() = (*self.gff_data().header().file_type() == "ARE ".to_string()) as bool;
         Ok(self.file_type_valid.borrow())
+    }
+
+    /**
+     * Convenience access to the decoded GFF root struct (struct_array[0]).
+     * Use this to iterate all resolved fields (label + typed value), including:
+     * "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+     */
+    pub fn root_struct_resolved(
+        &self
+    ) -> KResult<Ref<'_, OptRc<Gff_ResolvedStruct>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_root_struct_resolved.get() {
+            return Ok(self.root_struct_resolved.borrow());
+        }
+        *self.root_struct_resolved.borrow_mut() = self.gff_data().root_struct_resolved()?.clone();
+        Ok(self.root_struct_resolved.borrow())
     }
 
     /**

@@ -95,6 +95,8 @@ type Gff struct {
 	labelArray *Gff_LabelArray
 	_f_listIndicesArray bool
 	listIndicesArray *Gff_ListIndicesArray
+	_f_rootStructResolved bool
+	rootStructResolved *Gff_ResolvedStruct
 	_f_structArray bool
 	structArray *Gff_StructArray
 }
@@ -277,6 +279,25 @@ func (this *Gff) ListIndicesArray() (v *Gff_ListIndicesArray, err error) {
 }
 
 /**
+ * Convenience "decoded" view of the root struct (struct_array[0]).
+ * This resolves field indices to field entries, resolves labels to strings,
+ * and decodes field values (including nested structs and lists) into typed instances.
+ */
+func (this *Gff) RootStructResolved() (v *Gff_ResolvedStruct, err error) {
+	if (this._f_rootStructResolved) {
+		return this.rootStructResolved, nil
+	}
+	this._f_rootStructResolved = true
+	tmp7 := NewGff_ResolvedStruct(0)
+	err = tmp7.Read(this._io, this, this._root)
+	if err != nil {
+		return nil, err
+	}
+	this.rootStructResolved = tmp7
+	return this.rootStructResolved, nil
+}
+
+/**
  * Array of struct entries (12 bytes each)
  */
 func (this *Gff) StructArray() (v *Gff_StructArray, err error) {
@@ -293,12 +314,12 @@ func (this *Gff) StructArray() (v *Gff_StructArray, err error) {
 		if err != nil {
 			return nil, err
 		}
-		tmp7 := NewGff_StructArray()
-		err = tmp7.Read(this._io, this, this._root)
+		tmp8 := NewGff_StructArray()
+		err = tmp8.Read(this._io, this, this._root)
 		if err != nil {
 			return nil, err
 		}
-		this.structArray = tmp7
+		this.structArray = tmp8
 		_, err = this._io.Seek(_pos, io.SeekStart)
 		if err != nil {
 			return nil, err
@@ -332,12 +353,12 @@ func (this *Gff_FieldArray) Read(io *kaitai.Stream, parent *Gff, root *Gff) (err
 
 	for i := 0; i < int(this._root.Header.FieldCount); i++ {
 		_ = i
-		tmp8 := NewGff_FieldEntry()
-		err = tmp8.Read(this._io, this, this._root)
+		tmp9 := NewGff_FieldEntry()
+		err = tmp9.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.Entries = append(this.Entries, tmp8)
+		this.Entries = append(this.Entries, tmp9)
 	}
 	return err
 }
@@ -365,12 +386,12 @@ func (this *Gff_FieldData) Read(io *kaitai.Stream, parent *Gff, root *Gff) (err 
 	this._parent = parent
 	this._root = root
 
-	tmp9, err := this._io.ReadBytes(int(this._root.Header.FieldDataCount))
+	tmp10, err := this._io.ReadBytes(int(this._root.Header.FieldDataCount))
 	if err != nil {
 		return err
 	}
-	tmp9 = tmp9
-	this.RawData = tmp9
+	tmp10 = tmp10
+	this.RawData = tmp10
 	return err
 }
 
@@ -392,7 +413,7 @@ type Gff_FieldEntry struct {
 	DataOrOffset uint32
 	_io *kaitai.Stream
 	_root *Gff
-	_parent *Gff_FieldArray
+	_parent kaitai.Struct
 	_f_fieldDataOffsetValue bool
 	fieldDataOffsetValue int
 	_f_isComplexType bool
@@ -417,26 +438,26 @@ func (this Gff_FieldEntry) IO_() *kaitai.Stream {
 	return this._io
 }
 
-func (this *Gff_FieldEntry) Read(io *kaitai.Stream, parent *Gff_FieldArray, root *Gff) (err error) {
+func (this *Gff_FieldEntry) Read(io *kaitai.Stream, parent kaitai.Struct, root *Gff) (err error) {
 	this._io = io
 	this._parent = parent
 	this._root = root
 
-	tmp10, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.FieldType = Gff_GffFieldType(tmp10)
 	tmp11, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.LabelIndex = uint32(tmp11)
+	this.FieldType = Gff_GffFieldType(tmp11)
 	tmp12, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.DataOrOffset = uint32(tmp12)
+	this.LabelIndex = uint32(tmp12)
+	tmp13, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.DataOrOffset = uint32(tmp13)
 	return err
 }
 
@@ -448,11 +469,11 @@ func (this *Gff_FieldEntry) FieldDataOffsetValue() (v int, err error) {
 		return this.fieldDataOffsetValue, nil
 	}
 	this._f_fieldDataOffsetValue = true
-	tmp13, err := this.IsComplexType()
+	tmp14, err := this.IsComplexType()
 	if err != nil {
 		return 0, err
 	}
-	if (tmp13) {
+	if (tmp14) {
 		this.fieldDataOffsetValue = int(this._root.Header.FieldDataOffset + this.DataOrOffset)
 	}
 	return this.fieldDataOffsetValue, nil
@@ -514,11 +535,11 @@ func (this *Gff_FieldEntry) ListIndicesOffsetValue() (v int, err error) {
 		return this.listIndicesOffsetValue, nil
 	}
 	this._f_listIndicesOffsetValue = true
-	tmp14, err := this.IsListType()
+	tmp15, err := this.IsListType()
 	if err != nil {
 		return 0, err
 	}
-	if (tmp14) {
+	if (tmp15) {
 		this.listIndicesOffsetValue = int(this._root.Header.ListIndicesOffset + this.DataOrOffset)
 	}
 	return this.listIndicesOffsetValue, nil
@@ -532,11 +553,11 @@ func (this *Gff_FieldEntry) StructIndexValue() (v uint32, err error) {
 		return this.structIndexValue, nil
 	}
 	this._f_structIndexValue = true
-	tmp15, err := this.IsStructType()
+	tmp16, err := this.IsStructType()
 	if err != nil {
 		return 0, err
 	}
-	if (tmp15) {
+	if (tmp16) {
 		this.structIndexValue = uint32(this.DataOrOffset)
 	}
 	return this.structIndexValue, nil
@@ -583,11 +604,11 @@ func (this *Gff_FieldIndicesArray) Read(io *kaitai.Stream, parent *Gff, root *Gf
 
 	for i := 0; i < int(this._root.Header.FieldIndicesCount); i++ {
 		_ = i
-		tmp16, err := this._io.ReadU4le()
+		tmp17, err := this._io.ReadU4le()
 		if err != nil {
 			return err
 		}
-		this.Indices = append(this.Indices, tmp16)
+		this.Indices = append(this.Indices, tmp17)
 	}
 	return err
 }
@@ -630,78 +651,78 @@ func (this *Gff_GffHeader) Read(io *kaitai.Stream, parent *Gff, root *Gff) (err 
 	this._parent = parent
 	this._root = root
 
-	tmp17, err := this._io.ReadBytes(int(4))
-	if err != nil {
-		return err
-	}
-	tmp17 = tmp17
-	this.FileType = string(tmp17)
 	tmp18, err := this._io.ReadBytes(int(4))
 	if err != nil {
 		return err
 	}
 	tmp18 = tmp18
-	this.FileVersion = string(tmp18)
-	tmp19, err := this._io.ReadU4le()
+	this.FileType = string(tmp18)
+	tmp19, err := this._io.ReadBytes(int(4))
 	if err != nil {
 		return err
 	}
-	this.StructOffset = uint32(tmp19)
+	tmp19 = tmp19
+	this.FileVersion = string(tmp19)
 	tmp20, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.StructCount = uint32(tmp20)
+	this.StructOffset = uint32(tmp20)
 	tmp21, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldOffset = uint32(tmp21)
+	this.StructCount = uint32(tmp21)
 	tmp22, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldCount = uint32(tmp22)
+	this.FieldOffset = uint32(tmp22)
 	tmp23, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.LabelOffset = uint32(tmp23)
+	this.FieldCount = uint32(tmp23)
 	tmp24, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.LabelCount = uint32(tmp24)
+	this.LabelOffset = uint32(tmp24)
 	tmp25, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldDataOffset = uint32(tmp25)
+	this.LabelCount = uint32(tmp25)
 	tmp26, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldDataCount = uint32(tmp26)
+	this.FieldDataOffset = uint32(tmp26)
 	tmp27, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldIndicesOffset = uint32(tmp27)
+	this.FieldDataCount = uint32(tmp27)
 	tmp28, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldIndicesCount = uint32(tmp28)
+	this.FieldIndicesOffset = uint32(tmp28)
 	tmp29, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ListIndicesOffset = uint32(tmp29)
+	this.FieldIndicesCount = uint32(tmp29)
 	tmp30, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ListIndicesCount = uint32(tmp30)
+	this.ListIndicesOffset = uint32(tmp30)
+	tmp31, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.ListIndicesCount = uint32(tmp31)
 	return err
 }
 
@@ -785,12 +806,12 @@ func (this *Gff_LabelArray) Read(io *kaitai.Stream, parent *Gff, root *Gff) (err
 
 	for i := 0; i < int(this._root.Header.LabelCount); i++ {
 		_ = i
-		tmp31 := NewGff_LabelEntry()
-		err = tmp31.Read(this._io, this, this._root)
+		tmp32 := NewGff_LabelEntry()
+		err = tmp32.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.Labels = append(this.Labels, tmp31)
+		this.Labels = append(this.Labels, tmp32)
 	}
 	return err
 }
@@ -818,12 +839,12 @@ func (this *Gff_LabelEntry) Read(io *kaitai.Stream, parent *Gff_LabelArray, root
 	this._parent = parent
 	this._root = root
 
-	tmp32, err := this._io.ReadBytes(int(16))
+	tmp33, err := this._io.ReadBytes(int(16))
 	if err != nil {
 		return err
 	}
-	tmp32 = tmp32
-	this.Name = string(tmp32)
+	tmp33 = tmp33
+	this.Name = string(tmp33)
 	return err
 }
 
@@ -832,12 +853,45 @@ func (this *Gff_LabelEntry) Read(io *kaitai.Stream, parent *Gff_LabelArray, root
  * The actual label length is determined by the first null byte.
  * Application code should trim trailing null bytes when using this field.
  */
+
+/**
+ * Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+ * This avoids leaking trailing `\0` bytes into generated-code consumers.
+ */
+type Gff_LabelEntryTerminated struct {
+	Name string
+	_io *kaitai.Stream
+	_root *Gff
+	_parent *Gff_ResolvedField
+}
+func NewGff_LabelEntryTerminated() *Gff_LabelEntryTerminated {
+	return &Gff_LabelEntryTerminated{
+	}
+}
+
+func (this Gff_LabelEntryTerminated) IO_() *kaitai.Stream {
+	return this._io
+}
+
+func (this *Gff_LabelEntryTerminated) Read(io *kaitai.Stream, parent *Gff_ResolvedField, root *Gff) (err error) {
+	this._io = io
+	this._parent = parent
+	this._root = root
+
+	tmp34, err := this._io.ReadBytes(int(16))
+	if err != nil {
+		return err
+	}
+	tmp34 = kaitai.BytesTerminate(tmp34, 0, false)
+	this.Name = string(tmp34)
+	return err
+}
 type Gff_ListEntry struct {
 	NumStructIndices uint32
 	StructIndices []uint32
 	_io *kaitai.Stream
 	_root *Gff
-	_parent kaitai.Struct
+	_parent *Gff_ResolvedField
 }
 func NewGff_ListEntry() *Gff_ListEntry {
 	return &Gff_ListEntry{
@@ -848,23 +902,23 @@ func (this Gff_ListEntry) IO_() *kaitai.Stream {
 	return this._io
 }
 
-func (this *Gff_ListEntry) Read(io *kaitai.Stream, parent kaitai.Struct, root *Gff) (err error) {
+func (this *Gff_ListEntry) Read(io *kaitai.Stream, parent *Gff_ResolvedField, root *Gff) (err error) {
 	this._io = io
 	this._parent = parent
 	this._root = root
 
-	tmp33, err := this._io.ReadU4le()
+	tmp35, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.NumStructIndices = uint32(tmp33)
+	this.NumStructIndices = uint32(tmp35)
 	for i := 0; i < int(this.NumStructIndices); i++ {
 		_ = i
-		tmp34, err := this._io.ReadU4le()
+		tmp36, err := this._io.ReadU4le()
 		if err != nil {
 			return err
 		}
-		this.StructIndices = append(this.StructIndices, tmp34)
+		this.StructIndices = append(this.StructIndices, tmp36)
 	}
 	return err
 }
@@ -896,12 +950,12 @@ func (this *Gff_ListIndicesArray) Read(io *kaitai.Stream, parent *Gff, root *Gff
 	this._parent = parent
 	this._root = root
 
-	tmp35, err := this._io.ReadBytes(int(this._root.Header.ListIndicesCount))
+	tmp37, err := this._io.ReadBytes(int(this._root.Header.ListIndicesCount))
 	if err != nil {
 		return err
 	}
-	tmp35 = tmp35
-	this.RawData = tmp35
+	tmp37 = tmp37
+	this.RawData = tmp37
 	return err
 }
 
@@ -914,6 +968,974 @@ func (this *Gff_ListIndicesArray) Read(io *kaitai.Stream, parent *Gff, root *Gff
  * offsets stored in list-type field entries, not as a sequential array.
  * Use list_entry type to parse individual entries at specific offsets.
  */
+
+/**
+ * A decoded field: includes resolved label string and decoded typed value.
+ * Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+ */
+type Gff_ResolvedField struct {
+	FieldIndex uint32
+	_io *kaitai.Stream
+	_root *Gff
+	_parent *Gff_ResolvedStruct
+	_f_entry bool
+	entry *Gff_FieldEntry
+	_f_fieldEntryPos bool
+	fieldEntryPos int
+	_f_label bool
+	label *Gff_LabelEntryTerminated
+	_f_listEntry bool
+	listEntry *Gff_ListEntry
+	_f_listStructs bool
+	listStructs []*Gff_ResolvedStruct
+	_f_valueBinary bool
+	valueBinary *BiowareCommon_BiowareBinaryData
+	_f_valueDouble bool
+	valueDouble float64
+	_f_valueInt16 bool
+	valueInt16 int16
+	_f_valueInt32 bool
+	valueInt32 int32
+	_f_valueInt64 bool
+	valueInt64 int64
+	_f_valueInt8 bool
+	valueInt8 int8
+	_f_valueLocalizedString bool
+	valueLocalizedString *BiowareCommon_BiowareLocstring
+	_f_valueResref bool
+	valueResref *BiowareCommon_BiowareResref
+	_f_valueSingle bool
+	valueSingle float32
+	_f_valueString bool
+	valueString *BiowareCommon_BiowareCexoString
+	_f_valueStruct bool
+	valueStruct *Gff_ResolvedStruct
+	_f_valueUint16 bool
+	valueUint16 uint16
+	_f_valueUint32 bool
+	valueUint32 uint32
+	_f_valueUint64 bool
+	valueUint64 uint64
+	_f_valueUint8 bool
+	valueUint8 uint8
+	_f_valueVector3 bool
+	valueVector3 *BiowareCommon_BiowareVector3
+	_f_valueVector4 bool
+	valueVector4 *BiowareCommon_BiowareVector4
+}
+func NewGff_ResolvedField(fieldIndex uint32) *Gff_ResolvedField {
+	return &Gff_ResolvedField{
+		FieldIndex: fieldIndex,
+	}
+}
+
+func (this Gff_ResolvedField) IO_() *kaitai.Stream {
+	return this._io
+}
+
+func (this *Gff_ResolvedField) Read(io *kaitai.Stream, parent *Gff_ResolvedStruct, root *Gff) (err error) {
+	this._io = io
+	this._parent = parent
+	this._root = root
+
+	return err
+}
+
+/**
+ * Raw field entry at field_index
+ */
+func (this *Gff_ResolvedField) Entry() (v *Gff_FieldEntry, err error) {
+	if (this._f_entry) {
+		return this.entry, nil
+	}
+	this._f_entry = true
+	_pos, err := this._io.Pos()
+	if err != nil {
+		return nil, err
+	}
+	_, err = this._io.Seek(int64(this._root.Header.FieldOffset + this.FieldIndex * 12), io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	tmp38 := NewGff_FieldEntry()
+	err = tmp38.Read(this._io, this, this._root)
+	if err != nil {
+		return nil, err
+	}
+	this.entry = tmp38
+	_, err = this._io.Seek(_pos, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	return this.entry, nil
+}
+
+/**
+ * Absolute file offset of this field entry (start of 12-byte record)
+ */
+func (this *Gff_ResolvedField) FieldEntryPos() (v int, err error) {
+	if (this._f_fieldEntryPos) {
+		return this.fieldEntryPos, nil
+	}
+	this._f_fieldEntryPos = true
+	this.fieldEntryPos = int(this._root.Header.FieldOffset + this.FieldIndex * 12)
+	return this.fieldEntryPos, nil
+}
+
+/**
+ * Resolved field label string
+ */
+func (this *Gff_ResolvedField) Label() (v *Gff_LabelEntryTerminated, err error) {
+	if (this._f_label) {
+		return this.label, nil
+	}
+	this._f_label = true
+	_pos, err := this._io.Pos()
+	if err != nil {
+		return nil, err
+	}
+	tmp39, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	_, err = this._io.Seek(int64(this._root.Header.LabelOffset + tmp39.LabelIndex * 16), io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	tmp40 := NewGff_LabelEntryTerminated()
+	err = tmp40.Read(this._io, this, this._root)
+	if err != nil {
+		return nil, err
+	}
+	this.label = tmp40
+	_, err = this._io.Seek(_pos, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	return this.label, nil
+}
+
+/**
+ * Parsed list entry at offset (list indices)
+ */
+func (this *Gff_ResolvedField) ListEntry() (v *Gff_ListEntry, err error) {
+	if (this._f_listEntry) {
+		return this.listEntry, nil
+	}
+	this._f_listEntry = true
+	tmp41, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp41.FieldType == Gff_GffFieldType__List) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp42, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.ListIndicesOffset + tmp42.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp43 := NewGff_ListEntry()
+		err = tmp43.Read(this._io, this, this._root)
+		if err != nil {
+			return nil, err
+		}
+		this.listEntry = tmp43
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.listEntry, nil
+}
+
+/**
+ * Resolved structs referenced by this list
+ */
+func (this *Gff_ResolvedField) ListStructs() (v []*Gff_ResolvedStruct, err error) {
+	if (this._f_listStructs) {
+		return this.listStructs, nil
+	}
+	this._f_listStructs = true
+	tmp44, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp44.FieldType == Gff_GffFieldType__List) {
+		tmp45, err := this.ListEntry()
+		if err != nil {
+			return nil, err
+		}
+		for i := 0; i < int(tmp45.NumStructIndices); i++ {
+			_ = i
+			tmp46, err := this.ListEntry()
+			if err != nil {
+				return nil, err
+			}
+			tmp47 := NewGff_ResolvedStruct(tmp46.StructIndices[i])
+			err = tmp47.Read(this._io, this, this._root)
+			if err != nil {
+				return nil, err
+			}
+			this.listStructs = append(this.listStructs, tmp47)
+		}
+	}
+	return this.listStructs, nil
+}
+func (this *Gff_ResolvedField) ValueBinary() (v *BiowareCommon_BiowareBinaryData, err error) {
+	if (this._f_valueBinary) {
+		return this.valueBinary, nil
+	}
+	this._f_valueBinary = true
+	tmp48, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp48.FieldType == Gff_GffFieldType__Binary) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp49, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp49.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp50 := NewBiowareCommon_BiowareBinaryData()
+		err = tmp50.Read(this._io, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		this.valueBinary = tmp50
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.valueBinary, nil
+}
+func (this *Gff_ResolvedField) ValueDouble() (v float64, err error) {
+	if (this._f_valueDouble) {
+		return this.valueDouble, nil
+	}
+	this._f_valueDouble = true
+	tmp51, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp51.FieldType == Gff_GffFieldType__Double) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp52, err := this.Entry()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp52.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp53, err := this._io.ReadF8le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueDouble = tmp53
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueDouble, nil
+}
+func (this *Gff_ResolvedField) ValueInt16() (v int16, err error) {
+	if (this._f_valueInt16) {
+		return this.valueInt16, nil
+	}
+	this._f_valueInt16 = true
+	tmp54, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp54.FieldType == Gff_GffFieldType__Int16) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp55, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp55 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp56, err := this._io.ReadS2le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueInt16 = tmp56
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueInt16, nil
+}
+func (this *Gff_ResolvedField) ValueInt32() (v int32, err error) {
+	if (this._f_valueInt32) {
+		return this.valueInt32, nil
+	}
+	this._f_valueInt32 = true
+	tmp57, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp57.FieldType == Gff_GffFieldType__Int32) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp58, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp58 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp59, err := this._io.ReadS4le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueInt32 = tmp59
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueInt32, nil
+}
+func (this *Gff_ResolvedField) ValueInt64() (v int64, err error) {
+	if (this._f_valueInt64) {
+		return this.valueInt64, nil
+	}
+	this._f_valueInt64 = true
+	tmp60, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp60.FieldType == Gff_GffFieldType__Int64) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp61, err := this.Entry()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp61.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp62, err := this._io.ReadS8le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueInt64 = tmp62
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueInt64, nil
+}
+func (this *Gff_ResolvedField) ValueInt8() (v int8, err error) {
+	if (this._f_valueInt8) {
+		return this.valueInt8, nil
+	}
+	this._f_valueInt8 = true
+	tmp63, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp63.FieldType == Gff_GffFieldType__Int8) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp64, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp64 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp65, err := this._io.ReadS1()
+		if err != nil {
+			return 0, err
+		}
+		this.valueInt8 = tmp65
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueInt8, nil
+}
+func (this *Gff_ResolvedField) ValueLocalizedString() (v *BiowareCommon_BiowareLocstring, err error) {
+	if (this._f_valueLocalizedString) {
+		return this.valueLocalizedString, nil
+	}
+	this._f_valueLocalizedString = true
+	tmp66, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp66.FieldType == Gff_GffFieldType__LocalizedString) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp67, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp67.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp68 := NewBiowareCommon_BiowareLocstring()
+		err = tmp68.Read(this._io, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		this.valueLocalizedString = tmp68
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.valueLocalizedString, nil
+}
+func (this *Gff_ResolvedField) ValueResref() (v *BiowareCommon_BiowareResref, err error) {
+	if (this._f_valueResref) {
+		return this.valueResref, nil
+	}
+	this._f_valueResref = true
+	tmp69, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp69.FieldType == Gff_GffFieldType__Resref) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp70, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp70.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp71 := NewBiowareCommon_BiowareResref()
+		err = tmp71.Read(this._io, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		this.valueResref = tmp71
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.valueResref, nil
+}
+func (this *Gff_ResolvedField) ValueSingle() (v float32, err error) {
+	if (this._f_valueSingle) {
+		return this.valueSingle, nil
+	}
+	this._f_valueSingle = true
+	tmp72, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp72.FieldType == Gff_GffFieldType__Single) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp73, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp73 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp74, err := this._io.ReadF4le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueSingle = tmp74
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueSingle, nil
+}
+func (this *Gff_ResolvedField) ValueString() (v *BiowareCommon_BiowareCexoString, err error) {
+	if (this._f_valueString) {
+		return this.valueString, nil
+	}
+	this._f_valueString = true
+	tmp75, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp75.FieldType == Gff_GffFieldType__String) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp76, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp76.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp77 := NewBiowareCommon_BiowareCexoString()
+		err = tmp77.Read(this._io, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		this.valueString = tmp77
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.valueString, nil
+}
+
+/**
+ * Nested struct (struct index = entry.data_or_offset)
+ */
+func (this *Gff_ResolvedField) ValueStruct() (v *Gff_ResolvedStruct, err error) {
+	if (this._f_valueStruct) {
+		return this.valueStruct, nil
+	}
+	this._f_valueStruct = true
+	tmp78, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp78.FieldType == Gff_GffFieldType__Struct) {
+		tmp79, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		tmp80 := NewGff_ResolvedStruct(tmp79.DataOrOffset)
+		err = tmp80.Read(this._io, this, this._root)
+		if err != nil {
+			return nil, err
+		}
+		this.valueStruct = tmp80
+	}
+	return this.valueStruct, nil
+}
+func (this *Gff_ResolvedField) ValueUint16() (v uint16, err error) {
+	if (this._f_valueUint16) {
+		return this.valueUint16, nil
+	}
+	this._f_valueUint16 = true
+	tmp81, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp81.FieldType == Gff_GffFieldType__Uint16) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp82, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp82 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp83, err := this._io.ReadU2le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueUint16 = tmp83
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueUint16, nil
+}
+func (this *Gff_ResolvedField) ValueUint32() (v uint32, err error) {
+	if (this._f_valueUint32) {
+		return this.valueUint32, nil
+	}
+	this._f_valueUint32 = true
+	tmp84, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp84.FieldType == Gff_GffFieldType__Uint32) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp85, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp85 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp86, err := this._io.ReadU4le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueUint32 = tmp86
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueUint32, nil
+}
+func (this *Gff_ResolvedField) ValueUint64() (v uint64, err error) {
+	if (this._f_valueUint64) {
+		return this.valueUint64, nil
+	}
+	this._f_valueUint64 = true
+	tmp87, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp87.FieldType == Gff_GffFieldType__Uint64) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp88, err := this.Entry()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp88.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp89, err := this._io.ReadU8le()
+		if err != nil {
+			return 0, err
+		}
+		this.valueUint64 = tmp89
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueUint64, nil
+}
+func (this *Gff_ResolvedField) ValueUint8() (v uint8, err error) {
+	if (this._f_valueUint8) {
+		return this.valueUint8, nil
+	}
+	this._f_valueUint8 = true
+	tmp90, err := this.Entry()
+	if err != nil {
+		return 0, err
+	}
+	if (tmp90.FieldType == Gff_GffFieldType__Uint8) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return 0, err
+		}
+		tmp91, err := this.FieldEntryPos()
+		if err != nil {
+			return 0, err
+		}
+		_, err = this._io.Seek(int64(tmp91 + 8), io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+		tmp92, err := this._io.ReadU1()
+		if err != nil {
+			return 0, err
+		}
+		this.valueUint8 = tmp92
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return this.valueUint8, nil
+}
+func (this *Gff_ResolvedField) ValueVector3() (v *BiowareCommon_BiowareVector3, err error) {
+	if (this._f_valueVector3) {
+		return this.valueVector3, nil
+	}
+	this._f_valueVector3 = true
+	tmp93, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp93.FieldType == Gff_GffFieldType__Vector3) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp94, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp94.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp95 := NewBiowareCommon_BiowareVector3()
+		err = tmp95.Read(this._io, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		this.valueVector3 = tmp95
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.valueVector3, nil
+}
+func (this *Gff_ResolvedField) ValueVector4() (v *BiowareCommon_BiowareVector4, err error) {
+	if (this._f_valueVector4) {
+		return this.valueVector4, nil
+	}
+	this._f_valueVector4 = true
+	tmp96, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp96.FieldType == Gff_GffFieldType__Vector4) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp97, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldDataOffset + tmp97.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp98 := NewBiowareCommon_BiowareVector4()
+		err = tmp98.Read(this._io, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		this.valueVector4 = tmp98
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.valueVector4, nil
+}
+
+/**
+ * A decoded struct node: resolves field indices -> field entries -> typed values,
+ * and recursively resolves nested structs and lists.
+ */
+type Gff_ResolvedStruct struct {
+	StructIndex uint32
+	_io *kaitai.Stream
+	_root *Gff
+	_parent kaitai.Struct
+	_f_entry bool
+	entry *Gff_StructEntry
+	_f_fieldIndices bool
+	fieldIndices []uint32
+	_f_fields bool
+	fields []*Gff_ResolvedField
+	_f_singleField bool
+	singleField *Gff_ResolvedField
+}
+func NewGff_ResolvedStruct(structIndex uint32) *Gff_ResolvedStruct {
+	return &Gff_ResolvedStruct{
+		StructIndex: structIndex,
+	}
+}
+
+func (this Gff_ResolvedStruct) IO_() *kaitai.Stream {
+	return this._io
+}
+
+func (this *Gff_ResolvedStruct) Read(io *kaitai.Stream, parent kaitai.Struct, root *Gff) (err error) {
+	this._io = io
+	this._parent = parent
+	this._root = root
+
+	return err
+}
+
+/**
+ * Raw struct entry at struct_index
+ */
+func (this *Gff_ResolvedStruct) Entry() (v *Gff_StructEntry, err error) {
+	if (this._f_entry) {
+		return this.entry, nil
+	}
+	this._f_entry = true
+	_pos, err := this._io.Pos()
+	if err != nil {
+		return nil, err
+	}
+	_, err = this._io.Seek(int64(this._root.Header.StructOffset + this.StructIndex * 12), io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	tmp99 := NewGff_StructEntry()
+	err = tmp99.Read(this._io, this, this._root)
+	if err != nil {
+		return nil, err
+	}
+	this.entry = tmp99
+	_, err = this._io.Seek(_pos, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	return this.entry, nil
+}
+
+/**
+ * Field indices for this struct (only present when field_count > 1).
+ * When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+ */
+func (this *Gff_ResolvedStruct) FieldIndices() (v []uint32, err error) {
+	if (this._f_fieldIndices) {
+		return this.fieldIndices, nil
+	}
+	this._f_fieldIndices = true
+	tmp100, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp100.FieldCount > 1) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp101, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(this._root.Header.FieldIndicesOffset + tmp101.DataOrOffset), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		tmp102, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		for i := 0; i < int(tmp102.FieldCount); i++ {
+			_ = i
+			tmp103, err := this._io.ReadU4le()
+			if err != nil {
+				return nil, err
+			}
+			this.fieldIndices = append(this.fieldIndices, tmp103)
+		}
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.fieldIndices, nil
+}
+
+/**
+ * Resolved fields (multi-field struct)
+ */
+func (this *Gff_ResolvedStruct) Fields() (v []*Gff_ResolvedField, err error) {
+	if (this._f_fields) {
+		return this.fields, nil
+	}
+	this._f_fields = true
+	tmp104, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp104.FieldCount > 1) {
+		tmp105, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		for i := 0; i < int(tmp105.FieldCount); i++ {
+			_ = i
+			tmp106, err := this.FieldIndices()
+			if err != nil {
+				return nil, err
+			}
+			tmp107 := NewGff_ResolvedField(tmp106[i])
+			err = tmp107.Read(this._io, this, this._root)
+			if err != nil {
+				return nil, err
+			}
+			this.fields = append(this.fields, tmp107)
+		}
+	}
+	return this.fields, nil
+}
+
+/**
+ * Resolved field (single-field struct)
+ */
+func (this *Gff_ResolvedStruct) SingleField() (v *Gff_ResolvedField, err error) {
+	if (this._f_singleField) {
+		return this.singleField, nil
+	}
+	this._f_singleField = true
+	tmp108, err := this.Entry()
+	if err != nil {
+		return nil, err
+	}
+	if (tmp108.FieldCount == 1) {
+		tmp109, err := this.Entry()
+		if err != nil {
+			return nil, err
+		}
+		tmp110 := NewGff_ResolvedField(tmp109.DataOrOffset)
+		err = tmp110.Read(this._io, this, this._root)
+		if err != nil {
+			return nil, err
+		}
+		this.singleField = tmp110
+	}
+	return this.singleField, nil
+}
 type Gff_StructArray struct {
 	Entries []*Gff_StructEntry
 	_io *kaitai.Stream
@@ -936,12 +1958,12 @@ func (this *Gff_StructArray) Read(io *kaitai.Stream, parent *Gff, root *Gff) (er
 
 	for i := 0; i < int(this._root.Header.StructCount); i++ {
 		_ = i
-		tmp36 := NewGff_StructEntry()
-		err = tmp36.Read(this._io, this, this._root)
+		tmp111 := NewGff_StructEntry()
+		err = tmp111.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.Entries = append(this.Entries, tmp36)
+		this.Entries = append(this.Entries, tmp111)
 	}
 	return err
 }
@@ -955,7 +1977,7 @@ type Gff_StructEntry struct {
 	FieldCount uint32
 	_io *kaitai.Stream
 	_root *Gff
-	_parent *Gff_StructArray
+	_parent kaitai.Struct
 	_f_fieldIndicesOffset bool
 	fieldIndicesOffset uint32
 	_f_hasMultipleFields bool
@@ -974,26 +1996,26 @@ func (this Gff_StructEntry) IO_() *kaitai.Stream {
 	return this._io
 }
 
-func (this *Gff_StructEntry) Read(io *kaitai.Stream, parent *Gff_StructArray, root *Gff) (err error) {
+func (this *Gff_StructEntry) Read(io *kaitai.Stream, parent kaitai.Struct, root *Gff) (err error) {
 	this._io = io
 	this._parent = parent
 	this._root = root
 
-	tmp37, err := this._io.ReadS4le()
+	tmp112, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.StructId = int32(tmp37)
-	tmp38, err := this._io.ReadU4le()
+	this.StructId = int32(tmp112)
+	tmp113, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.DataOrOffset = uint32(tmp38)
-	tmp39, err := this._io.ReadU4le()
+	this.DataOrOffset = uint32(tmp113)
+	tmp114, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FieldCount = uint32(tmp39)
+	this.FieldCount = uint32(tmp114)
 	return err
 }
 
@@ -1005,11 +2027,11 @@ func (this *Gff_StructEntry) FieldIndicesOffset() (v uint32, err error) {
 		return this.fieldIndicesOffset, nil
 	}
 	this._f_fieldIndicesOffset = true
-	tmp40, err := this.HasMultipleFields()
+	tmp115, err := this.HasMultipleFields()
 	if err != nil {
 		return 0, err
 	}
-	if (tmp40) {
+	if (tmp115) {
 		this.fieldIndicesOffset = uint32(this.DataOrOffset)
 	}
 	return this.fieldIndicesOffset, nil
@@ -1047,11 +2069,11 @@ func (this *Gff_StructEntry) SingleFieldIndex() (v uint32, err error) {
 		return this.singleFieldIndex, nil
 	}
 	this._f_singleFieldIndex = true
-	tmp41, err := this.HasSingleField()
+	tmp116, err := this.HasSingleField()
 	if err != nil {
 		return 0, err
 	}
-	if (tmp41) {
+	if (tmp116) {
 		this.singleFieldIndex = uint32(this.DataOrOffset)
 	}
 	return this.singleFieldIndex, nil

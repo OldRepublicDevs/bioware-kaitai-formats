@@ -45,6 +45,7 @@ namespace Kaitai
             m_parent = p__parent;
             m_root = p__root ?? this;
             f_fileTypeValid = false;
+            f_rootStructResolved = false;
             f_versionValid = false;
             _read();
         }
@@ -67,6 +68,25 @@ namespace Kaitai
                 f_fileTypeValid = true;
                 _fileTypeValid = (bool) (GffData.Header.FileType == "ARE ");
                 return _fileTypeValid;
+            }
+        }
+        private bool f_rootStructResolved;
+        private ResolvedStruct _rootStructResolved;
+
+        /// <summary>
+        /// Convenience access to the decoded GFF root struct (struct_array[0]).
+        /// Use this to iterate all resolved fields (label + typed value), including:
+        /// &quot;Tag&quot;, &quot;Name&quot;, &quot;AlphaTest&quot;, &quot;Map&quot; (struct), &quot;Rooms&quot; (list), and all KotOR2/deprecated keys.
+        /// </summary>
+        public ResolvedStruct RootStructResolved
+        {
+            get
+            {
+                if (f_rootStructResolved)
+                    return _rootStructResolved;
+                f_rootStructResolved = true;
+                _rootStructResolved = (ResolvedStruct) (GffData.RootStructResolved);
+                return _rootStructResolved;
             }
         }
         private bool f_versionValid;
