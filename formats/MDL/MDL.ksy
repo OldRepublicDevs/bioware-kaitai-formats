@@ -7,34 +7,28 @@ meta:
   license: MIT
   title: BioWare MDL (Model) Binary Format
   xref:
-    pykotor_mdlops: https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+    pykotor_mdlops: https://github.com/th3w1zard1/MDLOpsM.pm
     pykotor_wiki_mdl: https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 doc: |
   BioWare MDL Model Format
 
   The MDL file contains:
   - File header (12 bytes)
-  - Geometry header (80 bytes)
-  - Model header (92 bytes)
-  - Names header (28 bytes)
-  - Node name arrays
-  - Animation headers and nodes
+  - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+  - Name offset array + name strings
+  - Animation offset array + animation headers + animation nodes
   - Node hierarchy with geometry data
 
   Reference implementations:
-  - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+  - https://github.com/th3w1zard1/MDLOpsM.pm
   - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 doc-ref: https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md
 
 seq:
   - id: file_header
     type: file_header
-  - id: geometry_header
-    type: geometry_header
   - id: model_header
     type: model_header
-  - id: names_header
-    type: names_header
 
 instances:
   data_start:
@@ -43,35 +37,43 @@ instances:
       MDL "data start" offset. Most offsets in this file are relative to the start of the MDL data
       section, which begins immediately after the 12-byte file header.
 
-  name_indexes:
+  name_offsets:
     type: u4
     repeat: expr
-    repeat-expr: names_header.name_count
-    if: names_header.name_count > 0
-    pos: data_start + names_header.names_array_offset
-    doc: Array of name string offsets (relative to data_start)
+    repeat-expr: model_header.name_offsets_count
+    if: model_header.name_offsets_count > 0
+    pos: data_start + model_header.offset_to_name_offsets
+    doc: Name string offsets (relative to data_start)
 
   names_data:
     type: name_strings
-    if: names_header.name_count > 0
-    pos: data_start + names_header.names_array_offset + (4 * names_header.name_count)
-    size: (data_start + model_header.animation_array_offset) - (data_start + names_header.names_array_offset + (4 * names_header.name_count))
+    if: model_header.name_offsets_count > 0
+    pos: data_start + model_header.offset_to_name_offsets + (4 * model_header.name_offsets_count)
+    size: (data_start + model_header.offset_to_animations) - (data_start + model_header.offset_to_name_offsets + (4 * model_header.name_offsets_count))
     doc: |
-      Name string blob (substream). This follows the name index array and continues up to the animation array.
+      Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
       Parsed as null-terminated ASCII strings in `name_strings`.
+
+  animation_offsets:
+    type: u4
+    repeat: expr
+    repeat-expr: model_header.animation_count
+    if: model_header.animation_count > 0
+    pos: data_start + model_header.offset_to_animations
+    doc: Animation header offsets (relative to data_start)
 
   animations:
     type: animation_header
     repeat: expr
     repeat-expr: model_header.animation_count
     if: model_header.animation_count > 0
-    pos: data_start + model_header.animation_array_offset
-    doc: Animation header array
+    pos: data_start + animation_offsets[_index]
+    doc: Animation headers (resolved via animation_offsets)
 
   root_node:
     type: node
-    if: geometry_header.root_node_offset > 0
-    pos: data_start + geometry_header.root_node_offset
+    if: model_header.geometry.root_node_offset > 0
+    pos: data_start + model_header.geometry.root_node_offset
 
 types:
   file_header:
@@ -154,44 +156,41 @@ types:
         doc: Duplicate of count (allocated entries)
 
   model_header:
-    doc: Model header (92 bytes) - Located at offset 92
+    doc: |
+      Model header (196 bytes) starting at offset 12 (data_start).
+      This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+      model-wide metadata, offsets, and counts.
     seq:
-      - id: classification
+      - id: geometry
+        type: geometry_header
+        doc: Geometry header (80 bytes)
+      - id: model_type
         type: u1
-        doc: |
-          Model classification:
-          - 0x00: Other
-          - 0x01: Effect
-          - 0x02: Tile
-          - 0x04: Character
-          - 0x08: Door
-          - 0x10: Lightsaber
-          - 0x20: Placeable
-          - 0x40: Flyer
-      - id: subclassification
+        doc: Model classification byte
+      - id: unknown0
         type: u1
-        doc: Model subclassification value
-      - id: unknown
+        doc: 'TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)'
+      - id: padding0
         type: u1
-        doc: Purpose unknown (possibly smoothing-related)
-      - id: affected_by_fog
+        doc: Padding byte
+      - id: fog
         type: u1
-        doc: 0 = Not affected by fog, 1 = Affected by fog
-      - id: child_model_count
+        doc: Fog interaction (1 = affected, 0 = ignore fog)
+      - id: unknown1
         type: u4
-        doc: Number of child models
-      - id: animation_array_offset
+        doc: 'TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)'
+      - id: offset_to_animations
         type: u4
-        doc: Offset to animation array (relative to MDL data start, offset 12)
+        doc: Offset to animation offset array (relative to data_start)
       - id: animation_count
         type: u4
         doc: Number of animations
-      - id: animation_count_duplicate
+      - id: animation_count2
         type: u4
-        doc: Duplicate value of animation count
-      - id: parent_model_pointer
+        doc: Duplicate animation count / allocated count
+      - id: unknown2
         type: u4
-        doc: Pointer to parent model (context-dependent)
+        doc: 'TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)'
       - id: bounding_box_min
         type: vec3f
         doc: Minimum coordinates of bounding box (X, Y, Z)
@@ -210,6 +209,27 @@ types:
         encoding: ASCII
         terminator: 0
         doc: Name of supermodel (null-terminated string, "null" if empty)
+      - id: offset_to_super_root
+        type: u4
+        doc: 'TODO: VERIFY - offset to super-root node (relative to data_start)'
+      - id: unknown3
+        type: u4
+        doc: 'TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)'
+      - id: mdx_data_size
+        type: u4
+        doc: Size of MDX file data in bytes
+      - id: mdx_data_offset
+        type: u4
+        doc: Offset to MDX data (typically 0)
+      - id: offset_to_name_offsets
+        type: u4
+        doc: Offset to name offset array (relative to data_start)
+      - id: name_offsets_count
+        type: u4
+        doc: Count of name offsets / partnames
+      - id: name_offsets_count2
+        type: u4
+        doc: Duplicate name offsets count / allocated count
 
   vec3f:
     doc: 3D vector (3 floats)
@@ -233,30 +253,9 @@ types:
       - id: z
         type: f4
 
-  names_header:
-    doc: Names header (28 bytes) - Located at offset 180
-    seq:
-      - id: root_node_offset
-        type: u4
-        doc: Offset to root node (often duplicate of geometry header value)
-      - id: unknown_padding
-        type: u4
-        doc: Unknown field, typically unused or padding
-      - id: mdx_data_size
-        type: u4
-        doc: Size of MDX file data in bytes
-      - id: mdx_data_offset
-        type: u4
-        doc: Offset to MDX data within MDX file (typically 0)
-      - id: names_array_offset
-        type: u4
-        doc: Offset to array of name string offsets
-      - id: name_count
-        type: u4
-        doc: Number of node names in array
-      - id: name_count_duplicate
-        type: u4
-        doc: Duplicate value of name count
+  # NOTE: Older revisions modeled a separate 'names_header' + contiguous names blob.
+  # Real-world MDL uses the model_header tail fields (offset_to_name_offsets + counts) and
+  # name offsets point to null-terminated strings scattered in the name block.
 
   name_strings:
     doc: Array of null-terminated name strings
@@ -794,11 +793,11 @@ types:
       - id: k2_unknown_1
         type: u4
         doc: "KOTOR 2 only: Additional unknown field"
-        if: _root.geometry_header.is_kotor2
+        if: _root.model_header.geometry.is_kotor2
       - id: k2_unknown_2
         type: u4
         doc: "KOTOR 2 only: Additional unknown field"
-        if: _root.geometry_header.is_kotor2
+        if: _root.model_header.geometry.is_kotor2
       - id: mdx_data_offset
         type: u4
         doc: Absolute offset to this mesh's vertex data in MDX file

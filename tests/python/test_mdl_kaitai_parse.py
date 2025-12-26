@@ -44,8 +44,9 @@ def test_mdl_kaitai_parses_all_vendor_mdl_fixtures(path: Path) -> None:
     parsed = mdl.Mdl(KaitaiStream(BytesIO(data)))
 
     assert parsed.file_header.mdl_size > 0
-    assert parsed.names_header.name_count == parsed.geometry_header.node_count
-    if parsed.geometry_header.root_node_offset > 0:
+    assert parsed.model_header.name_offsets_count > 0
+    assert len(parsed.name_offsets) == parsed.model_header.name_offsets_count
+    if parsed.model_header.geometry.root_node_offset > 0:
         assert parsed.root_node is not None
 
 
@@ -70,11 +71,11 @@ def test_mdl_kaitai_parses_dewback_binary() -> None:
 
     assert parsed.file_header.mdl_size > 0
     assert parsed.file_header.mdx_size > 0
-    assert parsed.geometry_header.model_name == "C_Dewback"
-    assert parsed.geometry_header.node_count > 0
-    assert parsed.names_header.name_count == parsed.geometry_header.node_count
+    assert parsed.model_header.geometry.model_name == "C_Dewback"
+    assert parsed.model_header.geometry.node_count > 0
+    assert parsed.model_header.name_offsets_count > 0
 
-    # Names blob should include the model name as the first string in practice for these fixtures.
+    # Names table should include the model name as the first entry in practice for these fixtures.
     assert parsed.names_data.strings[0] == "C_Dewback"
 
 

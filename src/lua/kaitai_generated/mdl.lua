@@ -13,15 +13,13 @@ local str_decode = require("string_decode")
 -- 
 -- The MDL file contains:
 -- - File header (12 bytes)
--- - Geometry header (80 bytes)
--- - Model header (92 bytes)
--- - Names header (28 bytes)
--- - Node name arrays
--- - Animation headers and nodes
+-- - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+-- - Name offset array + name strings
+-- - Animation offset array + animation headers + animation nodes
 -- - Node hierarchy with geometry data
 -- 
 -- Reference implementations:
--- - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+-- - https://github.com/th3w1zard1/MDLOpsM.pm
 -- - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 -- See also: Source (https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md)
 Mdl = class.class(KaitaiStruct)
@@ -71,13 +69,31 @@ end
 
 function Mdl:_read()
   self.file_header = Mdl.FileHeader(self._io, self, self._root)
-  self.geometry_header = Mdl.GeometryHeader(self._io, self, self._root)
   self.model_header = Mdl.ModelHeader(self._io, self, self._root)
-  self.names_header = Mdl.NamesHeader(self._io, self, self._root)
 end
 
 -- 
--- Animation header array.
+-- Animation header offsets (relative to data_start).
+Mdl.property.animation_offsets = {}
+function Mdl.property.animation_offsets:get()
+  if self._m_animation_offsets ~= nil then
+    return self._m_animation_offsets
+  end
+
+  if self.model_header.animation_count > 0 then
+    local _pos = self._io:pos()
+    self._io:seek(self.data_start + self.model_header.offset_to_animations)
+    self._m_animation_offsets = {}
+    for i = 0, self.model_header.animation_count - 1 do
+      self._m_animation_offsets[i + 1] = self._io:read_u4le()
+    end
+    self._io:seek(_pos)
+  end
+  return self._m_animation_offsets
+end
+
+-- 
+-- Animation headers (resolved via animation_offsets).
 Mdl.property.animations = {}
 function Mdl.property.animations:get()
   if self._m_animations ~= nil then
@@ -86,7 +102,7 @@ function Mdl.property.animations:get()
 
   if self.model_header.animation_count > 0 then
     local _pos = self._io:pos()
-    self._io:seek(self.data_start + self.model_header.animation_array_offset)
+    self._io:seek(self.data_start + self.animation_offsets[i + 1])
     self._m_animations = {}
     for i = 0, self.model_header.animation_count - 1 do
       self._m_animations[i + 1] = Mdl.AnimationHeader(self._io, self, self._root)
@@ -110,27 +126,27 @@ function Mdl.property.data_start:get()
 end
 
 -- 
--- Array of name string offsets (relative to data_start).
-Mdl.property.name_indexes = {}
-function Mdl.property.name_indexes:get()
-  if self._m_name_indexes ~= nil then
-    return self._m_name_indexes
+-- Name string offsets (relative to data_start).
+Mdl.property.name_offsets = {}
+function Mdl.property.name_offsets:get()
+  if self._m_name_offsets ~= nil then
+    return self._m_name_offsets
   end
 
-  if self.names_header.name_count > 0 then
+  if self.model_header.name_offsets_count > 0 then
     local _pos = self._io:pos()
-    self._io:seek(self.data_start + self.names_header.names_array_offset)
-    self._m_name_indexes = {}
-    for i = 0, self.names_header.name_count - 1 do
-      self._m_name_indexes[i + 1] = self._io:read_u4le()
+    self._io:seek(self.data_start + self.model_header.offset_to_name_offsets)
+    self._m_name_offsets = {}
+    for i = 0, self.model_header.name_offsets_count - 1 do
+      self._m_name_offsets[i + 1] = self._io:read_u4le()
     end
     self._io:seek(_pos)
   end
-  return self._m_name_indexes
+  return self._m_name_offsets
 end
 
 -- 
--- Name string blob (substream). This follows the name index array and continues up to the animation array.
+-- Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
 -- Parsed as null-terminated ASCII strings in `name_strings`.
 Mdl.property.names_data = {}
 function Mdl.property.names_data:get()
@@ -138,10 +154,10 @@ function Mdl.property.names_data:get()
     return self._m_names_data
   end
 
-  if self.names_header.name_count > 0 then
+  if self.model_header.name_offsets_count > 0 then
     local _pos = self._io:pos()
-    self._io:seek((self.data_start + self.names_header.names_array_offset) + 4 * self.names_header.name_count)
-    self._raw__m_names_data = self._io:read_bytes((self.data_start + self.model_header.animation_array_offset) - ((self.data_start + self.names_header.names_array_offset) + 4 * self.names_header.name_count))
+    self._io:seek((self.data_start + self.model_header.offset_to_name_offsets) + 4 * self.model_header.name_offsets_count)
+    self._raw__m_names_data = self._io:read_bytes((self.data_start + self.model_header.offset_to_animations) - ((self.data_start + self.model_header.offset_to_name_offsets) + 4 * self.model_header.name_offsets_count))
     local _io = KaitaiStream(stringstream(self._raw__m_names_data))
     self._m_names_data = Mdl.NameStrings(_io, self, self._root)
     self._io:seek(_pos)
@@ -155,9 +171,9 @@ function Mdl.property.root_node:get()
     return self._m_root_node
   end
 
-  if self.geometry_header.root_node_offset > 0 then
+  if self.model_header.geometry.root_node_offset > 0 then
     local _pos = self._io:pos()
-    self._io:seek(self.data_start + self.geometry_header.root_node_offset)
+    self._io:seek(self.data_start + self.model_header.geometry.root_node_offset)
     self._m_root_node = Mdl.Node(self._io, self, self._root)
     self._io:seek(_pos)
   end
@@ -743,7 +759,9 @@ end
 -- Purpose unknown.
 
 -- 
--- Model header (92 bytes) - Located at offset 92.
+-- Model header (196 bytes) starting at offset 12 (data_start).
+-- This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+-- model-wide metadata, offsets, and counts.
 Mdl.ModelHeader = class.class(KaitaiStruct)
 
 function Mdl.ModelHeader:_init(io, parent, root)
@@ -754,48 +772,50 @@ function Mdl.ModelHeader:_init(io, parent, root)
 end
 
 function Mdl.ModelHeader:_read()
-  self.classification = self._io:read_u1()
-  self.subclassification = self._io:read_u1()
-  self.unknown = self._io:read_u1()
-  self.affected_by_fog = self._io:read_u1()
-  self.child_model_count = self._io:read_u4le()
-  self.animation_array_offset = self._io:read_u4le()
+  self.geometry = Mdl.GeometryHeader(self._io, self, self._root)
+  self.model_type = self._io:read_u1()
+  self.unknown0 = self._io:read_u1()
+  self.padding0 = self._io:read_u1()
+  self.fog = self._io:read_u1()
+  self.unknown1 = self._io:read_u4le()
+  self.offset_to_animations = self._io:read_u4le()
   self.animation_count = self._io:read_u4le()
-  self.animation_count_duplicate = self._io:read_u4le()
-  self.parent_model_pointer = self._io:read_u4le()
+  self.animation_count2 = self._io:read_u4le()
+  self.unknown2 = self._io:read_u4le()
   self.bounding_box_min = Mdl.Vec3f(self._io, self, self._root)
   self.bounding_box_max = Mdl.Vec3f(self._io, self, self._root)
   self.radius = self._io:read_f4le()
   self.animation_scale = self._io:read_f4le()
   self.supermodel_name = str_decode.decode(KaitaiStream.bytes_terminate(self._io:read_bytes(32), 0, false), "ASCII")
+  self.offset_to_super_root = self._io:read_u4le()
+  self.unknown3 = self._io:read_u4le()
+  self.mdx_data_size = self._io:read_u4le()
+  self.mdx_data_offset = self._io:read_u4le()
+  self.offset_to_name_offsets = self._io:read_u4le()
+  self.name_offsets_count = self._io:read_u4le()
+  self.name_offsets_count2 = self._io:read_u4le()
 end
 
 -- 
--- Model classification:
--- - 0x00: Other
--- - 0x01: Effect
--- - 0x02: Tile
--- - 0x04: Character
--- - 0x08: Door
--- - 0x10: Lightsaber
--- - 0x20: Placeable
--- - 0x40: Flyer
+-- Geometry header (80 bytes).
 -- 
--- Model subclassification value.
+-- Model classification byte.
 -- 
--- Purpose unknown (possibly smoothing-related).
+-- TODO: VERIFY - unknown field (MDLOps / PyKotor preserve).
 -- 
--- 0 = Not affected by fog, 1 = Affected by fog.
+-- Padding byte.
 -- 
--- Number of child models.
+-- Fog interaction (1 = affected, 0 = ignore fog).
 -- 
--- Offset to animation array (relative to MDL data start, offset 12).
+-- TODO: VERIFY - unknown field (MDLOps / PyKotor preserve).
+-- 
+-- Offset to animation offset array (relative to data_start).
 -- 
 -- Number of animations.
 -- 
--- Duplicate value of animation count.
+-- Duplicate animation count / allocated count.
 -- 
--- Pointer to parent model (context-dependent).
+-- TODO: VERIFY - unknown field (MDLOps / PyKotor preserve).
 -- 
 -- Minimum coordinates of bounding box (X, Y, Z).
 -- 
@@ -806,6 +826,20 @@ end
 -- Scale factor for animations (typically 1.0).
 -- 
 -- Name of supermodel (null-terminated string, "null" if empty).
+-- 
+-- TODO: VERIFY - offset to super-root node (relative to data_start).
+-- 
+-- TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve).
+-- 
+-- Size of MDX file data in bytes.
+-- 
+-- Offset to MDX data (typically 0).
+-- 
+-- Offset to name offset array (relative to data_start).
+-- 
+-- Count of name offsets / partnames.
+-- 
+-- Duplicate name offsets count / allocated count.
 
 -- 
 -- Array of null-terminated name strings.
@@ -827,42 +861,6 @@ function Mdl.NameStrings:_read()
   end
 end
 
-
--- 
--- Names header (28 bytes) - Located at offset 180.
-Mdl.NamesHeader = class.class(KaitaiStruct)
-
-function Mdl.NamesHeader:_init(io, parent, root)
-  KaitaiStruct._init(self, io)
-  self._parent = parent
-  self._root = root
-  self:_read()
-end
-
-function Mdl.NamesHeader:_read()
-  self.root_node_offset = self._io:read_u4le()
-  self.unknown_padding = self._io:read_u4le()
-  self.mdx_data_size = self._io:read_u4le()
-  self.mdx_data_offset = self._io:read_u4le()
-  self.names_array_offset = self._io:read_u4le()
-  self.name_count = self._io:read_u4le()
-  self.name_count_duplicate = self._io:read_u4le()
-end
-
--- 
--- Offset to root node (often duplicate of geometry header value).
--- 
--- Unknown field, typically unused or padding.
--- 
--- Size of MDX file data in bytes.
--- 
--- Offset to MDX data within MDX file (typically 0).
--- 
--- Offset to array of name string offsets.
--- 
--- Number of node names in array.
--- 
--- Duplicate value of name count.
 
 -- 
 -- Node structure - starts with 80-byte header, followed by type-specific sub-header.
@@ -1257,10 +1255,10 @@ function Mdl.TrimeshHeader:_read()
   self.padding = self._io:read_u1()
   self.total_area = self._io:read_f4le()
   self.unknown2 = self._io:read_u4le()
-  if self._root.geometry_header.is_kotor2 then
+  if self._root.model_header.geometry.is_kotor2 then
     self.k2_unknown_1 = self._io:read_u4le()
   end
-  if self._root.geometry_header.is_kotor2 then
+  if self._root.model_header.geometry.is_kotor2 then
     self.k2_unknown_2 = self._io:read_u4le()
   end
   self.mdx_data_offset = self._io:read_u4le()

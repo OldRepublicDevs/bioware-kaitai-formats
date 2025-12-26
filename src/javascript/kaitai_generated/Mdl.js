@@ -14,15 +14,13 @@
  * 
  * The MDL file contains:
  * - File header (12 bytes)
- * - Geometry header (80 bytes)
- * - Model header (92 bytes)
- * - Names header (28 bytes)
- * - Node name arrays
- * - Animation headers and nodes
+ * - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+ * - Name offset array + name strings
+ * - Animation offset array + animation headers + animation nodes
  * - Node hierarchy with geometry data
  * 
  * Reference implementations:
- * - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+ * - https://github.com/th3w1zard1/MDLOpsM.pm
  * - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
  * @see {@link https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md|Source}
  */
@@ -103,9 +101,7 @@ var Mdl = (function() {
   }
   Mdl.prototype._read = function() {
     this.fileHeader = new FileHeader(this._io, this, this._root);
-    this.geometryHeader = new GeometryHeader(this._io, this, this._root);
     this.modelHeader = new ModelHeader(this._io, this, this._root);
-    this.namesHeader = new NamesHeader(this._io, this, this._root);
   }
 
   /**
@@ -910,7 +906,9 @@ var Mdl = (function() {
   })();
 
   /**
-   * Model header (92 bytes) - Located at offset 92
+   * Model header (196 bytes) starting at offset 12 (data_start).
+   * This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+   * model-wide metadata, offsets, and counts.
    */
 
   var ModelHeader = Mdl.ModelHeader = (function() {
@@ -922,52 +920,56 @@ var Mdl = (function() {
       this._read();
     }
     ModelHeader.prototype._read = function() {
-      this.classification = this._io.readU1();
-      this.subclassification = this._io.readU1();
-      this.unknown = this._io.readU1();
-      this.affectedByFog = this._io.readU1();
-      this.childModelCount = this._io.readU4le();
-      this.animationArrayOffset = this._io.readU4le();
+      this.geometry = new GeometryHeader(this._io, this, this._root);
+      this.modelType = this._io.readU1();
+      this.unknown0 = this._io.readU1();
+      this.padding0 = this._io.readU1();
+      this.fog = this._io.readU1();
+      this.unknown1 = this._io.readU4le();
+      this.offsetToAnimations = this._io.readU4le();
       this.animationCount = this._io.readU4le();
-      this.animationCountDuplicate = this._io.readU4le();
-      this.parentModelPointer = this._io.readU4le();
+      this.animationCount2 = this._io.readU4le();
+      this.unknown2 = this._io.readU4le();
       this.boundingBoxMin = new Vec3f(this._io, this, this._root);
       this.boundingBoxMax = new Vec3f(this._io, this, this._root);
       this.radius = this._io.readF4le();
       this.animationScale = this._io.readF4le();
       this.supermodelName = KaitaiStream.bytesToStr(KaitaiStream.bytesTerminate(this._io.readBytes(32), 0, false), "ASCII");
+      this.offsetToSuperRoot = this._io.readU4le();
+      this.unknown3 = this._io.readU4le();
+      this.mdxDataSize = this._io.readU4le();
+      this.mdxDataOffset = this._io.readU4le();
+      this.offsetToNameOffsets = this._io.readU4le();
+      this.nameOffsetsCount = this._io.readU4le();
+      this.nameOffsetsCount2 = this._io.readU4le();
     }
 
     /**
-     * Model classification:
-     * - 0x00: Other
-     * - 0x01: Effect
-     * - 0x02: Tile
-     * - 0x04: Character
-     * - 0x08: Door
-     * - 0x10: Lightsaber
-     * - 0x20: Placeable
-     * - 0x40: Flyer
+     * Geometry header (80 bytes)
      */
 
     /**
-     * Model subclassification value
+     * Model classification byte
      */
 
     /**
-     * Purpose unknown (possibly smoothing-related)
+     * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
      */
 
     /**
-     * 0 = Not affected by fog, 1 = Affected by fog
+     * Padding byte
      */
 
     /**
-     * Number of child models
+     * Fog interaction (1 = affected, 0 = ignore fog)
      */
 
     /**
-     * Offset to animation array (relative to MDL data start, offset 12)
+     * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
+     */
+
+    /**
+     * Offset to animation offset array (relative to data_start)
      */
 
     /**
@@ -975,11 +977,11 @@ var Mdl = (function() {
      */
 
     /**
-     * Duplicate value of animation count
+     * Duplicate animation count / allocated count
      */
 
     /**
-     * Pointer to parent model (context-dependent)
+     * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
      */
 
     /**
@@ -1000,6 +1002,34 @@ var Mdl = (function() {
 
     /**
      * Name of supermodel (null-terminated string, "null" if empty)
+     */
+
+    /**
+     * TODO: VERIFY - offset to super-root node (relative to data_start)
+     */
+
+    /**
+     * TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+     */
+
+    /**
+     * Size of MDX file data in bytes
+     */
+
+    /**
+     * Offset to MDX data (typically 0)
+     */
+
+    /**
+     * Offset to name offset array (relative to data_start)
+     */
+
+    /**
+     * Count of name offsets / partnames
+     */
+
+    /**
+     * Duplicate name offsets count / allocated count
      */
 
     return ModelHeader;
@@ -1027,59 +1057,6 @@ var Mdl = (function() {
     }
 
     return NameStrings;
-  })();
-
-  /**
-   * Names header (28 bytes) - Located at offset 180
-   */
-
-  var NamesHeader = Mdl.NamesHeader = (function() {
-    function NamesHeader(_io, _parent, _root) {
-      this._io = _io;
-      this._parent = _parent;
-      this._root = _root;
-
-      this._read();
-    }
-    NamesHeader.prototype._read = function() {
-      this.rootNodeOffset = this._io.readU4le();
-      this.unknownPadding = this._io.readU4le();
-      this.mdxDataSize = this._io.readU4le();
-      this.mdxDataOffset = this._io.readU4le();
-      this.namesArrayOffset = this._io.readU4le();
-      this.nameCount = this._io.readU4le();
-      this.nameCountDuplicate = this._io.readU4le();
-    }
-
-    /**
-     * Offset to root node (often duplicate of geometry header value)
-     */
-
-    /**
-     * Unknown field, typically unused or padding
-     */
-
-    /**
-     * Size of MDX file data in bytes
-     */
-
-    /**
-     * Offset to MDX data within MDX file (typically 0)
-     */
-
-    /**
-     * Offset to array of name string offsets
-     */
-
-    /**
-     * Number of node names in array
-     */
-
-    /**
-     * Duplicate value of name count
-     */
-
-    return NamesHeader;
   })();
 
   /**
@@ -1543,10 +1520,10 @@ var Mdl = (function() {
       this.padding = this._io.readU1();
       this.totalArea = this._io.readF4le();
       this.unknown2 = this._io.readU4le();
-      if (this._root.geometryHeader.isKotor2) {
+      if (this._root.modelHeader.geometry.isKotor2) {
         this.k2Unknown1 = this._io.readU4le();
       }
-      if (this._root.geometryHeader.isKotor2) {
+      if (this._root.modelHeader.geometry.isKotor2) {
         this.k2Unknown2 = this._io.readU4le();
       }
       this.mdxDataOffset = this._io.readU4le();
@@ -1826,7 +1803,27 @@ var Mdl = (function() {
   })();
 
   /**
-   * Animation header array
+   * Animation header offsets (relative to data_start)
+   */
+  Object.defineProperty(Mdl.prototype, 'animationOffsets', {
+    get: function() {
+      if (this._m_animationOffsets !== undefined)
+        return this._m_animationOffsets;
+      if (this.modelHeader.animationCount > 0) {
+        var _pos = this._io.pos;
+        this._io.seek(this.dataStart + this.modelHeader.offsetToAnimations);
+        this._m_animationOffsets = [];
+        for (var i = 0; i < this.modelHeader.animationCount; i++) {
+          this._m_animationOffsets.push(this._io.readU4le());
+        }
+        this._io.seek(_pos);
+      }
+      return this._m_animationOffsets;
+    }
+  });
+
+  /**
+   * Animation headers (resolved via animation_offsets)
    */
   Object.defineProperty(Mdl.prototype, 'animations', {
     get: function() {
@@ -1834,7 +1831,7 @@ var Mdl = (function() {
         return this._m_animations;
       if (this.modelHeader.animationCount > 0) {
         var _pos = this._io.pos;
-        this._io.seek(this.dataStart + this.modelHeader.animationArrayOffset);
+        this._io.seek(this.dataStart + this.animationOffsets[i]);
         this._m_animations = [];
         for (var i = 0; i < this.modelHeader.animationCount; i++) {
           this._m_animations.push(new AnimationHeader(this._io, this, this._root));
@@ -1859,37 +1856,37 @@ var Mdl = (function() {
   });
 
   /**
-   * Array of name string offsets (relative to data_start)
+   * Name string offsets (relative to data_start)
    */
-  Object.defineProperty(Mdl.prototype, 'nameIndexes', {
+  Object.defineProperty(Mdl.prototype, 'nameOffsets', {
     get: function() {
-      if (this._m_nameIndexes !== undefined)
-        return this._m_nameIndexes;
-      if (this.namesHeader.nameCount > 0) {
+      if (this._m_nameOffsets !== undefined)
+        return this._m_nameOffsets;
+      if (this.modelHeader.nameOffsetsCount > 0) {
         var _pos = this._io.pos;
-        this._io.seek(this.dataStart + this.namesHeader.namesArrayOffset);
-        this._m_nameIndexes = [];
-        for (var i = 0; i < this.namesHeader.nameCount; i++) {
-          this._m_nameIndexes.push(this._io.readU4le());
+        this._io.seek(this.dataStart + this.modelHeader.offsetToNameOffsets);
+        this._m_nameOffsets = [];
+        for (var i = 0; i < this.modelHeader.nameOffsetsCount; i++) {
+          this._m_nameOffsets.push(this._io.readU4le());
         }
         this._io.seek(_pos);
       }
-      return this._m_nameIndexes;
+      return this._m_nameOffsets;
     }
   });
 
   /**
-   * Name string blob (substream). This follows the name index array and continues up to the animation array.
+   * Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
    * Parsed as null-terminated ASCII strings in `name_strings`.
    */
   Object.defineProperty(Mdl.prototype, 'namesData', {
     get: function() {
       if (this._m_namesData !== undefined)
         return this._m_namesData;
-      if (this.namesHeader.nameCount > 0) {
+      if (this.modelHeader.nameOffsetsCount > 0) {
         var _pos = this._io.pos;
-        this._io.seek((this.dataStart + this.namesHeader.namesArrayOffset) + 4 * this.namesHeader.nameCount);
-        this._raw__m_namesData = this._io.readBytes((this.dataStart + this.modelHeader.animationArrayOffset) - ((this.dataStart + this.namesHeader.namesArrayOffset) + 4 * this.namesHeader.nameCount));
+        this._io.seek((this.dataStart + this.modelHeader.offsetToNameOffsets) + 4 * this.modelHeader.nameOffsetsCount);
+        this._raw__m_namesData = this._io.readBytes((this.dataStart + this.modelHeader.offsetToAnimations) - ((this.dataStart + this.modelHeader.offsetToNameOffsets) + 4 * this.modelHeader.nameOffsetsCount));
         var _io__raw__m_namesData = new KaitaiStream(this._raw__m_namesData);
         this._m_namesData = new NameStrings(_io__raw__m_namesData, this, this._root);
         this._io.seek(_pos);
@@ -1901,9 +1898,9 @@ var Mdl = (function() {
     get: function() {
       if (this._m_rootNode !== undefined)
         return this._m_rootNode;
-      if (this.geometryHeader.rootNodeOffset > 0) {
+      if (this.modelHeader.geometry.rootNodeOffset > 0) {
         var _pos = this._io.pos;
-        this._io.seek(this.dataStart + this.geometryHeader.rootNodeOffset);
+        this._io.seek(this.dataStart + this.modelHeader.geometry.rootNodeOffset);
         this._m_rootNode = new Node(this._io, this, this._root);
         this._io.seek(_pos);
       }

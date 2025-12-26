@@ -57,17 +57,17 @@ mdl_t::mdl_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, mdl_t* p__root)
     m__parent = p__parent;
     m__root = p__root ? p__root : this;
     m_file_header = 0;
-    m_geometry_header = 0;
     m_model_header = 0;
-    m_names_header = 0;
+    m_animation_offsets = 0;
     m_animations = 0;
-    m_name_indexes = 0;
+    m_name_offsets = 0;
     m_names_data = 0;
     m__io__raw_names_data = 0;
     m_root_node = 0;
+    f_animation_offsets = false;
     f_animations = false;
     f_data_start = false;
-    f_name_indexes = false;
+    f_name_offsets = false;
     f_names_data = false;
     f_root_node = false;
 
@@ -81,9 +81,7 @@ mdl_t::mdl_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, mdl_t* p__root)
 
 void mdl_t::_read() {
     m_file_header = new file_header_t(m__io, this, m__root);
-    m_geometry_header = new geometry_header_t(m__io, this, m__root);
     m_model_header = new model_header_t(m__io, this, m__root);
-    m_names_header = new names_header_t(m__io, this, m__root);
 }
 
 mdl_t::~mdl_t() {
@@ -94,14 +92,13 @@ void mdl_t::_clean_up() {
     if (m_file_header) {
         delete m_file_header; m_file_header = 0;
     }
-    if (m_geometry_header) {
-        delete m_geometry_header; m_geometry_header = 0;
-    }
     if (m_model_header) {
         delete m_model_header; m_model_header = 0;
     }
-    if (m_names_header) {
-        delete m_names_header; m_names_header = 0;
+    if (f_animation_offsets && !n_animation_offsets) {
+        if (m_animation_offsets) {
+            delete m_animation_offsets; m_animation_offsets = 0;
+        }
     }
     if (f_animations && !n_animations) {
         if (m_animations) {
@@ -111,9 +108,9 @@ void mdl_t::_clean_up() {
             delete m_animations; m_animations = 0;
         }
     }
-    if (f_name_indexes && !n_name_indexes) {
-        if (m_name_indexes) {
-            delete m_name_indexes; m_name_indexes = 0;
+    if (f_name_offsets && !n_name_offsets) {
+        if (m_name_offsets) {
+            delete m_name_offsets; m_name_offsets = 0;
         }
     }
     if (f_names_data && !n_names_data) {
@@ -574,6 +571,7 @@ void mdl_t::lightsaber_header_t::_clean_up() {
 mdl_t::model_header_t::model_header_t(kaitai::kstream* p__io, mdl_t* p__parent, mdl_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
+    m_geometry = 0;
     m_bounding_box_min = 0;
     m_bounding_box_max = 0;
 
@@ -586,20 +584,28 @@ mdl_t::model_header_t::model_header_t(kaitai::kstream* p__io, mdl_t* p__parent, 
 }
 
 void mdl_t::model_header_t::_read() {
-    m_classification = m__io->read_u1();
-    m_subclassification = m__io->read_u1();
-    m_unknown = m__io->read_u1();
-    m_affected_by_fog = m__io->read_u1();
-    m_child_model_count = m__io->read_u4le();
-    m_animation_array_offset = m__io->read_u4le();
+    m_geometry = new geometry_header_t(m__io, this, m__root);
+    m_model_type = m__io->read_u1();
+    m_unknown0 = m__io->read_u1();
+    m_padding0 = m__io->read_u1();
+    m_fog = m__io->read_u1();
+    m_unknown1 = m__io->read_u4le();
+    m_offset_to_animations = m__io->read_u4le();
     m_animation_count = m__io->read_u4le();
-    m_animation_count_duplicate = m__io->read_u4le();
-    m_parent_model_pointer = m__io->read_u4le();
+    m_animation_count2 = m__io->read_u4le();
+    m_unknown2 = m__io->read_u4le();
     m_bounding_box_min = new vec3f_t(m__io, this, m__root);
     m_bounding_box_max = new vec3f_t(m__io, this, m__root);
     m_radius = m__io->read_f4le();
     m_animation_scale = m__io->read_f4le();
     m_supermodel_name = kaitai::kstream::bytes_to_str(kaitai::kstream::bytes_terminate(m__io->read_bytes(32), 0, false), "ASCII");
+    m_offset_to_super_root = m__io->read_u4le();
+    m_unknown3 = m__io->read_u4le();
+    m_mdx_data_size = m__io->read_u4le();
+    m_mdx_data_offset = m__io->read_u4le();
+    m_offset_to_name_offsets = m__io->read_u4le();
+    m_name_offsets_count = m__io->read_u4le();
+    m_name_offsets_count2 = m__io->read_u4le();
 }
 
 mdl_t::model_header_t::~model_header_t() {
@@ -607,6 +613,9 @@ mdl_t::model_header_t::~model_header_t() {
 }
 
 void mdl_t::model_header_t::_clean_up() {
+    if (m_geometry) {
+        delete m_geometry; m_geometry = 0;
+    }
     if (m_bounding_box_min) {
         delete m_bounding_box_min; m_bounding_box_min = 0;
     }
@@ -647,35 +656,6 @@ void mdl_t::name_strings_t::_clean_up() {
     if (m_strings) {
         delete m_strings; m_strings = 0;
     }
-}
-
-mdl_t::names_header_t::names_header_t(kaitai::kstream* p__io, mdl_t* p__parent, mdl_t* p__root) : kaitai::kstruct(p__io) {
-    m__parent = p__parent;
-    m__root = p__root;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
-}
-
-void mdl_t::names_header_t::_read() {
-    m_root_node_offset = m__io->read_u4le();
-    m_unknown_padding = m__io->read_u4le();
-    m_mdx_data_size = m__io->read_u4le();
-    m_mdx_data_offset = m__io->read_u4le();
-    m_names_array_offset = m__io->read_u4le();
-    m_name_count = m__io->read_u4le();
-    m_name_count_duplicate = m__io->read_u4le();
-}
-
-mdl_t::names_header_t::~names_header_t() {
-    _clean_up();
-}
-
-void mdl_t::names_header_t::_clean_up() {
 }
 
 mdl_t::node_t::node_t(kaitai::kstream* p__io, mdl_t* p__parent, mdl_t* p__root) : kaitai::kstruct(p__io) {
@@ -1126,12 +1106,12 @@ void mdl_t::trimesh_header_t::_read() {
     m_total_area = m__io->read_f4le();
     m_unknown2 = m__io->read_u4le();
     n_k2_unknown_1 = true;
-    if (_root()->geometry_header()->is_kotor2()) {
+    if (_root()->model_header()->geometry()->is_kotor2()) {
         n_k2_unknown_1 = false;
         m_k2_unknown_1 = m__io->read_u4le();
     }
     n_k2_unknown_2 = true;
-    if (_root()->geometry_header()->is_kotor2()) {
+    if (_root()->model_header()->geometry()->is_kotor2()) {
         n_k2_unknown_2 = false;
         m_k2_unknown_2 = m__io->read_u4le();
     }
@@ -1199,6 +1179,25 @@ mdl_t::vec3f_t::~vec3f_t() {
 void mdl_t::vec3f_t::_clean_up() {
 }
 
+std::vector<uint32_t>* mdl_t::animation_offsets() {
+    if (f_animation_offsets)
+        return m_animation_offsets;
+    f_animation_offsets = true;
+    n_animation_offsets = true;
+    if (model_header()->animation_count() > 0) {
+        n_animation_offsets = false;
+        std::streampos _pos = m__io->pos();
+        m__io->seek(data_start() + model_header()->offset_to_animations());
+        m_animation_offsets = new std::vector<uint32_t>();
+        const int l_animation_offsets = model_header()->animation_count();
+        for (int i = 0; i < l_animation_offsets; i++) {
+            m_animation_offsets->push_back(m__io->read_u4le());
+        }
+        m__io->seek(_pos);
+    }
+    return m_animation_offsets;
+}
+
 std::vector<mdl_t::animation_header_t*>* mdl_t::animations() {
     if (f_animations)
         return m_animations;
@@ -1207,7 +1206,7 @@ std::vector<mdl_t::animation_header_t*>* mdl_t::animations() {
     if (model_header()->animation_count() > 0) {
         n_animations = false;
         std::streampos _pos = m__io->pos();
-        m__io->seek(data_start() + model_header()->animation_array_offset());
+        m__io->seek(data_start() + animation_offsets()->at(i));
         m_animations = new std::vector<animation_header_t*>();
         const int l_animations = model_header()->animation_count();
         for (int i = 0; i < l_animations; i++) {
@@ -1226,23 +1225,23 @@ int8_t mdl_t::data_start() {
     return m_data_start;
 }
 
-std::vector<uint32_t>* mdl_t::name_indexes() {
-    if (f_name_indexes)
-        return m_name_indexes;
-    f_name_indexes = true;
-    n_name_indexes = true;
-    if (names_header()->name_count() > 0) {
-        n_name_indexes = false;
+std::vector<uint32_t>* mdl_t::name_offsets() {
+    if (f_name_offsets)
+        return m_name_offsets;
+    f_name_offsets = true;
+    n_name_offsets = true;
+    if (model_header()->name_offsets_count() > 0) {
+        n_name_offsets = false;
         std::streampos _pos = m__io->pos();
-        m__io->seek(data_start() + names_header()->names_array_offset());
-        m_name_indexes = new std::vector<uint32_t>();
-        const int l_name_indexes = names_header()->name_count();
-        for (int i = 0; i < l_name_indexes; i++) {
-            m_name_indexes->push_back(m__io->read_u4le());
+        m__io->seek(data_start() + model_header()->offset_to_name_offsets());
+        m_name_offsets = new std::vector<uint32_t>();
+        const int l_name_offsets = model_header()->name_offsets_count();
+        for (int i = 0; i < l_name_offsets; i++) {
+            m_name_offsets->push_back(m__io->read_u4le());
         }
         m__io->seek(_pos);
     }
-    return m_name_indexes;
+    return m_name_offsets;
 }
 
 mdl_t::name_strings_t* mdl_t::names_data() {
@@ -1250,11 +1249,11 @@ mdl_t::name_strings_t* mdl_t::names_data() {
         return m_names_data;
     f_names_data = true;
     n_names_data = true;
-    if (names_header()->name_count() > 0) {
+    if (model_header()->name_offsets_count() > 0) {
         n_names_data = false;
         std::streampos _pos = m__io->pos();
-        m__io->seek((data_start() + names_header()->names_array_offset()) + 4 * names_header()->name_count());
-        m__raw_names_data = m__io->read_bytes((data_start() + model_header()->animation_array_offset()) - ((data_start() + names_header()->names_array_offset()) + 4 * names_header()->name_count()));
+        m__io->seek((data_start() + model_header()->offset_to_name_offsets()) + 4 * model_header()->name_offsets_count());
+        m__raw_names_data = m__io->read_bytes((data_start() + model_header()->offset_to_animations()) - ((data_start() + model_header()->offset_to_name_offsets()) + 4 * model_header()->name_offsets_count()));
         m__io__raw_names_data = new kaitai::kstream(m__raw_names_data);
         m_names_data = new name_strings_t(m__io__raw_names_data, this, m__root);
         m__io->seek(_pos);
@@ -1267,10 +1266,10 @@ mdl_t::node_t* mdl_t::root_node() {
         return m_root_node;
     f_root_node = true;
     n_root_node = true;
-    if (geometry_header()->root_node_offset() > 0) {
+    if (model_header()->geometry()->root_node_offset() > 0) {
         n_root_node = false;
         std::streampos _pos = m__io->pos();
-        m__io->seek(data_start() + geometry_header()->root_node_offset());
+        m__io->seek(data_start() + model_header()->geometry()->root_node_offset());
         m_root_node = new node_t(m__io, this, m__root);
         m__io->seek(_pos);
     }

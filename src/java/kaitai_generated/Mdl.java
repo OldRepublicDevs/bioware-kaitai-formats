@@ -16,15 +16,13 @@ import java.util.List;
  * 
  * The MDL file contains:
  * - File header (12 bytes)
- * - Geometry header (80 bytes)
- * - Model header (92 bytes)
- * - Names header (28 bytes)
- * - Node name arrays
- * - Animation headers and nodes
+ * - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+ * - Name offset array + name strings
+ * - Animation offset array + animation headers + animation nodes
  * - Node hierarchy with geometry data
  * 
  * Reference implementations:
- * - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+ * - https://github.com/th3w1zard1/MDLOpsM.pm
  * - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
  * @see <a href="https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md">Source</a>
  */
@@ -115,25 +113,26 @@ public class Mdl extends KaitaiStruct {
     }
     private void _read() {
         this.fileHeader = new FileHeader(this._io, this, _root);
-        this.geometryHeader = new GeometryHeader(this._io, this, _root);
         this.modelHeader = new ModelHeader(this._io, this, _root);
-        this.namesHeader = new NamesHeader(this._io, this, _root);
     }
 
     public void _fetchInstances() {
         this.fileHeader._fetchInstances();
-        this.geometryHeader._fetchInstances();
         this.modelHeader._fetchInstances();
-        this.namesHeader._fetchInstances();
+        animationOffsets();
+        if (this.animationOffsets != null) {
+            for (int i = 0; i < this.animationOffsets.size(); i++) {
+            }
+        }
         animations();
         if (this.animations != null) {
             for (int i = 0; i < this.animations.size(); i++) {
                 this.animations.get(((Number) (i)).intValue())._fetchInstances();
             }
         }
-        nameIndexes();
-        if (this.nameIndexes != null) {
-            for (int i = 0; i < this.nameIndexes.size(); i++) {
+        nameOffsets();
+        if (this.nameOffsets != null) {
+            for (int i = 0; i < this.nameOffsets.size(); i++) {
             }
         }
         namesData();
@@ -1330,7 +1329,9 @@ public class Mdl extends KaitaiStruct {
     }
 
     /**
-     * Model header (92 bytes) - Located at offset 92
+     * Model header (196 bytes) starting at offset 12 (data_start).
+     * This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+     * model-wide metadata, offsets, and counts.
      */
     public static class ModelHeader extends KaitaiStruct {
         public static ModelHeader fromFile(String fileName) throws IOException {
@@ -1352,80 +1353,94 @@ public class Mdl extends KaitaiStruct {
             _read();
         }
         private void _read() {
-            this.classification = this._io.readU1();
-            this.subclassification = this._io.readU1();
-            this.unknown = this._io.readU1();
-            this.affectedByFog = this._io.readU1();
-            this.childModelCount = this._io.readU4le();
-            this.animationArrayOffset = this._io.readU4le();
+            this.geometry = new GeometryHeader(this._io, this, _root);
+            this.modelType = this._io.readU1();
+            this.unknown0 = this._io.readU1();
+            this.padding0 = this._io.readU1();
+            this.fog = this._io.readU1();
+            this.unknown1 = this._io.readU4le();
+            this.offsetToAnimations = this._io.readU4le();
             this.animationCount = this._io.readU4le();
-            this.animationCountDuplicate = this._io.readU4le();
-            this.parentModelPointer = this._io.readU4le();
+            this.animationCount2 = this._io.readU4le();
+            this.unknown2 = this._io.readU4le();
             this.boundingBoxMin = new Vec3f(this._io, this, _root);
             this.boundingBoxMax = new Vec3f(this._io, this, _root);
             this.radius = this._io.readF4le();
             this.animationScale = this._io.readF4le();
             this.supermodelName = new String(KaitaiStream.bytesTerminate(this._io.readBytes(32), (byte) 0, false), StandardCharsets.US_ASCII);
+            this.offsetToSuperRoot = this._io.readU4le();
+            this.unknown3 = this._io.readU4le();
+            this.mdxDataSize = this._io.readU4le();
+            this.mdxDataOffset = this._io.readU4le();
+            this.offsetToNameOffsets = this._io.readU4le();
+            this.nameOffsetsCount = this._io.readU4le();
+            this.nameOffsetsCount2 = this._io.readU4le();
         }
 
         public void _fetchInstances() {
+            this.geometry._fetchInstances();
             this.boundingBoxMin._fetchInstances();
             this.boundingBoxMax._fetchInstances();
         }
-        private int classification;
-        private int subclassification;
-        private int unknown;
-        private int affectedByFog;
-        private long childModelCount;
-        private long animationArrayOffset;
+        private GeometryHeader geometry;
+        private int modelType;
+        private int unknown0;
+        private int padding0;
+        private int fog;
+        private long unknown1;
+        private long offsetToAnimations;
         private long animationCount;
-        private long animationCountDuplicate;
-        private long parentModelPointer;
+        private long animationCount2;
+        private long unknown2;
         private Vec3f boundingBoxMin;
         private Vec3f boundingBoxMax;
         private float radius;
         private float animationScale;
         private String supermodelName;
+        private long offsetToSuperRoot;
+        private long unknown3;
+        private long mdxDataSize;
+        private long mdxDataOffset;
+        private long offsetToNameOffsets;
+        private long nameOffsetsCount;
+        private long nameOffsetsCount2;
         private Mdl _root;
         private Mdl _parent;
 
         /**
-         * Model classification:
-         * - 0x00: Other
-         * - 0x01: Effect
-         * - 0x02: Tile
-         * - 0x04: Character
-         * - 0x08: Door
-         * - 0x10: Lightsaber
-         * - 0x20: Placeable
-         * - 0x40: Flyer
+         * Geometry header (80 bytes)
          */
-        public int classification() { return classification; }
+        public GeometryHeader geometry() { return geometry; }
 
         /**
-         * Model subclassification value
+         * Model classification byte
          */
-        public int subclassification() { return subclassification; }
+        public int modelType() { return modelType; }
 
         /**
-         * Purpose unknown (possibly smoothing-related)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        public int unknown() { return unknown; }
+        public int unknown0() { return unknown0; }
 
         /**
-         * 0 = Not affected by fog, 1 = Affected by fog
+         * Padding byte
          */
-        public int affectedByFog() { return affectedByFog; }
+        public int padding0() { return padding0; }
 
         /**
-         * Number of child models
+         * Fog interaction (1 = affected, 0 = ignore fog)
          */
-        public long childModelCount() { return childModelCount; }
+        public int fog() { return fog; }
 
         /**
-         * Offset to animation array (relative to MDL data start, offset 12)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        public long animationArrayOffset() { return animationArrayOffset; }
+        public long unknown1() { return unknown1; }
+
+        /**
+         * Offset to animation offset array (relative to data_start)
+         */
+        public long offsetToAnimations() { return offsetToAnimations; }
 
         /**
          * Number of animations
@@ -1433,14 +1448,14 @@ public class Mdl extends KaitaiStruct {
         public long animationCount() { return animationCount; }
 
         /**
-         * Duplicate value of animation count
+         * Duplicate animation count / allocated count
          */
-        public long animationCountDuplicate() { return animationCountDuplicate; }
+        public long animationCount2() { return animationCount2; }
 
         /**
-         * Pointer to parent model (context-dependent)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        public long parentModelPointer() { return parentModelPointer; }
+        public long unknown2() { return unknown2; }
 
         /**
          * Minimum coordinates of bounding box (X, Y, Z)
@@ -1466,6 +1481,41 @@ public class Mdl extends KaitaiStruct {
          * Name of supermodel (null-terminated string, "null" if empty)
          */
         public String supermodelName() { return supermodelName; }
+
+        /**
+         * TODO: VERIFY - offset to super-root node (relative to data_start)
+         */
+        public long offsetToSuperRoot() { return offsetToSuperRoot; }
+
+        /**
+         * TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+         */
+        public long unknown3() { return unknown3; }
+
+        /**
+         * Size of MDX file data in bytes
+         */
+        public long mdxDataSize() { return mdxDataSize; }
+
+        /**
+         * Offset to MDX data (typically 0)
+         */
+        public long mdxDataOffset() { return mdxDataOffset; }
+
+        /**
+         * Offset to name offset array (relative to data_start)
+         */
+        public long offsetToNameOffsets() { return offsetToNameOffsets; }
+
+        /**
+         * Count of name offsets / partnames
+         */
+        public long nameOffsetsCount() { return nameOffsetsCount; }
+
+        /**
+         * Duplicate name offsets count / allocated count
+         */
+        public long nameOffsetsCount2() { return nameOffsetsCount2; }
         public Mdl _root() { return _root; }
         public Mdl _parent() { return _parent; }
     }
@@ -1511,88 +1561,6 @@ public class Mdl extends KaitaiStruct {
         private Mdl _root;
         private Mdl _parent;
         public List<String> strings() { return strings; }
-        public Mdl _root() { return _root; }
-        public Mdl _parent() { return _parent; }
-    }
-
-    /**
-     * Names header (28 bytes) - Located at offset 180
-     */
-    public static class NamesHeader extends KaitaiStruct {
-        public static NamesHeader fromFile(String fileName) throws IOException {
-            return new NamesHeader(new ByteBufferKaitaiStream(fileName));
-        }
-
-        public NamesHeader(KaitaiStream _io) {
-            this(_io, null, null);
-        }
-
-        public NamesHeader(KaitaiStream _io, Mdl _parent) {
-            this(_io, _parent, null);
-        }
-
-        public NamesHeader(KaitaiStream _io, Mdl _parent, Mdl _root) {
-            super(_io);
-            this._parent = _parent;
-            this._root = _root;
-            _read();
-        }
-        private void _read() {
-            this.rootNodeOffset = this._io.readU4le();
-            this.unknownPadding = this._io.readU4le();
-            this.mdxDataSize = this._io.readU4le();
-            this.mdxDataOffset = this._io.readU4le();
-            this.namesArrayOffset = this._io.readU4le();
-            this.nameCount = this._io.readU4le();
-            this.nameCountDuplicate = this._io.readU4le();
-        }
-
-        public void _fetchInstances() {
-        }
-        private long rootNodeOffset;
-        private long unknownPadding;
-        private long mdxDataSize;
-        private long mdxDataOffset;
-        private long namesArrayOffset;
-        private long nameCount;
-        private long nameCountDuplicate;
-        private Mdl _root;
-        private Mdl _parent;
-
-        /**
-         * Offset to root node (often duplicate of geometry header value)
-         */
-        public long rootNodeOffset() { return rootNodeOffset; }
-
-        /**
-         * Unknown field, typically unused or padding
-         */
-        public long unknownPadding() { return unknownPadding; }
-
-        /**
-         * Size of MDX file data in bytes
-         */
-        public long mdxDataSize() { return mdxDataSize; }
-
-        /**
-         * Offset to MDX data within MDX file (typically 0)
-         */
-        public long mdxDataOffset() { return mdxDataOffset; }
-
-        /**
-         * Offset to array of name string offsets
-         */
-        public long namesArrayOffset() { return namesArrayOffset; }
-
-        /**
-         * Number of node names in array
-         */
-        public long nameCount() { return nameCount; }
-
-        /**
-         * Duplicate value of name count
-         */
-        public long nameCountDuplicate() { return nameCountDuplicate; }
         public Mdl _root() { return _root; }
         public Mdl _parent() { return _parent; }
     }
@@ -2267,10 +2235,10 @@ public class Mdl extends KaitaiStruct {
             this.padding = this._io.readU1();
             this.totalArea = this._io.readF4le();
             this.unknown2 = this._io.readU4le();
-            if (_root().geometryHeader().isKotor2()) {
+            if (_root().modelHeader().geometry().isKotor2()) {
                 this.k2Unknown1 = this._io.readU4le();
             }
-            if (_root().geometryHeader().isKotor2()) {
+            if (_root().modelHeader().geometry().isKotor2()) {
                 this.k2Unknown2 = this._io.readU4le();
             }
             this.mdxDataOffset = this._io.readU4le();
@@ -2288,9 +2256,9 @@ public class Mdl extends KaitaiStruct {
             for (int i = 0; i < this.saberUnknownData.size(); i++) {
             }
             this.uvDirection._fetchInstances();
-            if (_root().geometryHeader().isKotor2()) {
+            if (_root().modelHeader().geometry().isKotor2()) {
             }
-            if (_root().geometryHeader().isKotor2()) {
+            if (_root().modelHeader().geometry().isKotor2()) {
             }
         }
         private long functionPointer0;
@@ -2708,17 +2676,36 @@ public class Mdl extends KaitaiStruct {
         public Mdl _root() { return _root; }
         public KaitaiStruct _parent() { return _parent; }
     }
+    private List<Long> animationOffsets;
+
+    /**
+     * Animation header offsets (relative to data_start)
+     */
+    public List<Long> animationOffsets() {
+        if (this.animationOffsets != null)
+            return this.animationOffsets;
+        if (modelHeader().animationCount() > 0) {
+            long _pos = this._io.pos();
+            this._io.seek(dataStart() + modelHeader().offsetToAnimations());
+            this.animationOffsets = new ArrayList<Long>();
+            for (int i = 0; i < modelHeader().animationCount(); i++) {
+                this.animationOffsets.add(this._io.readU4le());
+            }
+            this._io.seek(_pos);
+        }
+        return this.animationOffsets;
+    }
     private List<AnimationHeader> animations;
 
     /**
-     * Animation header array
+     * Animation headers (resolved via animation_offsets)
      */
     public List<AnimationHeader> animations() {
         if (this.animations != null)
             return this.animations;
         if (modelHeader().animationCount() > 0) {
             long _pos = this._io.pos();
-            this._io.seek(dataStart() + modelHeader().animationArrayOffset());
+            this._io.seek(dataStart() + animationOffsets().get(((Number) (i)).intValue()));
             this.animations = new ArrayList<AnimationHeader>();
             for (int i = 0; i < modelHeader().animationCount(); i++) {
                 this.animations.add(new AnimationHeader(this._io, this, _root));
@@ -2739,38 +2726,38 @@ public class Mdl extends KaitaiStruct {
         this.dataStart = ((byte) 12);
         return this.dataStart;
     }
-    private List<Long> nameIndexes;
+    private List<Long> nameOffsets;
 
     /**
-     * Array of name string offsets (relative to data_start)
+     * Name string offsets (relative to data_start)
      */
-    public List<Long> nameIndexes() {
-        if (this.nameIndexes != null)
-            return this.nameIndexes;
-        if (namesHeader().nameCount() > 0) {
+    public List<Long> nameOffsets() {
+        if (this.nameOffsets != null)
+            return this.nameOffsets;
+        if (modelHeader().nameOffsetsCount() > 0) {
             long _pos = this._io.pos();
-            this._io.seek(dataStart() + namesHeader().namesArrayOffset());
-            this.nameIndexes = new ArrayList<Long>();
-            for (int i = 0; i < namesHeader().nameCount(); i++) {
-                this.nameIndexes.add(this._io.readU4le());
+            this._io.seek(dataStart() + modelHeader().offsetToNameOffsets());
+            this.nameOffsets = new ArrayList<Long>();
+            for (int i = 0; i < modelHeader().nameOffsetsCount(); i++) {
+                this.nameOffsets.add(this._io.readU4le());
             }
             this._io.seek(_pos);
         }
-        return this.nameIndexes;
+        return this.nameOffsets;
     }
     private NameStrings namesData;
 
     /**
-     * Name string blob (substream). This follows the name index array and continues up to the animation array.
+     * Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
      * Parsed as null-terminated ASCII strings in `name_strings`.
      */
     public NameStrings namesData() {
         if (this.namesData != null)
             return this.namesData;
-        if (namesHeader().nameCount() > 0) {
+        if (modelHeader().nameOffsetsCount() > 0) {
             long _pos = this._io.pos();
-            this._io.seek((dataStart() + namesHeader().namesArrayOffset()) + 4 * namesHeader().nameCount());
-            KaitaiStream _io_namesData = this._io.substream((dataStart() + modelHeader().animationArrayOffset()) - ((dataStart() + namesHeader().namesArrayOffset()) + 4 * namesHeader().nameCount()));
+            this._io.seek((dataStart() + modelHeader().offsetToNameOffsets()) + 4 * modelHeader().nameOffsetsCount());
+            KaitaiStream _io_namesData = this._io.substream((dataStart() + modelHeader().offsetToAnimations()) - ((dataStart() + modelHeader().offsetToNameOffsets()) + 4 * modelHeader().nameOffsetsCount()));
             this.namesData = new NameStrings(_io_namesData, this, _root);
             this._io.seek(_pos);
         }
@@ -2780,24 +2767,20 @@ public class Mdl extends KaitaiStruct {
     public Node rootNode() {
         if (this.rootNode != null)
             return this.rootNode;
-        if (geometryHeader().rootNodeOffset() > 0) {
+        if (modelHeader().geometry().rootNodeOffset() > 0) {
             long _pos = this._io.pos();
-            this._io.seek(dataStart() + geometryHeader().rootNodeOffset());
+            this._io.seek(dataStart() + modelHeader().geometry().rootNodeOffset());
             this.rootNode = new Node(this._io, this, _root);
             this._io.seek(_pos);
         }
         return this.rootNode;
     }
     private FileHeader fileHeader;
-    private GeometryHeader geometryHeader;
     private ModelHeader modelHeader;
-    private NamesHeader namesHeader;
     private Mdl _root;
     private KaitaiStruct _parent;
     public FileHeader fileHeader() { return fileHeader; }
-    public GeometryHeader geometryHeader() { return geometryHeader; }
     public ModelHeader modelHeader() { return modelHeader; }
-    public NamesHeader namesHeader() { return namesHeader; }
     public Mdl _root() { return _root; }
     public KaitaiStruct _parent() { return _parent; }
 }

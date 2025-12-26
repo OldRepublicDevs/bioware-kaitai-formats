@@ -12,15 +12,13 @@ import (
  * 
  * The MDL file contains:
  * - File header (12 bytes)
- * - Geometry header (80 bytes)
- * - Model header (92 bytes)
- * - Names header (28 bytes)
- * - Node name arrays
- * - Animation headers and nodes
+ * - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+ * - Name offset array + name strings
+ * - Animation offset array + animation headers + animation nodes
  * - Node hierarchy with geometry data
  * 
  * Reference implementations:
- * - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+ * - https://github.com/th3w1zard1/MDLOpsM.pm
  * - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
  * @see <a href="https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md">Source</a>
  */
@@ -80,19 +78,19 @@ func (v Mdl_NodeTypeValue) isDefined() bool {
 }
 type Mdl struct {
 	FileHeader *Mdl_FileHeader
-	GeometryHeader *Mdl_GeometryHeader
 	ModelHeader *Mdl_ModelHeader
-	NamesHeader *Mdl_NamesHeader
 	_io *kaitai.Stream
 	_root *Mdl
 	_parent kaitai.Struct
 	_raw_namesData []byte
+	_f_animationOffsets bool
+	animationOffsets []uint32
 	_f_animations bool
 	animations []*Mdl_AnimationHeader
 	_f_dataStart bool
 	dataStart int8
-	_f_nameIndexes bool
-	nameIndexes []uint32
+	_f_nameOffsets bool
+	nameOffsets []uint32
 	_f_namesData bool
 	namesData *Mdl_NameStrings
 	_f_rootNode bool
@@ -118,29 +116,54 @@ func (this *Mdl) Read(io *kaitai.Stream, parent kaitai.Struct, root *Mdl) (err e
 		return err
 	}
 	this.FileHeader = tmp1
-	tmp2 := NewMdl_GeometryHeader()
+	tmp2 := NewMdl_ModelHeader()
 	err = tmp2.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.GeometryHeader = tmp2
-	tmp3 := NewMdl_ModelHeader()
-	err = tmp3.Read(this._io, this, this._root)
-	if err != nil {
-		return err
-	}
-	this.ModelHeader = tmp3
-	tmp4 := NewMdl_NamesHeader()
-	err = tmp4.Read(this._io, this, this._root)
-	if err != nil {
-		return err
-	}
-	this.NamesHeader = tmp4
+	this.ModelHeader = tmp2
 	return err
 }
 
 /**
- * Animation header array
+ * Animation header offsets (relative to data_start)
+ */
+func (this *Mdl) AnimationOffsets() (v []uint32, err error) {
+	if (this._f_animationOffsets) {
+		return this.animationOffsets, nil
+	}
+	this._f_animationOffsets = true
+	if (this.ModelHeader.AnimationCount > 0) {
+		_pos, err := this._io.Pos()
+		if err != nil {
+			return nil, err
+		}
+		tmp3, err := this.DataStart()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(tmp3 + this.ModelHeader.OffsetToAnimations), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+		for i := 0; i < int(this.ModelHeader.AnimationCount); i++ {
+			_ = i
+			tmp4, err := this._io.ReadU4le()
+			if err != nil {
+				return nil, err
+			}
+			this.animationOffsets = append(this.animationOffsets, tmp4)
+		}
+		_, err = this._io.Seek(_pos, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.animationOffsets, nil
+}
+
+/**
+ * Animation headers (resolved via animation_offsets)
  */
 func (this *Mdl) Animations() (v []*Mdl_AnimationHeader, err error) {
 	if (this._f_animations) {
@@ -156,18 +179,22 @@ func (this *Mdl) Animations() (v []*Mdl_AnimationHeader, err error) {
 		if err != nil {
 			return nil, err
 		}
-		_, err = this._io.Seek(int64(tmp5 + this.ModelHeader.AnimationArrayOffset), io.SeekStart)
+		tmp6, err := this.AnimationOffsets()
+		if err != nil {
+			return nil, err
+		}
+		_, err = this._io.Seek(int64(tmp5 + tmp6[i]), io.SeekStart)
 		if err != nil {
 			return nil, err
 		}
 		for i := 0; i < int(this.ModelHeader.AnimationCount); i++ {
 			_ = i
-			tmp6 := NewMdl_AnimationHeader()
-			err = tmp6.Read(this._io, this, this._root)
+			tmp7 := NewMdl_AnimationHeader()
+			err = tmp7.Read(this._io, this, this._root)
 			if err != nil {
 				return nil, err
 			}
-			this.animations = append(this.animations, tmp6)
+			this.animations = append(this.animations, tmp7)
 		}
 		_, err = this._io.Seek(_pos, io.SeekStart)
 		if err != nil {
@@ -191,44 +218,44 @@ func (this *Mdl) DataStart() (v int8, err error) {
 }
 
 /**
- * Array of name string offsets (relative to data_start)
+ * Name string offsets (relative to data_start)
  */
-func (this *Mdl) NameIndexes() (v []uint32, err error) {
-	if (this._f_nameIndexes) {
-		return this.nameIndexes, nil
+func (this *Mdl) NameOffsets() (v []uint32, err error) {
+	if (this._f_nameOffsets) {
+		return this.nameOffsets, nil
 	}
-	this._f_nameIndexes = true
-	if (this.NamesHeader.NameCount > 0) {
+	this._f_nameOffsets = true
+	if (this.ModelHeader.NameOffsetsCount > 0) {
 		_pos, err := this._io.Pos()
 		if err != nil {
 			return nil, err
 		}
-		tmp7, err := this.DataStart()
+		tmp8, err := this.DataStart()
 		if err != nil {
 			return nil, err
 		}
-		_, err = this._io.Seek(int64(tmp7 + this.NamesHeader.NamesArrayOffset), io.SeekStart)
+		_, err = this._io.Seek(int64(tmp8 + this.ModelHeader.OffsetToNameOffsets), io.SeekStart)
 		if err != nil {
 			return nil, err
 		}
-		for i := 0; i < int(this.NamesHeader.NameCount); i++ {
+		for i := 0; i < int(this.ModelHeader.NameOffsetsCount); i++ {
 			_ = i
-			tmp8, err := this._io.ReadU4le()
+			tmp9, err := this._io.ReadU4le()
 			if err != nil {
 				return nil, err
 			}
-			this.nameIndexes = append(this.nameIndexes, tmp8)
+			this.nameOffsets = append(this.nameOffsets, tmp9)
 		}
 		_, err = this._io.Seek(_pos, io.SeekStart)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return this.nameIndexes, nil
+	return this.nameOffsets, nil
 }
 
 /**
- * Name string blob (substream). This follows the name index array and continues up to the animation array.
+ * Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
  * Parsed as null-terminated ASCII strings in `name_strings`.
  */
 func (this *Mdl) NamesData() (v *Mdl_NameStrings, err error) {
@@ -236,16 +263,8 @@ func (this *Mdl) NamesData() (v *Mdl_NameStrings, err error) {
 		return this.namesData, nil
 	}
 	this._f_namesData = true
-	if (this.NamesHeader.NameCount > 0) {
+	if (this.ModelHeader.NameOffsetsCount > 0) {
 		_pos, err := this._io.Pos()
-		if err != nil {
-			return nil, err
-		}
-		tmp9, err := this.DataStart()
-		if err != nil {
-			return nil, err
-		}
-		_, err = this._io.Seek(int64((tmp9 + this.NamesHeader.NamesArrayOffset) + 4 * this.NamesHeader.NameCount), io.SeekStart)
 		if err != nil {
 			return nil, err
 		}
@@ -253,23 +272,31 @@ func (this *Mdl) NamesData() (v *Mdl_NameStrings, err error) {
 		if err != nil {
 			return nil, err
 		}
+		_, err = this._io.Seek(int64((tmp10 + this.ModelHeader.OffsetToNameOffsets) + 4 * this.ModelHeader.NameOffsetsCount), io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
 		tmp11, err := this.DataStart()
 		if err != nil {
 			return nil, err
 		}
-		tmp12, err := this._io.ReadBytes(int((tmp10 + this.ModelHeader.AnimationArrayOffset) - ((tmp11 + this.NamesHeader.NamesArrayOffset) + 4 * this.NamesHeader.NameCount)))
+		tmp12, err := this.DataStart()
 		if err != nil {
 			return nil, err
 		}
-		tmp12 = tmp12
-		this._raw_namesData = tmp12
+		tmp13, err := this._io.ReadBytes(int((tmp11 + this.ModelHeader.OffsetToAnimations) - ((tmp12 + this.ModelHeader.OffsetToNameOffsets) + 4 * this.ModelHeader.NameOffsetsCount)))
+		if err != nil {
+			return nil, err
+		}
+		tmp13 = tmp13
+		this._raw_namesData = tmp13
 		_io__raw_namesData := kaitai.NewStream(bytes.NewReader(this._raw_namesData))
-		tmp13 := NewMdl_NameStrings()
-		err = tmp13.Read(_io__raw_namesData, this, this._root)
+		tmp14 := NewMdl_NameStrings()
+		err = tmp14.Read(_io__raw_namesData, this, this._root)
 		if err != nil {
 			return nil, err
 		}
-		this.namesData = tmp13
+		this.namesData = tmp14
 		_, err = this._io.Seek(_pos, io.SeekStart)
 		if err != nil {
 			return nil, err
@@ -282,25 +309,25 @@ func (this *Mdl) RootNode() (v *Mdl_Node, err error) {
 		return this.rootNode, nil
 	}
 	this._f_rootNode = true
-	if (this.GeometryHeader.RootNodeOffset > 0) {
+	if (this.ModelHeader.Geometry.RootNodeOffset > 0) {
 		_pos, err := this._io.Pos()
 		if err != nil {
 			return nil, err
 		}
-		tmp14, err := this.DataStart()
+		tmp15, err := this.DataStart()
 		if err != nil {
 			return nil, err
 		}
-		_, err = this._io.Seek(int64(tmp14 + this.GeometryHeader.RootNodeOffset), io.SeekStart)
+		_, err = this._io.Seek(int64(tmp15 + this.ModelHeader.Geometry.RootNodeOffset), io.SeekStart)
 		if err != nil {
 			return nil, err
 		}
-		tmp15 := NewMdl_Node()
-		err = tmp15.Read(this._io, this, this._root)
+		tmp16 := NewMdl_Node()
+		err = tmp16.Read(this._io, this, this._root)
 		if err != nil {
 			return nil, err
 		}
-		this.rootNode = tmp15
+		this.rootNode = tmp16
 		_, err = this._io.Seek(_pos, io.SeekStart)
 		if err != nil {
 			return nil, err
@@ -333,17 +360,17 @@ func (this *Mdl_AabbHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root *Mdl)
 	this._parent = parent
 	this._root = root
 
-	tmp16 := NewMdl_TrimeshHeader()
-	err = tmp16.Read(this._io, this, this._root)
+	tmp17 := NewMdl_TrimeshHeader()
+	err = tmp17.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.TrimeshBase = tmp16
-	tmp17, err := this._io.ReadU4le()
+	this.TrimeshBase = tmp17
+	tmp18, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown = uint32(tmp17)
+	this.Unknown = uint32(tmp18)
 	return err
 }
 
@@ -379,17 +406,17 @@ func (this *Mdl_AnimationEvent) Read(io *kaitai.Stream, parent kaitai.Struct, ro
 	this._parent = parent
 	this._root = root
 
-	tmp18, err := this._io.ReadF4le()
+	tmp19, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.ActivationTime = float32(tmp18)
-	tmp19, err := this._io.ReadBytes(int(32))
+	this.ActivationTime = float32(tmp19)
+	tmp20, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
-	tmp19 = kaitai.BytesTerminate(tmp19, 0, false)
-	this.EventName = string(tmp19)
+	tmp20 = kaitai.BytesTerminate(tmp20, 0, false)
+	this.EventName = string(tmp20)
 	return err
 }
 
@@ -431,48 +458,48 @@ func (this *Mdl_AnimationHeader) Read(io *kaitai.Stream, parent *Mdl, root *Mdl)
 	this._parent = parent
 	this._root = root
 
-	tmp20 := NewMdl_GeometryHeader()
-	err = tmp20.Read(this._io, this, this._root)
+	tmp21 := NewMdl_GeometryHeader()
+	err = tmp21.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.GeoHeader = tmp20
-	tmp21, err := this._io.ReadF4le()
-	if err != nil {
-		return err
-	}
-	this.AnimationLength = float32(tmp21)
+	this.GeoHeader = tmp21
 	tmp22, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.TransitionTime = float32(tmp22)
-	tmp23, err := this._io.ReadBytes(int(32))
+	this.AnimationLength = float32(tmp22)
+	tmp23, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	tmp23 = kaitai.BytesTerminate(tmp23, 0, false)
-	this.AnimationRoot = string(tmp23)
-	tmp24, err := this._io.ReadU4le()
+	this.TransitionTime = float32(tmp23)
+	tmp24, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
-	this.EventArrayOffset = uint32(tmp24)
+	tmp24 = kaitai.BytesTerminate(tmp24, 0, false)
+	this.AnimationRoot = string(tmp24)
 	tmp25, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.EventCount = uint32(tmp25)
+	this.EventArrayOffset = uint32(tmp25)
 	tmp26, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.EventCountDuplicate = uint32(tmp26)
+	this.EventCount = uint32(tmp26)
 	tmp27, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown = uint32(tmp27)
+	this.EventCountDuplicate = uint32(tmp27)
+	tmp28, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.Unknown = uint32(tmp28)
 	return err
 }
 
@@ -534,30 +561,30 @@ func (this *Mdl_AnimmeshHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root *
 	this._parent = parent
 	this._root = root
 
-	tmp28 := NewMdl_TrimeshHeader()
-	err = tmp28.Read(this._io, this, this._root)
+	tmp29 := NewMdl_TrimeshHeader()
+	err = tmp29.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.TrimeshBase = tmp28
-	tmp29, err := this._io.ReadF4le()
+	this.TrimeshBase = tmp29
+	tmp30, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown = float32(tmp29)
-	tmp30 := NewMdl_ArrayDefinition()
-	err = tmp30.Read(this._io, this, this._root)
+	this.Unknown = float32(tmp30)
+	tmp31 := NewMdl_ArrayDefinition()
+	err = tmp31.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.UnknownArray = tmp30
+	this.UnknownArray = tmp31
 	for i := 0; i < int(9); i++ {
 		_ = i
-		tmp31, err := this._io.ReadF4le()
+		tmp32, err := this._io.ReadF4le()
 		if err != nil {
 			return err
 		}
-		this.UnknownFloats = append(this.UnknownFloats, tmp31)
+		this.UnknownFloats = append(this.UnknownFloats, tmp32)
 	}
 	return err
 }
@@ -603,21 +630,21 @@ func (this *Mdl_ArrayDefinition) Read(io *kaitai.Stream, parent kaitai.Struct, r
 	this._parent = parent
 	this._root = root
 
-	tmp32, err := this._io.ReadS4le()
+	tmp33, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.Offset = int32(tmp32)
-	tmp33, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.Count = uint32(tmp33)
+	this.Offset = int32(tmp33)
 	tmp34, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.CountDuplicate = uint32(tmp34)
+	this.Count = uint32(tmp34)
+	tmp35, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.CountDuplicate = uint32(tmp35)
 	return err
 }
 
@@ -664,43 +691,43 @@ func (this *Mdl_Controller) Read(io *kaitai.Stream, parent kaitai.Struct, root *
 	this._parent = parent
 	this._root = root
 
-	tmp35, err := this._io.ReadU4le()
+	tmp36, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Type = uint32(tmp35)
-	tmp36, err := this._io.ReadU2le()
-	if err != nil {
-		return err
-	}
-	this.Unknown = uint16(tmp36)
+	this.Type = uint32(tmp36)
 	tmp37, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.RowCount = uint16(tmp37)
+	this.Unknown = uint16(tmp37)
 	tmp38, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.TimeIndex = uint16(tmp38)
+	this.RowCount = uint16(tmp38)
 	tmp39, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.DataIndex = uint16(tmp39)
-	tmp40, err := this._io.ReadU1()
+	this.TimeIndex = uint16(tmp39)
+	tmp40, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.ColumnCount = tmp40
+	this.DataIndex = uint16(tmp40)
+	tmp41, err := this._io.ReadU1()
+	if err != nil {
+		return err
+	}
+	this.ColumnCount = tmp41
 	for i := 0; i < int(3); i++ {
 		_ = i
-		tmp41, err := this._io.ReadU1()
+		tmp42, err := this._io.ReadU1()
 		if err != nil {
 			return err
 		}
-		this.Padding = append(this.Padding, tmp41)
+		this.Padding = append(this.Padding, tmp42)
 	}
 	return err
 }
@@ -846,47 +873,47 @@ func (this *Mdl_DanglymeshHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root
 	this._parent = parent
 	this._root = root
 
-	tmp42 := NewMdl_TrimeshHeader()
-	err = tmp42.Read(this._io, this, this._root)
+	tmp43 := NewMdl_TrimeshHeader()
+	err = tmp43.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.TrimeshBase = tmp42
-	tmp43, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.ConstraintsOffset = uint32(tmp43)
+	this.TrimeshBase = tmp43
 	tmp44, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ConstraintsCount = uint32(tmp44)
+	this.ConstraintsOffset = uint32(tmp44)
 	tmp45, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ConstraintsCountDuplicate = uint32(tmp45)
-	tmp46, err := this._io.ReadF4le()
+	this.ConstraintsCount = uint32(tmp45)
+	tmp46, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Displacement = float32(tmp46)
+	this.ConstraintsCountDuplicate = uint32(tmp46)
 	tmp47, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Tightness = float32(tmp47)
+	this.Displacement = float32(tmp47)
 	tmp48, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Period = float32(tmp48)
-	tmp49, err := this._io.ReadU4le()
+	this.Tightness = float32(tmp48)
+	tmp49, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown = uint32(tmp49)
+	this.Period = float32(tmp49)
+	tmp50, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.Unknown = uint32(tmp50)
 	return err
 }
 
@@ -964,112 +991,112 @@ func (this *Mdl_EmitterHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root *M
 	this._parent = parent
 	this._root = root
 
-	tmp50, err := this._io.ReadF4le()
-	if err != nil {
-		return err
-	}
-	this.DeadSpace = float32(tmp50)
 	tmp51, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.BlastRadius = float32(tmp51)
+	this.DeadSpace = float32(tmp51)
 	tmp52, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.BlastLength = float32(tmp52)
-	tmp53, err := this._io.ReadU4le()
+	this.BlastRadius = float32(tmp52)
+	tmp53, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.BranchCount = uint32(tmp53)
-	tmp54, err := this._io.ReadF4le()
+	this.BlastLength = float32(tmp53)
+	tmp54, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControlPointSmoothing = float32(tmp54)
-	tmp55, err := this._io.ReadU4le()
+	this.BranchCount = uint32(tmp54)
+	tmp55, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.XGrid = uint32(tmp55)
+	this.ControlPointSmoothing = float32(tmp55)
 	tmp56, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.YGrid = uint32(tmp56)
+	this.XGrid = uint32(tmp56)
 	tmp57, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.PaddingUnknown = uint32(tmp57)
-	tmp58, err := this._io.ReadBytes(int(32))
+	this.YGrid = uint32(tmp57)
+	tmp58, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	tmp58 = kaitai.BytesTerminate(tmp58, 0, false)
-	this.UpdateScript = string(tmp58)
+	this.PaddingUnknown = uint32(tmp58)
 	tmp59, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
 	tmp59 = kaitai.BytesTerminate(tmp59, 0, false)
-	this.RenderScript = string(tmp59)
+	this.UpdateScript = string(tmp59)
 	tmp60, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
 	tmp60 = kaitai.BytesTerminate(tmp60, 0, false)
-	this.BlendScript = string(tmp60)
+	this.RenderScript = string(tmp60)
 	tmp61, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
 	tmp61 = kaitai.BytesTerminate(tmp61, 0, false)
-	this.TextureName = string(tmp61)
+	this.BlendScript = string(tmp61)
 	tmp62, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
 	tmp62 = kaitai.BytesTerminate(tmp62, 0, false)
-	this.ChunkName = string(tmp62)
-	tmp63, err := this._io.ReadU4le()
+	this.TextureName = string(tmp62)
+	tmp63, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
-	this.TwoSidedTexture = uint32(tmp63)
+	tmp63 = kaitai.BytesTerminate(tmp63, 0, false)
+	this.ChunkName = string(tmp63)
 	tmp64, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Loop = uint32(tmp64)
-	tmp65, err := this._io.ReadU2le()
+	this.TwoSidedTexture = uint32(tmp64)
+	tmp65, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.RenderOrder = uint16(tmp65)
-	tmp66, err := this._io.ReadU1()
+	this.Loop = uint32(tmp65)
+	tmp66, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.FrameBlending = tmp66
-	tmp67, err := this._io.ReadBytes(int(32))
+	this.RenderOrder = uint16(tmp66)
+	tmp67, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	tmp67 = kaitai.BytesTerminate(tmp67, 0, false)
-	this.DepthTextureName = string(tmp67)
-	tmp68, err := this._io.ReadU1()
+	this.FrameBlending = tmp67
+	tmp68, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
-	this.Padding = tmp68
-	tmp69, err := this._io.ReadU4le()
+	tmp68 = kaitai.BytesTerminate(tmp68, 0, false)
+	this.DepthTextureName = string(tmp68)
+	tmp69, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Flags = uint32(tmp69)
+	this.Padding = tmp69
+	tmp70, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.Flags = uint32(tmp70)
 	return err
 }
 
@@ -1178,21 +1205,21 @@ func (this *Mdl_FileHeader) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (err
 	this._parent = parent
 	this._root = root
 
-	tmp70, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.Unused = uint32(tmp70)
 	tmp71, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.MdlSize = uint32(tmp71)
+	this.Unused = uint32(tmp71)
 	tmp72, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.MdxSize = uint32(tmp72)
+	this.MdlSize = uint32(tmp72)
+	tmp73, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.MdxSize = uint32(tmp73)
 	return err
 }
 
@@ -1242,61 +1269,61 @@ func (this *Mdl_GeometryHeader) Read(io *kaitai.Stream, parent kaitai.Struct, ro
 	this._parent = parent
 	this._root = root
 
-	tmp73, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.FunctionPointer0 = uint32(tmp73)
 	tmp74, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FunctionPointer1 = uint32(tmp74)
-	tmp75, err := this._io.ReadBytes(int(32))
+	this.FunctionPointer0 = uint32(tmp74)
+	tmp75, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	tmp75 = kaitai.BytesTerminate(tmp75, 0, false)
-	this.ModelName = string(tmp75)
-	tmp76, err := this._io.ReadU4le()
+	this.FunctionPointer1 = uint32(tmp75)
+	tmp76, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
-	this.RootNodeOffset = uint32(tmp76)
+	tmp76 = kaitai.BytesTerminate(tmp76, 0, false)
+	this.ModelName = string(tmp76)
 	tmp77, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.NodeCount = uint32(tmp77)
-	tmp78 := NewMdl_ArrayDefinition()
-	err = tmp78.Read(this._io, this, this._root)
+	this.RootNodeOffset = uint32(tmp77)
+	tmp78, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.UnknownArray1 = tmp78
+	this.NodeCount = uint32(tmp78)
 	tmp79 := NewMdl_ArrayDefinition()
 	err = tmp79.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.UnknownArray2 = tmp79
-	tmp80, err := this._io.ReadU4le()
+	this.UnknownArray1 = tmp79
+	tmp80 := NewMdl_ArrayDefinition()
+	err = tmp80.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.ReferenceCount = uint32(tmp80)
-	tmp81, err := this._io.ReadU1()
+	this.UnknownArray2 = tmp80
+	tmp81, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.GeometryType = tmp81
+	this.ReferenceCount = uint32(tmp81)
+	tmp82, err := this._io.ReadU1()
+	if err != nil {
+		return err
+	}
+	this.GeometryType = tmp82
 	for i := 0; i < int(3); i++ {
 		_ = i
-		tmp82, err := this._io.ReadU1()
+		tmp83, err := this._io.ReadU1()
 		if err != nil {
 			return err
 		}
-		this.Padding = append(this.Padding, tmp82)
+		this.Padding = append(this.Padding, tmp83)
 	}
 	return err
 }
@@ -1406,112 +1433,112 @@ func (this *Mdl_LightHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root *Mdl
 
 	for i := 0; i < int(4); i++ {
 		_ = i
-		tmp83, err := this._io.ReadF4le()
+		tmp84, err := this._io.ReadF4le()
 		if err != nil {
 			return err
 		}
-		this.Unknown = append(this.Unknown, tmp83)
+		this.Unknown = append(this.Unknown, tmp84)
 	}
-	tmp84, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.FlareSizesOffset = uint32(tmp84)
 	tmp85, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareSizesCount = uint32(tmp85)
+	this.FlareSizesOffset = uint32(tmp85)
 	tmp86, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareSizesCountDuplicate = uint32(tmp86)
+	this.FlareSizesCount = uint32(tmp86)
 	tmp87, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlarePositionsOffset = uint32(tmp87)
+	this.FlareSizesCountDuplicate = uint32(tmp87)
 	tmp88, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlarePositionsCount = uint32(tmp88)
+	this.FlarePositionsOffset = uint32(tmp88)
 	tmp89, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlarePositionsCountDuplicate = uint32(tmp89)
+	this.FlarePositionsCount = uint32(tmp89)
 	tmp90, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareColorShiftsOffset = uint32(tmp90)
+	this.FlarePositionsCountDuplicate = uint32(tmp90)
 	tmp91, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareColorShiftsCount = uint32(tmp91)
+	this.FlareColorShiftsOffset = uint32(tmp91)
 	tmp92, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareColorShiftsCountDuplicate = uint32(tmp92)
+	this.FlareColorShiftsCount = uint32(tmp92)
 	tmp93, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareTextureNamesOffset = uint32(tmp93)
+	this.FlareColorShiftsCountDuplicate = uint32(tmp93)
 	tmp94, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareTextureNamesCount = uint32(tmp94)
+	this.FlareTextureNamesOffset = uint32(tmp94)
 	tmp95, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareTextureNamesCountDuplicate = uint32(tmp95)
-	tmp96, err := this._io.ReadF4le()
+	this.FlareTextureNamesCount = uint32(tmp95)
+	tmp96, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FlareRadius = float32(tmp96)
-	tmp97, err := this._io.ReadU4le()
+	this.FlareTextureNamesCountDuplicate = uint32(tmp96)
+	tmp97, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.LightPriority = uint32(tmp97)
+	this.FlareRadius = float32(tmp97)
 	tmp98, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.AmbientOnly = uint32(tmp98)
+	this.LightPriority = uint32(tmp98)
 	tmp99, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.DynamicType = uint32(tmp99)
+	this.AmbientOnly = uint32(tmp99)
 	tmp100, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.AffectDynamic = uint32(tmp100)
+	this.DynamicType = uint32(tmp100)
 	tmp101, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Shadow = uint32(tmp101)
+	this.AffectDynamic = uint32(tmp101)
 	tmp102, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Flare = uint32(tmp102)
+	this.Shadow = uint32(tmp102)
 	tmp103, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FadingLight = uint32(tmp103)
+	this.Flare = uint32(tmp103)
+	tmp104, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.FadingLight = uint32(tmp104)
 	return err
 }
 
@@ -1627,37 +1654,37 @@ func (this *Mdl_LightsaberHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root
 	this._parent = parent
 	this._root = root
 
-	tmp104 := NewMdl_TrimeshHeader()
-	err = tmp104.Read(this._io, this, this._root)
+	tmp105 := NewMdl_TrimeshHeader()
+	err = tmp105.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.TrimeshBase = tmp104
-	tmp105, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.VerticesOffset = uint32(tmp105)
+	this.TrimeshBase = tmp105
 	tmp106, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.TexcoordsOffset = uint32(tmp106)
+	this.VerticesOffset = uint32(tmp106)
 	tmp107, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.NormalsOffset = uint32(tmp107)
+	this.TexcoordsOffset = uint32(tmp107)
 	tmp108, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown1 = uint32(tmp108)
+	this.NormalsOffset = uint32(tmp108)
 	tmp109, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown2 = uint32(tmp109)
+	this.Unknown1 = uint32(tmp109)
+	tmp110, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.Unknown2 = uint32(tmp110)
 	return err
 }
 
@@ -1686,23 +1713,33 @@ func (this *Mdl_LightsaberHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root
  */
 
 /**
- * Model header (92 bytes) - Located at offset 92
+ * Model header (196 bytes) starting at offset 12 (data_start).
+ * This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+ * model-wide metadata, offsets, and counts.
  */
 type Mdl_ModelHeader struct {
-	Classification uint8
-	Subclassification uint8
-	Unknown uint8
-	AffectedByFog uint8
-	ChildModelCount uint32
-	AnimationArrayOffset uint32
+	Geometry *Mdl_GeometryHeader
+	ModelType uint8
+	Unknown0 uint8
+	Padding0 uint8
+	Fog uint8
+	Unknown1 uint32
+	OffsetToAnimations uint32
 	AnimationCount uint32
-	AnimationCountDuplicate uint32
-	ParentModelPointer uint32
+	AnimationCount2 uint32
+	Unknown2 uint32
 	BoundingBoxMin *Mdl_Vec3f
 	BoundingBoxMax *Mdl_Vec3f
 	Radius float32
 	AnimationScale float32
 	SupermodelName string
+	OffsetToSuperRoot uint32
+	Unknown3 uint32
+	MdxDataSize uint32
+	MdxDataOffset uint32
+	OffsetToNameOffsets uint32
+	NameOffsetsCount uint32
+	NameOffsetsCount2 uint32
 	_io *kaitai.Stream
 	_root *Mdl
 	_parent *Mdl
@@ -1721,112 +1758,149 @@ func (this *Mdl_ModelHeader) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (er
 	this._parent = parent
 	this._root = root
 
-	tmp110, err := this._io.ReadU1()
+	tmp111 := NewMdl_GeometryHeader()
+	err = tmp111.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.Classification = tmp110
-	tmp111, err := this._io.ReadU1()
-	if err != nil {
-		return err
-	}
-	this.Subclassification = tmp111
+	this.Geometry = tmp111
 	tmp112, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Unknown = tmp112
+	this.ModelType = tmp112
 	tmp113, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.AffectedByFog = tmp113
-	tmp114, err := this._io.ReadU4le()
+	this.Unknown0 = tmp113
+	tmp114, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.ChildModelCount = uint32(tmp114)
-	tmp115, err := this._io.ReadU4le()
+	this.Padding0 = tmp114
+	tmp115, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.AnimationArrayOffset = uint32(tmp115)
+	this.Fog = tmp115
 	tmp116, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.AnimationCount = uint32(tmp116)
+	this.Unknown1 = uint32(tmp116)
 	tmp117, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.AnimationCountDuplicate = uint32(tmp117)
+	this.OffsetToAnimations = uint32(tmp117)
 	tmp118, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ParentModelPointer = uint32(tmp118)
-	tmp119 := NewMdl_Vec3f()
-	err = tmp119.Read(this._io, this, this._root)
+	this.AnimationCount = uint32(tmp118)
+	tmp119, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.BoundingBoxMin = tmp119
-	tmp120 := NewMdl_Vec3f()
-	err = tmp120.Read(this._io, this, this._root)
+	this.AnimationCount2 = uint32(tmp119)
+	tmp120, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.BoundingBoxMax = tmp120
-	tmp121, err := this._io.ReadF4le()
+	this.Unknown2 = uint32(tmp120)
+	tmp121 := NewMdl_Vec3f()
+	err = tmp121.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.Radius = float32(tmp121)
-	tmp122, err := this._io.ReadF4le()
+	this.BoundingBoxMin = tmp121
+	tmp122 := NewMdl_Vec3f()
+	err = tmp122.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.AnimationScale = float32(tmp122)
-	tmp123, err := this._io.ReadBytes(int(32))
+	this.BoundingBoxMax = tmp122
+	tmp123, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	tmp123 = kaitai.BytesTerminate(tmp123, 0, false)
-	this.SupermodelName = string(tmp123)
+	this.Radius = float32(tmp123)
+	tmp124, err := this._io.ReadF4le()
+	if err != nil {
+		return err
+	}
+	this.AnimationScale = float32(tmp124)
+	tmp125, err := this._io.ReadBytes(int(32))
+	if err != nil {
+		return err
+	}
+	tmp125 = kaitai.BytesTerminate(tmp125, 0, false)
+	this.SupermodelName = string(tmp125)
+	tmp126, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.OffsetToSuperRoot = uint32(tmp126)
+	tmp127, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.Unknown3 = uint32(tmp127)
+	tmp128, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.MdxDataSize = uint32(tmp128)
+	tmp129, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.MdxDataOffset = uint32(tmp129)
+	tmp130, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.OffsetToNameOffsets = uint32(tmp130)
+	tmp131, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.NameOffsetsCount = uint32(tmp131)
+	tmp132, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.NameOffsetsCount2 = uint32(tmp132)
 	return err
 }
 
 /**
- * Model classification:
- * - 0x00: Other
- * - 0x01: Effect
- * - 0x02: Tile
- * - 0x04: Character
- * - 0x08: Door
- * - 0x10: Lightsaber
- * - 0x20: Placeable
- * - 0x40: Flyer
+ * Geometry header (80 bytes)
  */
 
 /**
- * Model subclassification value
+ * Model classification byte
  */
 
 /**
- * Purpose unknown (possibly smoothing-related)
+ * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
  */
 
 /**
- * 0 = Not affected by fog, 1 = Affected by fog
+ * Padding byte
  */
 
 /**
- * Number of child models
+ * Fog interaction (1 = affected, 0 = ignore fog)
  */
 
 /**
- * Offset to animation array (relative to MDL data start, offset 12)
+ * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
+ */
+
+/**
+ * Offset to animation offset array (relative to data_start)
  */
 
 /**
@@ -1834,11 +1908,11 @@ func (this *Mdl_ModelHeader) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (er
  */
 
 /**
- * Duplicate value of animation count
+ * Duplicate animation count / allocated count
  */
 
 /**
- * Pointer to parent model (context-dependent)
+ * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
  */
 
 /**
@@ -1859,6 +1933,34 @@ func (this *Mdl_ModelHeader) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (er
 
 /**
  * Name of supermodel (null-terminated string, "null" if empty)
+ */
+
+/**
+ * TODO: VERIFY - offset to super-root node (relative to data_start)
+ */
+
+/**
+ * TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+ */
+
+/**
+ * Size of MDX file data in bytes
+ */
+
+/**
+ * Offset to MDX data (typically 0)
+ */
+
+/**
+ * Offset to name offset array (relative to data_start)
+ */
+
+/**
+ * Count of name offsets / partnames
+ */
+
+/**
+ * Duplicate name offsets count / allocated count
  */
 
 /**
@@ -1885,116 +1987,21 @@ func (this *Mdl_NameStrings) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (er
 	this._root = root
 
 	for i := 0;; i++ {
-		tmp124, err := this._io.EOF()
+		tmp133, err := this._io.EOF()
 		if err != nil {
 			return err
 		}
-		if tmp124 {
+		if tmp133 {
 			break
 		}
-		tmp125, err := this._io.ReadBytesTerm(0, false, true, true)
+		tmp134, err := this._io.ReadBytesTerm(0, false, true, true)
 		if err != nil {
 			return err
 		}
-		this.Strings = append(this.Strings, string(tmp125))
+		this.Strings = append(this.Strings, string(tmp134))
 	}
 	return err
 }
-
-/**
- * Names header (28 bytes) - Located at offset 180
- */
-type Mdl_NamesHeader struct {
-	RootNodeOffset uint32
-	UnknownPadding uint32
-	MdxDataSize uint32
-	MdxDataOffset uint32
-	NamesArrayOffset uint32
-	NameCount uint32
-	NameCountDuplicate uint32
-	_io *kaitai.Stream
-	_root *Mdl
-	_parent *Mdl
-}
-func NewMdl_NamesHeader() *Mdl_NamesHeader {
-	return &Mdl_NamesHeader{
-	}
-}
-
-func (this Mdl_NamesHeader) IO_() *kaitai.Stream {
-	return this._io
-}
-
-func (this *Mdl_NamesHeader) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (err error) {
-	this._io = io
-	this._parent = parent
-	this._root = root
-
-	tmp126, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.RootNodeOffset = uint32(tmp126)
-	tmp127, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.UnknownPadding = uint32(tmp127)
-	tmp128, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.MdxDataSize = uint32(tmp128)
-	tmp129, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.MdxDataOffset = uint32(tmp129)
-	tmp130, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.NamesArrayOffset = uint32(tmp130)
-	tmp131, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.NameCount = uint32(tmp131)
-	tmp132, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.NameCountDuplicate = uint32(tmp132)
-	return err
-}
-
-/**
- * Offset to root node (often duplicate of geometry header value)
- */
-
-/**
- * Unknown field, typically unused or padding
- */
-
-/**
- * Size of MDX file data in bytes
- */
-
-/**
- * Offset to MDX data within MDX file (typically 0)
- */
-
-/**
- * Offset to array of name string offsets
- */
-
-/**
- * Number of node names in array
- */
-
-/**
- * Duplicate value of name count
- */
 
 /**
  * Node structure - starts with 80-byte header, followed by type-specific sub-header
@@ -2028,83 +2035,83 @@ func (this *Mdl_Node) Read(io *kaitai.Stream, parent *Mdl, root *Mdl) (err error
 	this._parent = parent
 	this._root = root
 
-	tmp133 := NewMdl_NodeHeader()
-	err = tmp133.Read(this._io, this, this._root)
+	tmp135 := NewMdl_NodeHeader()
+	err = tmp135.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.Header = tmp133
+	this.Header = tmp135
 	if (this.Header.NodeType == 3) {
-		tmp134 := NewMdl_LightHeader()
-		err = tmp134.Read(this._io, this, this._root)
-		if err != nil {
-			return err
-		}
-		this.LightSubHeader = tmp134
-	}
-	if (this.Header.NodeType == 5) {
-		tmp135 := NewMdl_EmitterHeader()
-		err = tmp135.Read(this._io, this, this._root)
-		if err != nil {
-			return err
-		}
-		this.EmitterSubHeader = tmp135
-	}
-	if (this.Header.NodeType == 17) {
-		tmp136 := NewMdl_ReferenceHeader()
+		tmp136 := NewMdl_LightHeader()
 		err = tmp136.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.ReferenceSubHeader = tmp136
+		this.LightSubHeader = tmp136
 	}
-	if (this.Header.NodeType == 33) {
-		tmp137 := NewMdl_TrimeshHeader()
+	if (this.Header.NodeType == 5) {
+		tmp137 := NewMdl_EmitterHeader()
 		err = tmp137.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.TrimeshSubHeader = tmp137
+		this.EmitterSubHeader = tmp137
 	}
-	if (this.Header.NodeType == 97) {
-		tmp138 := NewMdl_SkinmeshHeader()
+	if (this.Header.NodeType == 17) {
+		tmp138 := NewMdl_ReferenceHeader()
 		err = tmp138.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.SkinmeshSubHeader = tmp138
+		this.ReferenceSubHeader = tmp138
 	}
-	if (this.Header.NodeType == 161) {
-		tmp139 := NewMdl_AnimmeshHeader()
+	if (this.Header.NodeType == 33) {
+		tmp139 := NewMdl_TrimeshHeader()
 		err = tmp139.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.AnimmeshSubHeader = tmp139
+		this.TrimeshSubHeader = tmp139
 	}
-	if (this.Header.NodeType == 289) {
-		tmp140 := NewMdl_DanglymeshHeader()
+	if (this.Header.NodeType == 97) {
+		tmp140 := NewMdl_SkinmeshHeader()
 		err = tmp140.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.DanglymeshSubHeader = tmp140
+		this.SkinmeshSubHeader = tmp140
 	}
-	if (this.Header.NodeType == 545) {
-		tmp141 := NewMdl_AabbHeader()
+	if (this.Header.NodeType == 161) {
+		tmp141 := NewMdl_AnimmeshHeader()
 		err = tmp141.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.AabbSubHeader = tmp141
+		this.AnimmeshSubHeader = tmp141
 	}
-	if (this.Header.NodeType == 2081) {
-		tmp142 := NewMdl_LightsaberHeader()
+	if (this.Header.NodeType == 289) {
+		tmp142 := NewMdl_DanglymeshHeader()
 		err = tmp142.Read(this._io, this, this._root)
 		if err != nil {
 			return err
 		}
-		this.LightsaberSubHeader = tmp142
+		this.DanglymeshSubHeader = tmp142
+	}
+	if (this.Header.NodeType == 545) {
+		tmp143 := NewMdl_AabbHeader()
+		err = tmp143.Read(this._io, this, this._root)
+		if err != nil {
+			return err
+		}
+		this.AabbSubHeader = tmp143
+	}
+	if (this.Header.NodeType == 2081) {
+		tmp144 := NewMdl_LightsaberHeader()
+		err = tmp144.Read(this._io, this, this._root)
+		if err != nil {
+			return err
+		}
+		this.LightsaberSubHeader = tmp144
 	}
 	return err
 }
@@ -2166,93 +2173,93 @@ func (this *Mdl_NodeHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root *Mdl)
 	this._parent = parent
 	this._root = root
 
-	tmp143, err := this._io.ReadU2le()
-	if err != nil {
-		return err
-	}
-	this.NodeType = uint16(tmp143)
-	tmp144, err := this._io.ReadU2le()
-	if err != nil {
-		return err
-	}
-	this.NodeIndex = uint16(tmp144)
 	tmp145, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.NodeNameIndex = uint16(tmp145)
+	this.NodeType = uint16(tmp145)
 	tmp146, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.Padding = uint16(tmp146)
-	tmp147, err := this._io.ReadU4le()
+	this.NodeIndex = uint16(tmp146)
+	tmp147, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.RootNodeOffset = uint32(tmp147)
-	tmp148, err := this._io.ReadU4le()
+	this.NodeNameIndex = uint16(tmp147)
+	tmp148, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.ParentNodeOffset = uint32(tmp148)
-	tmp149 := NewMdl_Vec3f()
-	err = tmp149.Read(this._io, this, this._root)
+	this.Padding = uint16(tmp148)
+	tmp149, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Position = tmp149
-	tmp150 := NewMdl_Quaternion()
-	err = tmp150.Read(this._io, this, this._root)
+	this.RootNodeOffset = uint32(tmp149)
+	tmp150, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Orientation = tmp150
-	tmp151, err := this._io.ReadU4le()
+	this.ParentNodeOffset = uint32(tmp150)
+	tmp151 := NewMdl_Vec3f()
+	err = tmp151.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.ChildArrayOffset = uint32(tmp151)
-	tmp152, err := this._io.ReadU4le()
+	this.Position = tmp151
+	tmp152 := NewMdl_Quaternion()
+	err = tmp152.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.ChildCount = uint32(tmp152)
+	this.Orientation = tmp152
 	tmp153, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ChildCountDuplicate = uint32(tmp153)
+	this.ChildArrayOffset = uint32(tmp153)
 	tmp154, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControllerArrayOffset = uint32(tmp154)
+	this.ChildCount = uint32(tmp154)
 	tmp155, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControllerCount = uint32(tmp155)
+	this.ChildCountDuplicate = uint32(tmp155)
 	tmp156, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControllerCountDuplicate = uint32(tmp156)
+	this.ControllerArrayOffset = uint32(tmp156)
 	tmp157, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControllerDataOffset = uint32(tmp157)
+	this.ControllerCount = uint32(tmp157)
 	tmp158, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControllerDataCount = uint32(tmp158)
+	this.ControllerCountDuplicate = uint32(tmp158)
 	tmp159, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.ControllerDataCountDuplicate = uint32(tmp159)
+	this.ControllerDataOffset = uint32(tmp159)
+	tmp160, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.ControllerDataCount = uint32(tmp160)
+	tmp161, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.ControllerDataCountDuplicate = uint32(tmp161)
 	return err
 }
 func (this *Mdl_NodeHeader) HasAabb() (v bool, err error) {
@@ -2433,26 +2440,26 @@ func (this *Mdl_Quaternion) Read(io *kaitai.Stream, parent *Mdl_NodeHeader, root
 	this._parent = parent
 	this._root = root
 
-	tmp160, err := this._io.ReadF4le()
-	if err != nil {
-		return err
-	}
-	this.W = float32(tmp160)
-	tmp161, err := this._io.ReadF4le()
-	if err != nil {
-		return err
-	}
-	this.X = float32(tmp161)
 	tmp162, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Y = float32(tmp162)
+	this.W = float32(tmp162)
 	tmp163, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Z = float32(tmp163)
+	this.X = float32(tmp163)
+	tmp164, err := this._io.ReadF4le()
+	if err != nil {
+		return err
+	}
+	this.Y = float32(tmp164)
+	tmp165, err := this._io.ReadF4le()
+	if err != nil {
+		return err
+	}
+	this.Z = float32(tmp165)
 	return err
 }
 
@@ -2480,17 +2487,17 @@ func (this *Mdl_ReferenceHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root 
 	this._parent = parent
 	this._root = root
 
-	tmp164, err := this._io.ReadBytes(int(32))
+	tmp166, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
-	tmp164 = kaitai.BytesTerminate(tmp164, 0, false)
-	this.ModelResref = string(tmp164)
-	tmp165, err := this._io.ReadU4le()
+	tmp166 = kaitai.BytesTerminate(tmp166, 0, false)
+	this.ModelResref = string(tmp166)
+	tmp167, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Reattachable = uint32(tmp165)
+	this.Reattachable = uint32(tmp167)
 	return err
 }
 
@@ -2540,93 +2547,93 @@ func (this *Mdl_SkinmeshHeader) Read(io *kaitai.Stream, parent *Mdl_Node, root *
 	this._parent = parent
 	this._root = root
 
-	tmp166 := NewMdl_TrimeshHeader()
-	err = tmp166.Read(this._io, this, this._root)
+	tmp168 := NewMdl_TrimeshHeader()
+	err = tmp168.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.TrimeshBase = tmp166
-	tmp167, err := this._io.ReadS4le()
+	this.TrimeshBase = tmp168
+	tmp169, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.UnknownWeights = int32(tmp167)
+	this.UnknownWeights = int32(tmp169)
 	for i := 0; i < int(8); i++ {
 		_ = i
-		tmp168, err := this._io.ReadU1()
+		tmp170, err := this._io.ReadU1()
 		if err != nil {
 			return err
 		}
-		this.Padding1 = append(this.Padding1, tmp168)
+		this.Padding1 = append(this.Padding1, tmp170)
 	}
-	tmp169, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.MdxBoneWeightsOffset = uint32(tmp169)
-	tmp170, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.MdxBoneIndicesOffset = uint32(tmp170)
 	tmp171, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.BoneMapOffset = uint32(tmp171)
+	this.MdxBoneWeightsOffset = uint32(tmp171)
 	tmp172, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.BoneMapCount = uint32(tmp172)
+	this.MdxBoneIndicesOffset = uint32(tmp172)
 	tmp173, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.QbonesOffset = uint32(tmp173)
+	this.BoneMapOffset = uint32(tmp173)
 	tmp174, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.QbonesCount = uint32(tmp174)
+	this.BoneMapCount = uint32(tmp174)
 	tmp175, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.QbonesCountDuplicate = uint32(tmp175)
+	this.QbonesOffset = uint32(tmp175)
 	tmp176, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.TbonesOffset = uint32(tmp176)
+	this.QbonesCount = uint32(tmp176)
 	tmp177, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.TbonesCount = uint32(tmp177)
+	this.QbonesCountDuplicate = uint32(tmp177)
 	tmp178, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.TbonesCountDuplicate = uint32(tmp178)
+	this.TbonesOffset = uint32(tmp178)
 	tmp179, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.UnknownArray = uint32(tmp179)
-	for i := 0; i < int(16); i++ {
-		_ = i
-		tmp180, err := this._io.ReadU2le()
-		if err != nil {
-			return err
-		}
-		this.BoneNodeSerialNumbers = append(this.BoneNodeSerialNumbers, tmp180)
-	}
-	tmp181, err := this._io.ReadU2le()
+	this.TbonesCount = uint32(tmp179)
+	tmp180, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Padding2 = uint16(tmp181)
+	this.TbonesCountDuplicate = uint32(tmp180)
+	tmp181, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.UnknownArray = uint32(tmp181)
+	for i := 0; i < int(16); i++ {
+		_ = i
+		tmp182, err := this._io.ReadU2le()
+		if err != nil {
+			return err
+		}
+		this.BoneNodeSerialNumbers = append(this.BoneNodeSerialNumbers, tmp182)
+	}
+	tmp183, err := this._io.ReadU2le()
+	if err != nil {
+		return err
+	}
+	this.Padding2 = uint16(tmp183)
 	return err
 }
 
@@ -2776,314 +2783,303 @@ func (this *Mdl_TrimeshHeader) Read(io *kaitai.Stream, parent kaitai.Struct, roo
 	this._parent = parent
 	this._root = root
 
-	tmp182, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.FunctionPointer0 = uint32(tmp182)
-	tmp183, err := this._io.ReadU4le()
-	if err != nil {
-		return err
-	}
-	this.FunctionPointer1 = uint32(tmp183)
 	tmp184, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FacesArrayOffset = uint32(tmp184)
+	this.FunctionPointer0 = uint32(tmp184)
 	tmp185, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FacesCount = uint32(tmp185)
+	this.FunctionPointer1 = uint32(tmp185)
 	tmp186, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.FacesCountDuplicate = uint32(tmp186)
-	tmp187 := NewMdl_Vec3f()
-	err = tmp187.Read(this._io, this, this._root)
+	this.FacesArrayOffset = uint32(tmp186)
+	tmp187, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.BoundingBoxMin = tmp187
-	tmp188 := NewMdl_Vec3f()
-	err = tmp188.Read(this._io, this, this._root)
+	this.FacesCount = uint32(tmp187)
+	tmp188, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.BoundingBoxMax = tmp188
-	tmp189, err := this._io.ReadF4le()
+	this.FacesCountDuplicate = uint32(tmp188)
+	tmp189 := NewMdl_Vec3f()
+	err = tmp189.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.Radius = float32(tmp189)
+	this.BoundingBoxMin = tmp189
 	tmp190 := NewMdl_Vec3f()
 	err = tmp190.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.AveragePoint = tmp190
-	tmp191 := NewMdl_Vec3f()
-	err = tmp191.Read(this._io, this, this._root)
+	this.BoundingBoxMax = tmp190
+	tmp191, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.DiffuseColor = tmp191
+	this.Radius = float32(tmp191)
 	tmp192 := NewMdl_Vec3f()
 	err = tmp192.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.AmbientColor = tmp192
-	tmp193, err := this._io.ReadU4le()
+	this.AveragePoint = tmp192
+	tmp193 := NewMdl_Vec3f()
+	err = tmp193.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.TransparencyHint = uint32(tmp193)
-	tmp194, err := this._io.ReadBytes(int(32))
+	this.DiffuseColor = tmp193
+	tmp194 := NewMdl_Vec3f()
+	err = tmp194.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	tmp194 = kaitai.BytesTerminate(tmp194, 0, false)
-	this.Texture0Name = string(tmp194)
-	tmp195, err := this._io.ReadBytes(int(32))
+	this.AmbientColor = tmp194
+	tmp195, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	tmp195 = kaitai.BytesTerminate(tmp195, 0, false)
-	this.Texture1Name = string(tmp195)
-	tmp196, err := this._io.ReadBytes(int(12))
+	this.TransparencyHint = uint32(tmp195)
+	tmp196, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
 	tmp196 = kaitai.BytesTerminate(tmp196, 0, false)
-	this.Texture2Name = string(tmp196)
-	tmp197, err := this._io.ReadBytes(int(12))
+	this.Texture0Name = string(tmp196)
+	tmp197, err := this._io.ReadBytes(int(32))
 	if err != nil {
 		return err
 	}
 	tmp197 = kaitai.BytesTerminate(tmp197, 0, false)
-	this.Texture3Name = string(tmp197)
-	tmp198, err := this._io.ReadU4le()
+	this.Texture1Name = string(tmp197)
+	tmp198, err := this._io.ReadBytes(int(12))
 	if err != nil {
 		return err
 	}
-	this.IndicesCountArrayOffset = uint32(tmp198)
-	tmp199, err := this._io.ReadU4le()
+	tmp198 = kaitai.BytesTerminate(tmp198, 0, false)
+	this.Texture2Name = string(tmp198)
+	tmp199, err := this._io.ReadBytes(int(12))
 	if err != nil {
 		return err
 	}
-	this.IndicesCountArrayCount = uint32(tmp199)
+	tmp199 = kaitai.BytesTerminate(tmp199, 0, false)
+	this.Texture3Name = string(tmp199)
 	tmp200, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.IndicesCountArrayCountDuplicate = uint32(tmp200)
+	this.IndicesCountArrayOffset = uint32(tmp200)
 	tmp201, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.IndicesOffsetArrayOffset = uint32(tmp201)
+	this.IndicesCountArrayCount = uint32(tmp201)
 	tmp202, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.IndicesOffsetArrayCount = uint32(tmp202)
+	this.IndicesCountArrayCountDuplicate = uint32(tmp202)
 	tmp203, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.IndicesOffsetArrayCountDuplicate = uint32(tmp203)
+	this.IndicesOffsetArrayOffset = uint32(tmp203)
 	tmp204, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.InvertedCounterArrayOffset = uint32(tmp204)
+	this.IndicesOffsetArrayCount = uint32(tmp204)
 	tmp205, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.InvertedCounterArrayCount = uint32(tmp205)
+	this.IndicesOffsetArrayCountDuplicate = uint32(tmp205)
 	tmp206, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.InvertedCounterArrayCountDuplicate = uint32(tmp206)
+	this.InvertedCounterArrayOffset = uint32(tmp206)
+	tmp207, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.InvertedCounterArrayCount = uint32(tmp207)
+	tmp208, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.InvertedCounterArrayCountDuplicate = uint32(tmp208)
 	for i := 0; i < int(3); i++ {
 		_ = i
-		tmp207, err := this._io.ReadS4le()
+		tmp209, err := this._io.ReadS4le()
 		if err != nil {
 			return err
 		}
-		this.UnknownValues = append(this.UnknownValues, tmp207)
+		this.UnknownValues = append(this.UnknownValues, tmp209)
 	}
 	for i := 0; i < int(8); i++ {
 		_ = i
-		tmp208, err := this._io.ReadU1()
+		tmp210, err := this._io.ReadU1()
 		if err != nil {
 			return err
 		}
-		this.SaberUnknownData = append(this.SaberUnknownData, tmp208)
+		this.SaberUnknownData = append(this.SaberUnknownData, tmp210)
 	}
-	tmp209, err := this._io.ReadU4le()
+	tmp211, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.Unknown = uint32(tmp209)
-	tmp210 := NewMdl_Vec3f()
-	err = tmp210.Read(this._io, this, this._root)
+	this.Unknown = uint32(tmp211)
+	tmp212 := NewMdl_Vec3f()
+	err = tmp212.Read(this._io, this, this._root)
 	if err != nil {
 		return err
 	}
-	this.UvDirection = tmp210
-	tmp211, err := this._io.ReadF4le()
+	this.UvDirection = tmp212
+	tmp213, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.UvJitter = float32(tmp211)
-	tmp212, err := this._io.ReadF4le()
+	this.UvJitter = float32(tmp213)
+	tmp214, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.UvJitterSpeed = float32(tmp212)
-	tmp213, err := this._io.ReadU4le()
+	this.UvJitterSpeed = float32(tmp214)
+	tmp215, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.MdxVertexSize = uint32(tmp213)
-	tmp214, err := this._io.ReadU4le()
+	this.MdxVertexSize = uint32(tmp215)
+	tmp216, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.MdxDataFlags = uint32(tmp214)
-	tmp215, err := this._io.ReadS4le()
-	if err != nil {
-		return err
-	}
-	this.MdxVerticesOffset = int32(tmp215)
-	tmp216, err := this._io.ReadS4le()
-	if err != nil {
-		return err
-	}
-	this.MdxNormalsOffset = int32(tmp216)
+	this.MdxDataFlags = uint32(tmp216)
 	tmp217, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxVertexColorsOffset = int32(tmp217)
+	this.MdxVerticesOffset = int32(tmp217)
 	tmp218, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxTex0UvsOffset = int32(tmp218)
+	this.MdxNormalsOffset = int32(tmp218)
 	tmp219, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxTex1UvsOffset = int32(tmp219)
+	this.MdxVertexColorsOffset = int32(tmp219)
 	tmp220, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxTex2UvsOffset = int32(tmp220)
+	this.MdxTex0UvsOffset = int32(tmp220)
 	tmp221, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxTex3UvsOffset = int32(tmp221)
+	this.MdxTex1UvsOffset = int32(tmp221)
 	tmp222, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxTangentSpaceOffset = int32(tmp222)
+	this.MdxTex2UvsOffset = int32(tmp222)
 	tmp223, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxUnknownOffset1 = int32(tmp223)
+	this.MdxTex3UvsOffset = int32(tmp223)
 	tmp224, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxUnknownOffset2 = int32(tmp224)
+	this.MdxTangentSpaceOffset = int32(tmp224)
 	tmp225, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.MdxUnknownOffset3 = int32(tmp225)
-	tmp226, err := this._io.ReadU2le()
+	this.MdxUnknownOffset1 = int32(tmp225)
+	tmp226, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.VertexCount = uint16(tmp226)
-	tmp227, err := this._io.ReadU2le()
+	this.MdxUnknownOffset2 = int32(tmp226)
+	tmp227, err := this._io.ReadS4le()
 	if err != nil {
 		return err
 	}
-	this.TextureCount = uint16(tmp227)
-	tmp228, err := this._io.ReadU1()
+	this.MdxUnknownOffset3 = int32(tmp227)
+	tmp228, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.Lightmapped = tmp228
-	tmp229, err := this._io.ReadU1()
+	this.VertexCount = uint16(tmp228)
+	tmp229, err := this._io.ReadU2le()
 	if err != nil {
 		return err
 	}
-	this.RotateTexture = tmp229
+	this.TextureCount = uint16(tmp229)
 	tmp230, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.BackgroundGeometry = tmp230
+	this.Lightmapped = tmp230
 	tmp231, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Shadow = tmp231
+	this.RotateTexture = tmp231
 	tmp232, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Beaming = tmp232
+	this.BackgroundGeometry = tmp232
 	tmp233, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Render = tmp233
+	this.Shadow = tmp233
 	tmp234, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.UnknownFlag = tmp234
+	this.Beaming = tmp234
 	tmp235, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Padding = tmp235
-	tmp236, err := this._io.ReadF4le()
+	this.Render = tmp235
+	tmp236, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.TotalArea = float32(tmp236)
-	tmp237, err := this._io.ReadU4le()
+	this.UnknownFlag = tmp236
+	tmp237, err := this._io.ReadU1()
 	if err != nil {
 		return err
 	}
-	this.Unknown2 = uint32(tmp237)
-	tmp238, err := this._root.GeometryHeader.IsKotor2()
+	this.Padding = tmp237
+	tmp238, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	if (tmp238) {
-		tmp239, err := this._io.ReadU4le()
-		if err != nil {
-			return err
-		}
-		this.K2Unknown1 = uint32(tmp239)
+	this.TotalArea = float32(tmp238)
+	tmp239, err := this._io.ReadU4le()
+	if err != nil {
+		return err
 	}
-	tmp240, err := this._root.GeometryHeader.IsKotor2()
+	this.Unknown2 = uint32(tmp239)
+	tmp240, err := this._root.ModelHeader.Geometry.IsKotor2()
 	if err != nil {
 		return err
 	}
@@ -3092,18 +3088,29 @@ func (this *Mdl_TrimeshHeader) Read(io *kaitai.Stream, parent kaitai.Struct, roo
 		if err != nil {
 			return err
 		}
-		this.K2Unknown2 = uint32(tmp241)
+		this.K2Unknown1 = uint32(tmp241)
 	}
-	tmp242, err := this._io.ReadU4le()
+	tmp242, err := this._root.ModelHeader.Geometry.IsKotor2()
 	if err != nil {
 		return err
 	}
-	this.MdxDataOffset = uint32(tmp242)
-	tmp243, err := this._io.ReadU4le()
+	if (tmp242) {
+		tmp243, err := this._io.ReadU4le()
+		if err != nil {
+			return err
+		}
+		this.K2Unknown2 = uint32(tmp243)
+	}
+	tmp244, err := this._io.ReadU4le()
 	if err != nil {
 		return err
 	}
-	this.MdlVerticesOffset = uint32(tmp243)
+	this.MdxDataOffset = uint32(tmp244)
+	tmp245, err := this._io.ReadU4le()
+	if err != nil {
+		return err
+	}
+	this.MdlVerticesOffset = uint32(tmp245)
 	return err
 }
 
@@ -3380,20 +3387,20 @@ func (this *Mdl_Vec3f) Read(io *kaitai.Stream, parent kaitai.Struct, root *Mdl) 
 	this._parent = parent
 	this._root = root
 
-	tmp244, err := this._io.ReadF4le()
-	if err != nil {
-		return err
-	}
-	this.X = float32(tmp244)
-	tmp245, err := this._io.ReadF4le()
-	if err != nil {
-		return err
-	}
-	this.Y = float32(tmp245)
 	tmp246, err := this._io.ReadF4le()
 	if err != nil {
 		return err
 	}
-	this.Z = float32(tmp246)
+	this.X = float32(tmp246)
+	tmp247, err := this._io.ReadF4le()
+	if err != nil {
+		return err
+	}
+	this.Y = float32(tmp247)
+	tmp248, err := this._io.ReadF4le()
+	if err != nil {
+		return err
+	}
+	this.Z = float32(tmp248)
 	return err
 }

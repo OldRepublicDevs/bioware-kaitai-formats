@@ -4,17 +4,17 @@ import options
 type
   Mdl* = ref object of KaitaiStruct
     `fileHeader`*: Mdl_FileHeader
-    `geometryHeader`*: Mdl_GeometryHeader
     `modelHeader`*: Mdl_ModelHeader
-    `namesHeader`*: Mdl_NamesHeader
     `parent`*: KaitaiStruct
     `rawNamesDataInst`*: seq[byte]
+    `animationOffsetsInst`: seq[uint32]
+    `animationOffsetsInstFlag`: bool
     `animationsInst`: seq[Mdl_AnimationHeader]
     `animationsInstFlag`: bool
     `dataStartInst`: int8
     `dataStartInstFlag`: bool
-    `nameIndexesInst`: seq[uint32]
-    `nameIndexesInstFlag`: bool
+    `nameOffsetsInst`: seq[uint32]
+    `nameOffsetsInstFlag`: bool
     `namesDataInst`: Mdl_NameStrings
     `namesDataInstFlag`: bool
     `rootNodeInst`: Mdl_Node
@@ -172,32 +172,31 @@ type
     `unknown2`*: uint32
     `parent`*: Mdl_Node
   Mdl_ModelHeader* = ref object of KaitaiStruct
-    `classification`*: uint8
-    `subclassification`*: uint8
-    `unknown`*: uint8
-    `affectedByFog`*: uint8
-    `childModelCount`*: uint32
-    `animationArrayOffset`*: uint32
+    `geometry`*: Mdl_GeometryHeader
+    `modelType`*: uint8
+    `unknown0`*: uint8
+    `padding0`*: uint8
+    `fog`*: uint8
+    `unknown1`*: uint32
+    `offsetToAnimations`*: uint32
     `animationCount`*: uint32
-    `animationCountDuplicate`*: uint32
-    `parentModelPointer`*: uint32
+    `animationCount2`*: uint32
+    `unknown2`*: uint32
     `boundingBoxMin`*: Mdl_Vec3f
     `boundingBoxMax`*: Mdl_Vec3f
     `radius`*: float32
     `animationScale`*: float32
     `supermodelName`*: string
+    `offsetToSuperRoot`*: uint32
+    `unknown3`*: uint32
+    `mdxDataSize`*: uint32
+    `mdxDataOffset`*: uint32
+    `offsetToNameOffsets`*: uint32
+    `nameOffsetsCount`*: uint32
+    `nameOffsetsCount2`*: uint32
     `parent`*: Mdl
   Mdl_NameStrings* = ref object of KaitaiStruct
     `strings`*: seq[string]
-    `parent`*: Mdl
-  Mdl_NamesHeader* = ref object of KaitaiStruct
-    `rootNodeOffset`*: uint32
-    `unknownPadding`*: uint32
-    `mdxDataSize`*: uint32
-    `mdxDataOffset`*: uint32
-    `namesArrayOffset`*: uint32
-    `nameCount`*: uint32
-    `nameCountDuplicate`*: uint32
     `parent`*: Mdl
   Mdl_Node* = ref object of KaitaiStruct
     `header`*: Mdl_NodeHeader
@@ -359,7 +358,6 @@ proc read*(_: typedesc[Mdl_LightHeader], io: KaitaiStream, root: KaitaiStruct, p
 proc read*(_: typedesc[Mdl_LightsaberHeader], io: KaitaiStream, root: KaitaiStruct, parent: Mdl_Node): Mdl_LightsaberHeader
 proc read*(_: typedesc[Mdl_ModelHeader], io: KaitaiStream, root: KaitaiStruct, parent: Mdl): Mdl_ModelHeader
 proc read*(_: typedesc[Mdl_NameStrings], io: KaitaiStream, root: KaitaiStruct, parent: Mdl): Mdl_NameStrings
-proc read*(_: typedesc[Mdl_NamesHeader], io: KaitaiStream, root: KaitaiStruct, parent: Mdl): Mdl_NamesHeader
 proc read*(_: typedesc[Mdl_Node], io: KaitaiStream, root: KaitaiStruct, parent: Mdl): Mdl_Node
 proc read*(_: typedesc[Mdl_NodeHeader], io: KaitaiStream, root: KaitaiStruct, parent: Mdl_Node): Mdl_NodeHeader
 proc read*(_: typedesc[Mdl_Quaternion], io: KaitaiStream, root: KaitaiStruct, parent: Mdl_NodeHeader): Mdl_Quaternion
@@ -368,9 +366,10 @@ proc read*(_: typedesc[Mdl_SkinmeshHeader], io: KaitaiStream, root: KaitaiStruct
 proc read*(_: typedesc[Mdl_TrimeshHeader], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Mdl_TrimeshHeader
 proc read*(_: typedesc[Mdl_Vec3f], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Mdl_Vec3f
 
+proc animationOffsets*(this: Mdl): seq[uint32]
 proc animations*(this: Mdl): seq[Mdl_AnimationHeader]
 proc dataStart*(this: Mdl): int8
-proc nameIndexes*(this: Mdl): seq[uint32]
+proc nameOffsets*(this: Mdl): seq[uint32]
 proc namesData*(this: Mdl): Mdl_NameStrings
 proc rootNode*(this: Mdl): Mdl_Node
 proc usesBezier*(this: Mdl_Controller): bool
@@ -391,15 +390,13 @@ BioWare MDL Model Format
 
 The MDL file contains:
 - File header (12 bytes)
-- Geometry header (80 bytes)
-- Model header (92 bytes)
-- Names header (28 bytes)
-- Node name arrays
-- Animation headers and nodes
+- Model header (196 bytes) which begins with a Geometry header (80 bytes)
+- Name offset array + name strings
+- Animation offset array + animation headers + animation nodes
 - Node hierarchy with geometry data
 
 Reference implementations:
-- https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+- https://github.com/th3w1zard1/MDLOpsM.pm
 - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 
 @see <a href="https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md">Source</a>
@@ -414,23 +411,36 @@ proc read*(_: typedesc[Mdl], io: KaitaiStream, root: KaitaiStruct, parent: Kaita
 
   let fileHeaderExpr = Mdl_FileHeader.read(this.io, this.root, this)
   this.fileHeader = fileHeaderExpr
-  let geometryHeaderExpr = Mdl_GeometryHeader.read(this.io, this.root, this)
-  this.geometryHeader = geometryHeaderExpr
   let modelHeaderExpr = Mdl_ModelHeader.read(this.io, this.root, this)
   this.modelHeader = modelHeaderExpr
-  let namesHeaderExpr = Mdl_NamesHeader.read(this.io, this.root, this)
-  this.namesHeader = namesHeaderExpr
+
+proc animationOffsets(this: Mdl): seq[uint32] = 
+
+  ##[
+  Animation header offsets (relative to data_start)
+  ]##
+  if this.animationOffsetsInstFlag:
+    return this.animationOffsetsInst
+  if this.modelHeader.animationCount > 0:
+    let pos = this.io.pos()
+    this.io.seek(int(this.dataStart + this.modelHeader.offsetToAnimations))
+    for i in 0 ..< int(this.modelHeader.animationCount):
+      let it = this.io.readU4le()
+      this.animationOffsetsInst.add(it)
+    this.io.seek(pos)
+  this.animationOffsetsInstFlag = true
+  return this.animationOffsetsInst
 
 proc animations(this: Mdl): seq[Mdl_AnimationHeader] = 
 
   ##[
-  Animation header array
+  Animation headers (resolved via animation_offsets)
   ]##
   if this.animationsInstFlag:
     return this.animationsInst
   if this.modelHeader.animationCount > 0:
     let pos = this.io.pos()
-    this.io.seek(int(this.dataStart + this.modelHeader.animationArrayOffset))
+    this.io.seek(int(this.dataStart + this.animationOffsets[i]))
     for i in 0 ..< int(this.modelHeader.animationCount):
       let it = Mdl_AnimationHeader.read(this.io, this.root, this)
       this.animationsInst.add(it)
@@ -452,36 +462,36 @@ section, which begins immediately after the 12-byte file header.
   this.dataStartInstFlag = true
   return this.dataStartInst
 
-proc nameIndexes(this: Mdl): seq[uint32] = 
+proc nameOffsets(this: Mdl): seq[uint32] = 
 
   ##[
-  Array of name string offsets (relative to data_start)
+  Name string offsets (relative to data_start)
   ]##
-  if this.nameIndexesInstFlag:
-    return this.nameIndexesInst
-  if this.namesHeader.nameCount > 0:
+  if this.nameOffsetsInstFlag:
+    return this.nameOffsetsInst
+  if this.modelHeader.nameOffsetsCount > 0:
     let pos = this.io.pos()
-    this.io.seek(int(this.dataStart + this.namesHeader.namesArrayOffset))
-    for i in 0 ..< int(this.namesHeader.nameCount):
+    this.io.seek(int(this.dataStart + this.modelHeader.offsetToNameOffsets))
+    for i in 0 ..< int(this.modelHeader.nameOffsetsCount):
       let it = this.io.readU4le()
-      this.nameIndexesInst.add(it)
+      this.nameOffsetsInst.add(it)
     this.io.seek(pos)
-  this.nameIndexesInstFlag = true
-  return this.nameIndexesInst
+  this.nameOffsetsInstFlag = true
+  return this.nameOffsetsInst
 
 proc namesData(this: Mdl): Mdl_NameStrings = 
 
   ##[
-  Name string blob (substream). This follows the name index array and continues up to the animation array.
+  Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
 Parsed as null-terminated ASCII strings in `name_strings`.
 
   ]##
   if this.namesDataInstFlag:
     return this.namesDataInst
-  if this.namesHeader.nameCount > 0:
+  if this.modelHeader.nameOffsetsCount > 0:
     let pos = this.io.pos()
-    this.io.seek(int((this.dataStart + this.namesHeader.namesArrayOffset) + 4 * this.namesHeader.nameCount))
-    let rawNamesDataInstExpr = this.io.readBytes(int((this.dataStart + this.modelHeader.animationArrayOffset) - ((this.dataStart + this.namesHeader.namesArrayOffset) + 4 * this.namesHeader.nameCount)))
+    this.io.seek(int((this.dataStart + this.modelHeader.offsetToNameOffsets) + 4 * this.modelHeader.nameOffsetsCount))
+    let rawNamesDataInstExpr = this.io.readBytes(int((this.dataStart + this.modelHeader.offsetToAnimations) - ((this.dataStart + this.modelHeader.offsetToNameOffsets) + 4 * this.modelHeader.nameOffsetsCount)))
     this.rawNamesDataInst = rawNamesDataInstExpr
     let rawNamesDataInstIo = newKaitaiStream(rawNamesDataInstExpr)
     let namesDataInstExpr = Mdl_NameStrings.read(rawNamesDataInstIo, this.root, this)
@@ -493,9 +503,9 @@ Parsed as null-terminated ASCII strings in `name_strings`.
 proc rootNode(this: Mdl): Mdl_Node = 
   if this.rootNodeInstFlag:
     return this.rootNodeInst
-  if this.geometryHeader.rootNodeOffset > 0:
+  if this.modelHeader.geometry.rootNodeOffset > 0:
     let pos = this.io.pos()
-    this.io.seek(int(this.dataStart + this.geometryHeader.rootNodeOffset))
+    this.io.seek(int(this.dataStart + this.modelHeader.geometry.rootNodeOffset))
     let rootNodeInstExpr = Mdl_Node.read(this.io, this.root, this)
     this.rootNodeInst = rootNodeInstExpr
     this.io.seek(pos)
@@ -1374,7 +1384,10 @@ proc fromFile*(_: typedesc[Mdl_LightsaberHeader], filename: string): Mdl_Lightsa
 
 
 ##[
-Model header (92 bytes) - Located at offset 92
+Model header (196 bytes) starting at offset 12 (data_start).
+This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+model-wide metadata, offsets, and counts.
+
 ]##
 proc read*(_: typedesc[Mdl_ModelHeader], io: KaitaiStream, root: KaitaiStruct, parent: Mdl): Mdl_ModelHeader =
   template this: untyped = result
@@ -1386,49 +1399,46 @@ proc read*(_: typedesc[Mdl_ModelHeader], io: KaitaiStream, root: KaitaiStruct, p
 
 
   ##[
-  Model classification:
-- 0x00: Other
-- 0x01: Effect
-- 0x02: Tile
-- 0x04: Character
-- 0x08: Door
-- 0x10: Lightsaber
-- 0x20: Placeable
-- 0x40: Flyer
-
+  Geometry header (80 bytes)
   ]##
-  let classificationExpr = this.io.readU1()
-  this.classification = classificationExpr
+  let geometryExpr = Mdl_GeometryHeader.read(this.io, this.root, this)
+  this.geometry = geometryExpr
 
   ##[
-  Model subclassification value
+  Model classification byte
   ]##
-  let subclassificationExpr = this.io.readU1()
-  this.subclassification = subclassificationExpr
+  let modelTypeExpr = this.io.readU1()
+  this.modelType = modelTypeExpr
 
   ##[
-  Purpose unknown (possibly smoothing-related)
+  TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
   ]##
-  let unknownExpr = this.io.readU1()
-  this.unknown = unknownExpr
+  let unknown0Expr = this.io.readU1()
+  this.unknown0 = unknown0Expr
 
   ##[
-  0 = Not affected by fog, 1 = Affected by fog
+  Padding byte
   ]##
-  let affectedByFogExpr = this.io.readU1()
-  this.affectedByFog = affectedByFogExpr
+  let padding0Expr = this.io.readU1()
+  this.padding0 = padding0Expr
 
   ##[
-  Number of child models
+  Fog interaction (1 = affected, 0 = ignore fog)
   ]##
-  let childModelCountExpr = this.io.readU4le()
-  this.childModelCount = childModelCountExpr
+  let fogExpr = this.io.readU1()
+  this.fog = fogExpr
 
   ##[
-  Offset to animation array (relative to MDL data start, offset 12)
+  TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
   ]##
-  let animationArrayOffsetExpr = this.io.readU4le()
-  this.animationArrayOffset = animationArrayOffsetExpr
+  let unknown1Expr = this.io.readU4le()
+  this.unknown1 = unknown1Expr
+
+  ##[
+  Offset to animation offset array (relative to data_start)
+  ]##
+  let offsetToAnimationsExpr = this.io.readU4le()
+  this.offsetToAnimations = offsetToAnimationsExpr
 
   ##[
   Number of animations
@@ -1437,16 +1447,16 @@ proc read*(_: typedesc[Mdl_ModelHeader], io: KaitaiStream, root: KaitaiStruct, p
   this.animationCount = animationCountExpr
 
   ##[
-  Duplicate value of animation count
+  Duplicate animation count / allocated count
   ]##
-  let animationCountDuplicateExpr = this.io.readU4le()
-  this.animationCountDuplicate = animationCountDuplicateExpr
+  let animationCount2Expr = this.io.readU4le()
+  this.animationCount2 = animationCount2Expr
 
   ##[
-  Pointer to parent model (context-dependent)
+  TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
   ]##
-  let parentModelPointerExpr = this.io.readU4le()
-  this.parentModelPointer = parentModelPointerExpr
+  let unknown2Expr = this.io.readU4le()
+  this.unknown2 = unknown2Expr
 
   ##[
   Minimum coordinates of bounding box (X, Y, Z)
@@ -1478,6 +1488,48 @@ proc read*(_: typedesc[Mdl_ModelHeader], io: KaitaiStream, root: KaitaiStruct, p
   let supermodelNameExpr = encode(this.io.readBytes(int(32)).bytesTerminate(0, false), "ASCII")
   this.supermodelName = supermodelNameExpr
 
+  ##[
+  TODO: VERIFY - offset to super-root node (relative to data_start)
+  ]##
+  let offsetToSuperRootExpr = this.io.readU4le()
+  this.offsetToSuperRoot = offsetToSuperRootExpr
+
+  ##[
+  TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+  ]##
+  let unknown3Expr = this.io.readU4le()
+  this.unknown3 = unknown3Expr
+
+  ##[
+  Size of MDX file data in bytes
+  ]##
+  let mdxDataSizeExpr = this.io.readU4le()
+  this.mdxDataSize = mdxDataSizeExpr
+
+  ##[
+  Offset to MDX data (typically 0)
+  ]##
+  let mdxDataOffsetExpr = this.io.readU4le()
+  this.mdxDataOffset = mdxDataOffsetExpr
+
+  ##[
+  Offset to name offset array (relative to data_start)
+  ]##
+  let offsetToNameOffsetsExpr = this.io.readU4le()
+  this.offsetToNameOffsets = offsetToNameOffsetsExpr
+
+  ##[
+  Count of name offsets / partnames
+  ]##
+  let nameOffsetsCountExpr = this.io.readU4le()
+  this.nameOffsetsCount = nameOffsetsCountExpr
+
+  ##[
+  Duplicate name offsets count / allocated count
+  ]##
+  let nameOffsetsCount2Expr = this.io.readU4le()
+  this.nameOffsetsCount2 = nameOffsetsCount2Expr
+
 proc fromFile*(_: typedesc[Mdl_ModelHeader], filename: string): Mdl_ModelHeader =
   Mdl_ModelHeader.read(newKaitaiFileStream(filename), nil, nil)
 
@@ -1502,64 +1554,6 @@ proc read*(_: typedesc[Mdl_NameStrings], io: KaitaiStream, root: KaitaiStruct, p
 
 proc fromFile*(_: typedesc[Mdl_NameStrings], filename: string): Mdl_NameStrings =
   Mdl_NameStrings.read(newKaitaiFileStream(filename), nil, nil)
-
-
-##[
-Names header (28 bytes) - Located at offset 180
-]##
-proc read*(_: typedesc[Mdl_NamesHeader], io: KaitaiStream, root: KaitaiStruct, parent: Mdl): Mdl_NamesHeader =
-  template this: untyped = result
-  this = new(Mdl_NamesHeader)
-  let root = if root == nil: cast[Mdl](this) else: cast[Mdl](root)
-  this.io = io
-  this.root = root
-  this.parent = parent
-
-
-  ##[
-  Offset to root node (often duplicate of geometry header value)
-  ]##
-  let rootNodeOffsetExpr = this.io.readU4le()
-  this.rootNodeOffset = rootNodeOffsetExpr
-
-  ##[
-  Unknown field, typically unused or padding
-  ]##
-  let unknownPaddingExpr = this.io.readU4le()
-  this.unknownPadding = unknownPaddingExpr
-
-  ##[
-  Size of MDX file data in bytes
-  ]##
-  let mdxDataSizeExpr = this.io.readU4le()
-  this.mdxDataSize = mdxDataSizeExpr
-
-  ##[
-  Offset to MDX data within MDX file (typically 0)
-  ]##
-  let mdxDataOffsetExpr = this.io.readU4le()
-  this.mdxDataOffset = mdxDataOffsetExpr
-
-  ##[
-  Offset to array of name string offsets
-  ]##
-  let namesArrayOffsetExpr = this.io.readU4le()
-  this.namesArrayOffset = namesArrayOffsetExpr
-
-  ##[
-  Number of node names in array
-  ]##
-  let nameCountExpr = this.io.readU4le()
-  this.nameCount = nameCountExpr
-
-  ##[
-  Duplicate value of name count
-  ]##
-  let nameCountDuplicateExpr = this.io.readU4le()
-  this.nameCountDuplicate = nameCountDuplicateExpr
-
-proc fromFile*(_: typedesc[Mdl_NamesHeader], filename: string): Mdl_NamesHeader =
-  Mdl_NamesHeader.read(newKaitaiFileStream(filename), nil, nil)
 
 
 ##[
@@ -2337,14 +2331,14 @@ proc read*(_: typedesc[Mdl_TrimeshHeader], io: KaitaiStream, root: KaitaiStruct,
   ##[
   KOTOR 2 only: Additional unknown field
   ]##
-  if Mdl(this.root).geometryHeader.isKotor2:
+  if Mdl(this.root).modelHeader.geometry.isKotor2:
     let k2Unknown1Expr = this.io.readU4le()
     this.k2Unknown1 = k2Unknown1Expr
 
   ##[
   KOTOR 2 only: Additional unknown field
   ]##
-  if Mdl(this.root).geometryHeader.isKotor2:
+  if Mdl(this.root).modelHeader.geometry.isKotor2:
     let k2Unknown2Expr = this.io.readU4le()
     this.k2Unknown2 = k2Unknown2Expr
 

@@ -19,15 +19,13 @@ class mdl_t;
  * 
  * The MDL file contains:
  * - File header (12 bytes)
- * - Geometry header (80 bytes)
- * - Model header (92 bytes)
- * - Names header (28 bytes)
- * - Node name arrays
- * - Animation headers and nodes
+ * - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+ * - Name offset array + name strings
+ * - Animation offset array + animation headers + animation nodes
  * - Node hierarchy with geometry data
  * 
  * Reference implementations:
- * - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+ * - https://github.com/th3w1zard1/MDLOpsM.pm
  * - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
  * \sa https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md Source
  */
@@ -49,7 +47,6 @@ public:
     class lightsaber_header_t;
     class model_header_t;
     class name_strings_t;
-    class names_header_t;
     class node_t;
     class node_header_t;
     class quaternion_t;
@@ -1102,7 +1099,9 @@ public:
     };
 
     /**
-     * Model header (92 bytes) - Located at offset 92
+     * Model header (196 bytes) starting at offset 12 (data_start).
+     * This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+     * model-wide metadata, offsets, and counts.
      */
 
     class model_header_t : public kaitai::kstruct {
@@ -1119,62 +1118,67 @@ public:
         ~model_header_t();
 
     private:
-        uint8_t m_classification;
-        uint8_t m_subclassification;
-        uint8_t m_unknown;
-        uint8_t m_affected_by_fog;
-        uint32_t m_child_model_count;
-        uint32_t m_animation_array_offset;
+        geometry_header_t* m_geometry;
+        uint8_t m_model_type;
+        uint8_t m_unknown0;
+        uint8_t m_padding0;
+        uint8_t m_fog;
+        uint32_t m_unknown1;
+        uint32_t m_offset_to_animations;
         uint32_t m_animation_count;
-        uint32_t m_animation_count_duplicate;
-        uint32_t m_parent_model_pointer;
+        uint32_t m_animation_count2;
+        uint32_t m_unknown2;
         vec3f_t* m_bounding_box_min;
         vec3f_t* m_bounding_box_max;
         float m_radius;
         float m_animation_scale;
         std::string m_supermodel_name;
+        uint32_t m_offset_to_super_root;
+        uint32_t m_unknown3;
+        uint32_t m_mdx_data_size;
+        uint32_t m_mdx_data_offset;
+        uint32_t m_offset_to_name_offsets;
+        uint32_t m_name_offsets_count;
+        uint32_t m_name_offsets_count2;
         mdl_t* m__root;
         mdl_t* m__parent;
 
     public:
 
         /**
-         * Model classification:
-         * - 0x00: Other
-         * - 0x01: Effect
-         * - 0x02: Tile
-         * - 0x04: Character
-         * - 0x08: Door
-         * - 0x10: Lightsaber
-         * - 0x20: Placeable
-         * - 0x40: Flyer
+         * Geometry header (80 bytes)
          */
-        uint8_t classification() const { return m_classification; }
+        geometry_header_t* geometry() const { return m_geometry; }
 
         /**
-         * Model subclassification value
+         * Model classification byte
          */
-        uint8_t subclassification() const { return m_subclassification; }
+        uint8_t model_type() const { return m_model_type; }
 
         /**
-         * Purpose unknown (possibly smoothing-related)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        uint8_t unknown() const { return m_unknown; }
+        uint8_t unknown0() const { return m_unknown0; }
 
         /**
-         * 0 = Not affected by fog, 1 = Affected by fog
+         * Padding byte
          */
-        uint8_t affected_by_fog() const { return m_affected_by_fog; }
+        uint8_t padding0() const { return m_padding0; }
 
         /**
-         * Number of child models
+         * Fog interaction (1 = affected, 0 = ignore fog)
          */
-        uint32_t child_model_count() const { return m_child_model_count; }
+        uint8_t fog() const { return m_fog; }
 
         /**
-         * Offset to animation array (relative to MDL data start, offset 12)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        uint32_t animation_array_offset() const { return m_animation_array_offset; }
+        uint32_t unknown1() const { return m_unknown1; }
+
+        /**
+         * Offset to animation offset array (relative to data_start)
+         */
+        uint32_t offset_to_animations() const { return m_offset_to_animations; }
 
         /**
          * Number of animations
@@ -1182,14 +1186,14 @@ public:
         uint32_t animation_count() const { return m_animation_count; }
 
         /**
-         * Duplicate value of animation count
+         * Duplicate animation count / allocated count
          */
-        uint32_t animation_count_duplicate() const { return m_animation_count_duplicate; }
+        uint32_t animation_count2() const { return m_animation_count2; }
 
         /**
-         * Pointer to parent model (context-dependent)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        uint32_t parent_model_pointer() const { return m_parent_model_pointer; }
+        uint32_t unknown2() const { return m_unknown2; }
 
         /**
          * Minimum coordinates of bounding box (X, Y, Z)
@@ -1215,6 +1219,41 @@ public:
          * Name of supermodel (null-terminated string, "null" if empty)
          */
         std::string supermodel_name() const { return m_supermodel_name; }
+
+        /**
+         * TODO: VERIFY - offset to super-root node (relative to data_start)
+         */
+        uint32_t offset_to_super_root() const { return m_offset_to_super_root; }
+
+        /**
+         * TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+         */
+        uint32_t unknown3() const { return m_unknown3; }
+
+        /**
+         * Size of MDX file data in bytes
+         */
+        uint32_t mdx_data_size() const { return m_mdx_data_size; }
+
+        /**
+         * Offset to MDX data (typically 0)
+         */
+        uint32_t mdx_data_offset() const { return m_mdx_data_offset; }
+
+        /**
+         * Offset to name offset array (relative to data_start)
+         */
+        uint32_t offset_to_name_offsets() const { return m_offset_to_name_offsets; }
+
+        /**
+         * Count of name offsets / partnames
+         */
+        uint32_t name_offsets_count() const { return m_name_offsets_count; }
+
+        /**
+         * Duplicate name offsets count / allocated count
+         */
+        uint32_t name_offsets_count2() const { return m_name_offsets_count2; }
         mdl_t* _root() const { return m__root; }
         mdl_t* _parent() const { return m__parent; }
     };
@@ -1243,74 +1282,6 @@ public:
 
     public:
         std::vector<std::string>* strings() const { return m_strings; }
-        mdl_t* _root() const { return m__root; }
-        mdl_t* _parent() const { return m__parent; }
-    };
-
-    /**
-     * Names header (28 bytes) - Located at offset 180
-     */
-
-    class names_header_t : public kaitai::kstruct {
-
-    public:
-
-        names_header_t(kaitai::kstream* p__io, mdl_t* p__parent = 0, mdl_t* p__root = 0);
-
-    private:
-        void _read();
-        void _clean_up();
-
-    public:
-        ~names_header_t();
-
-    private:
-        uint32_t m_root_node_offset;
-        uint32_t m_unknown_padding;
-        uint32_t m_mdx_data_size;
-        uint32_t m_mdx_data_offset;
-        uint32_t m_names_array_offset;
-        uint32_t m_name_count;
-        uint32_t m_name_count_duplicate;
-        mdl_t* m__root;
-        mdl_t* m__parent;
-
-    public:
-
-        /**
-         * Offset to root node (often duplicate of geometry header value)
-         */
-        uint32_t root_node_offset() const { return m_root_node_offset; }
-
-        /**
-         * Unknown field, typically unused or padding
-         */
-        uint32_t unknown_padding() const { return m_unknown_padding; }
-
-        /**
-         * Size of MDX file data in bytes
-         */
-        uint32_t mdx_data_size() const { return m_mdx_data_size; }
-
-        /**
-         * Offset to MDX data within MDX file (typically 0)
-         */
-        uint32_t mdx_data_offset() const { return m_mdx_data_offset; }
-
-        /**
-         * Offset to array of name string offsets
-         */
-        uint32_t names_array_offset() const { return m_names_array_offset; }
-
-        /**
-         * Number of node names in array
-         */
-        uint32_t name_count() const { return m_name_count; }
-
-        /**
-         * Duplicate value of name count
-         */
-        uint32_t name_count_duplicate() const { return m_name_count_duplicate; }
         mdl_t* _root() const { return m__root; }
         mdl_t* _parent() const { return m__parent; }
     };
@@ -2250,6 +2221,23 @@ public:
     };
 
 private:
+    bool f_animation_offsets;
+    std::vector<uint32_t>* m_animation_offsets;
+    bool n_animation_offsets;
+
+public:
+    bool _is_null_animation_offsets() { animation_offsets(); return n_animation_offsets; };
+
+private:
+
+public:
+
+    /**
+     * Animation header offsets (relative to data_start)
+     */
+    std::vector<uint32_t>* animation_offsets();
+
+private:
     bool f_animations;
     std::vector<animation_header_t*>* m_animations;
     bool n_animations;
@@ -2262,7 +2250,7 @@ private:
 public:
 
     /**
-     * Animation header array
+     * Animation headers (resolved via animation_offsets)
      */
     std::vector<animation_header_t*>* animations();
 
@@ -2279,21 +2267,21 @@ public:
     int8_t data_start();
 
 private:
-    bool f_name_indexes;
-    std::vector<uint32_t>* m_name_indexes;
-    bool n_name_indexes;
+    bool f_name_offsets;
+    std::vector<uint32_t>* m_name_offsets;
+    bool n_name_offsets;
 
 public:
-    bool _is_null_name_indexes() { name_indexes(); return n_name_indexes; };
+    bool _is_null_name_offsets() { name_offsets(); return n_name_offsets; };
 
 private:
 
 public:
 
     /**
-     * Array of name string offsets (relative to data_start)
+     * Name string offsets (relative to data_start)
      */
-    std::vector<uint32_t>* name_indexes();
+    std::vector<uint32_t>* name_offsets();
 
 private:
     bool f_names_data;
@@ -2308,7 +2296,7 @@ private:
 public:
 
     /**
-     * Name string blob (substream). This follows the name index array and continues up to the animation array.
+     * Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
      * Parsed as null-terminated ASCII strings in `name_strings`.
      */
     name_strings_t* names_data();
@@ -2328,9 +2316,7 @@ public:
 
 private:
     file_header_t* m_file_header;
-    geometry_header_t* m_geometry_header;
     model_header_t* m_model_header;
-    names_header_t* m_names_header;
     mdl_t* m__root;
     kaitai::kstruct* m__parent;
     std::string m__raw_names_data;
@@ -2344,9 +2330,7 @@ private:
 
 public:
     file_header_t* file_header() const { return m_file_header; }
-    geometry_header_t* geometry_header() const { return m_geometry_header; }
     model_header_t* model_header() const { return m_model_header; }
-    names_header_t* names_header() const { return m_names_header; }
     mdl_t* _root() const { return m__root; }
     kaitai::kstruct* _parent() const { return m__parent; }
     std::string _raw_names_data() const { return m__raw_names_data; }

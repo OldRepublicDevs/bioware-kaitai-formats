@@ -66,9 +66,23 @@ sub _read {
     my ($self) = @_;
 
     $self->{file_header} = Mdl::FileHeader->new($self->{_io}, $self, $self->{_root});
-    $self->{geometry_header} = Mdl::GeometryHeader->new($self->{_io}, $self, $self->{_root});
     $self->{model_header} = Mdl::ModelHeader->new($self->{_io}, $self, $self->{_root});
-    $self->{names_header} = Mdl::NamesHeader->new($self->{_io}, $self, $self->{_root});
+}
+
+sub animation_offsets {
+    my ($self) = @_;
+    return $self->{animation_offsets} if ($self->{animation_offsets});
+    if ($self->model_header()->animation_count() > 0) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->data_start() + $self->model_header()->offset_to_animations());
+        $self->{animation_offsets} = [];
+        my $n_animation_offsets = $self->model_header()->animation_count();
+        for (my $i = 0; $i < $n_animation_offsets; $i++) {
+            push @{$self->{animation_offsets}}, $self->{_io}->read_u4le();
+        }
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{animation_offsets};
 }
 
 sub animations {
@@ -76,7 +90,7 @@ sub animations {
     return $self->{animations} if ($self->{animations});
     if ($self->model_header()->animation_count() > 0) {
         my $_pos = $self->{_io}->pos();
-        $self->{_io}->seek($self->data_start() + $self->model_header()->animation_array_offset());
+        $self->{_io}->seek($self->data_start() + @{$self->animation_offsets()}[$i]);
         $self->{animations} = [];
         my $n_animations = $self->model_header()->animation_count();
         for (my $i = 0; $i < $n_animations; $i++) {
@@ -94,29 +108,29 @@ sub data_start {
     return $self->{data_start};
 }
 
-sub name_indexes {
+sub name_offsets {
     my ($self) = @_;
-    return $self->{name_indexes} if ($self->{name_indexes});
-    if ($self->names_header()->name_count() > 0) {
+    return $self->{name_offsets} if ($self->{name_offsets});
+    if ($self->model_header()->name_offsets_count() > 0) {
         my $_pos = $self->{_io}->pos();
-        $self->{_io}->seek($self->data_start() + $self->names_header()->names_array_offset());
-        $self->{name_indexes} = [];
-        my $n_name_indexes = $self->names_header()->name_count();
-        for (my $i = 0; $i < $n_name_indexes; $i++) {
-            push @{$self->{name_indexes}}, $self->{_io}->read_u4le();
+        $self->{_io}->seek($self->data_start() + $self->model_header()->offset_to_name_offsets());
+        $self->{name_offsets} = [];
+        my $n_name_offsets = $self->model_header()->name_offsets_count();
+        for (my $i = 0; $i < $n_name_offsets; $i++) {
+            push @{$self->{name_offsets}}, $self->{_io}->read_u4le();
         }
         $self->{_io}->seek($_pos);
     }
-    return $self->{name_indexes};
+    return $self->{name_offsets};
 }
 
 sub names_data {
     my ($self) = @_;
     return $self->{names_data} if ($self->{names_data});
-    if ($self->names_header()->name_count() > 0) {
+    if ($self->model_header()->name_offsets_count() > 0) {
         my $_pos = $self->{_io}->pos();
-        $self->{_io}->seek(($self->data_start() + $self->names_header()->names_array_offset()) + 4 * $self->names_header()->name_count());
-        $self->{_raw_names_data} = $self->{_io}->read_bytes(($self->data_start() + $self->model_header()->animation_array_offset()) - (($self->data_start() + $self->names_header()->names_array_offset()) + 4 * $self->names_header()->name_count()));
+        $self->{_io}->seek(($self->data_start() + $self->model_header()->offset_to_name_offsets()) + 4 * $self->model_header()->name_offsets_count());
+        $self->{_raw_names_data} = $self->{_io}->read_bytes(($self->data_start() + $self->model_header()->offset_to_animations()) - (($self->data_start() + $self->model_header()->offset_to_name_offsets()) + 4 * $self->model_header()->name_offsets_count()));
         my $io__raw_names_data = IO::KaitaiStruct::Stream->new($self->{_raw_names_data});
         $self->{names_data} = Mdl::NameStrings->new($io__raw_names_data, $self, $self->{_root});
         $self->{_io}->seek($_pos);
@@ -127,9 +141,9 @@ sub names_data {
 sub root_node {
     my ($self) = @_;
     return $self->{root_node} if ($self->{root_node});
-    if ($self->geometry_header()->root_node_offset() > 0) {
+    if ($self->model_header()->geometry()->root_node_offset() > 0) {
         my $_pos = $self->{_io}->pos();
-        $self->{_io}->seek($self->data_start() + $self->geometry_header()->root_node_offset());
+        $self->{_io}->seek($self->data_start() + $self->model_header()->geometry()->root_node_offset());
         $self->{root_node} = Mdl::Node->new($self->{_io}, $self, $self->{_root});
         $self->{_io}->seek($_pos);
     }
@@ -141,19 +155,9 @@ sub file_header {
     return $self->{file_header};
 }
 
-sub geometry_header {
-    my ($self) = @_;
-    return $self->{geometry_header};
-}
-
 sub model_header {
     my ($self) = @_;
     return $self->{model_header};
-}
-
-sub names_header {
-    my ($self) = @_;
-    return $self->{names_header};
 }
 
 sub _raw_names_data {
@@ -1169,50 +1173,63 @@ sub new {
 sub _read {
     my ($self) = @_;
 
-    $self->{classification} = $self->{_io}->read_u1();
-    $self->{subclassification} = $self->{_io}->read_u1();
-    $self->{unknown} = $self->{_io}->read_u1();
-    $self->{affected_by_fog} = $self->{_io}->read_u1();
-    $self->{child_model_count} = $self->{_io}->read_u4le();
-    $self->{animation_array_offset} = $self->{_io}->read_u4le();
+    $self->{geometry} = Mdl::GeometryHeader->new($self->{_io}, $self, $self->{_root});
+    $self->{model_type} = $self->{_io}->read_u1();
+    $self->{unknown0} = $self->{_io}->read_u1();
+    $self->{padding0} = $self->{_io}->read_u1();
+    $self->{fog} = $self->{_io}->read_u1();
+    $self->{unknown1} = $self->{_io}->read_u4le();
+    $self->{offset_to_animations} = $self->{_io}->read_u4le();
     $self->{animation_count} = $self->{_io}->read_u4le();
-    $self->{animation_count_duplicate} = $self->{_io}->read_u4le();
-    $self->{parent_model_pointer} = $self->{_io}->read_u4le();
+    $self->{animation_count2} = $self->{_io}->read_u4le();
+    $self->{unknown2} = $self->{_io}->read_u4le();
     $self->{bounding_box_min} = Mdl::Vec3f->new($self->{_io}, $self, $self->{_root});
     $self->{bounding_box_max} = Mdl::Vec3f->new($self->{_io}, $self, $self->{_root});
     $self->{radius} = $self->{_io}->read_f4le();
     $self->{animation_scale} = $self->{_io}->read_f4le();
     $self->{supermodel_name} = Encode::decode("ASCII", IO::KaitaiStruct::Stream::bytes_terminate($self->{_io}->read_bytes(32), 0, 0));
+    $self->{offset_to_super_root} = $self->{_io}->read_u4le();
+    $self->{unknown3} = $self->{_io}->read_u4le();
+    $self->{mdx_data_size} = $self->{_io}->read_u4le();
+    $self->{mdx_data_offset} = $self->{_io}->read_u4le();
+    $self->{offset_to_name_offsets} = $self->{_io}->read_u4le();
+    $self->{name_offsets_count} = $self->{_io}->read_u4le();
+    $self->{name_offsets_count2} = $self->{_io}->read_u4le();
 }
 
-sub classification {
+sub geometry {
     my ($self) = @_;
-    return $self->{classification};
+    return $self->{geometry};
 }
 
-sub subclassification {
+sub model_type {
     my ($self) = @_;
-    return $self->{subclassification};
+    return $self->{model_type};
 }
 
-sub unknown {
+sub unknown0 {
     my ($self) = @_;
-    return $self->{unknown};
+    return $self->{unknown0};
 }
 
-sub affected_by_fog {
+sub padding0 {
     my ($self) = @_;
-    return $self->{affected_by_fog};
+    return $self->{padding0};
 }
 
-sub child_model_count {
+sub fog {
     my ($self) = @_;
-    return $self->{child_model_count};
+    return $self->{fog};
 }
 
-sub animation_array_offset {
+sub unknown1 {
     my ($self) = @_;
-    return $self->{animation_array_offset};
+    return $self->{unknown1};
+}
+
+sub offset_to_animations {
+    my ($self) = @_;
+    return $self->{offset_to_animations};
 }
 
 sub animation_count {
@@ -1220,14 +1237,14 @@ sub animation_count {
     return $self->{animation_count};
 }
 
-sub animation_count_duplicate {
+sub animation_count2 {
     my ($self) = @_;
-    return $self->{animation_count_duplicate};
+    return $self->{animation_count2};
 }
 
-sub parent_model_pointer {
+sub unknown2 {
     my ($self) = @_;
-    return $self->{parent_model_pointer};
+    return $self->{unknown2};
 }
 
 sub bounding_box_min {
@@ -1253,6 +1270,41 @@ sub animation_scale {
 sub supermodel_name {
     my ($self) = @_;
     return $self->{supermodel_name};
+}
+
+sub offset_to_super_root {
+    my ($self) = @_;
+    return $self->{offset_to_super_root};
+}
+
+sub unknown3 {
+    my ($self) = @_;
+    return $self->{unknown3};
+}
+
+sub mdx_data_size {
+    my ($self) = @_;
+    return $self->{mdx_data_size};
+}
+
+sub mdx_data_offset {
+    my ($self) = @_;
+    return $self->{mdx_data_offset};
+}
+
+sub offset_to_name_offsets {
+    my ($self) = @_;
+    return $self->{offset_to_name_offsets};
+}
+
+sub name_offsets_count {
+    my ($self) = @_;
+    return $self->{name_offsets_count};
+}
+
+sub name_offsets_count2 {
+    my ($self) = @_;
+    return $self->{name_offsets_count2};
 }
 
 ########################################################################
@@ -1294,80 +1346,6 @@ sub _read {
 sub strings {
     my ($self) = @_;
     return $self->{strings};
-}
-
-########################################################################
-package Mdl::NamesHeader;
-
-our @ISA = 'IO::KaitaiStruct::Struct';
-
-sub from_file {
-    my ($class, $filename) = @_;
-    my $fd;
-
-    open($fd, '<', $filename) or return undef;
-    binmode($fd);
-    return new($class, IO::KaitaiStruct::Stream->new($fd));
-}
-
-sub new {
-    my ($class, $_io, $_parent, $_root) = @_;
-    my $self = IO::KaitaiStruct::Struct->new($_io);
-
-    bless $self, $class;
-    $self->{_parent} = $_parent;
-    $self->{_root} = $_root;
-
-    $self->_read();
-
-    return $self;
-}
-
-sub _read {
-    my ($self) = @_;
-
-    $self->{root_node_offset} = $self->{_io}->read_u4le();
-    $self->{unknown_padding} = $self->{_io}->read_u4le();
-    $self->{mdx_data_size} = $self->{_io}->read_u4le();
-    $self->{mdx_data_offset} = $self->{_io}->read_u4le();
-    $self->{names_array_offset} = $self->{_io}->read_u4le();
-    $self->{name_count} = $self->{_io}->read_u4le();
-    $self->{name_count_duplicate} = $self->{_io}->read_u4le();
-}
-
-sub root_node_offset {
-    my ($self) = @_;
-    return $self->{root_node_offset};
-}
-
-sub unknown_padding {
-    my ($self) = @_;
-    return $self->{unknown_padding};
-}
-
-sub mdx_data_size {
-    my ($self) = @_;
-    return $self->{mdx_data_size};
-}
-
-sub mdx_data_offset {
-    my ($self) = @_;
-    return $self->{mdx_data_offset};
-}
-
-sub names_array_offset {
-    my ($self) = @_;
-    return $self->{names_array_offset};
-}
-
-sub name_count {
-    my ($self) = @_;
-    return $self->{name_count};
-}
-
-sub name_count_duplicate {
-    my ($self) = @_;
-    return $self->{name_count_duplicate};
 }
 
 ########################################################################
@@ -2007,10 +1985,10 @@ sub _read {
     $self->{padding} = $self->{_io}->read_u1();
     $self->{total_area} = $self->{_io}->read_f4le();
     $self->{unknown2} = $self->{_io}->read_u4le();
-    if ($self->_root()->geometry_header()->is_kotor2()) {
+    if ($self->_root()->model_header()->geometry()->is_kotor2()) {
         $self->{k2_unknown_1} = $self->{_io}->read_u4le();
     }
-    if ($self->_root()->geometry_header()->is_kotor2()) {
+    if ($self->_root()->model_header()->geometry()->is_kotor2()) {
         $self->{k2_unknown_2} = $self->{_io}->read_u4le();
     }
     $self->{mdx_data_offset} = $self->{_io}->read_u4le();

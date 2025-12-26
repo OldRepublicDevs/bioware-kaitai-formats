@@ -10,15 +10,13 @@ namespace Kaitai
     /// 
     /// The MDL file contains:
     /// - File header (12 bytes)
-    /// - Geometry header (80 bytes)
-    /// - Model header (92 bytes)
-    /// - Names header (28 bytes)
-    /// - Node name arrays
-    /// - Animation headers and nodes
+    /// - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+    /// - Name offset array + name strings
+    /// - Animation offset array + animation headers + animation nodes
     /// - Node hierarchy with geometry data
     /// 
     /// Reference implementations:
-    /// - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+    /// - https://github.com/th3w1zard1/MDLOpsM.pm
     /// - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
     /// </summary>
     /// <remarks>
@@ -74,9 +72,10 @@ namespace Kaitai
         {
             m_parent = p__parent;
             m_root = p__root ?? this;
+            f_animationOffsets = false;
             f_animations = false;
             f_dataStart = false;
-            f_nameIndexes = false;
+            f_nameOffsets = false;
             f_namesData = false;
             f_rootNode = false;
             _read();
@@ -84,9 +83,7 @@ namespace Kaitai
         private void _read()
         {
             _fileHeader = new FileHeader(m_io, this, m_root);
-            _geometryHeader = new GeometryHeader(m_io, this, m_root);
             _modelHeader = new ModelHeader(m_io, this, m_root);
-            _namesHeader = new NamesHeader(m_io, this, m_root);
         }
 
         /// <summary>
@@ -1179,7 +1176,9 @@ namespace Kaitai
         }
 
         /// <summary>
-        /// Model header (92 bytes) - Located at offset 92
+        /// Model header (196 bytes) starting at offset 12 (data_start).
+        /// This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+        /// model-wide metadata, offsets, and counts.
         /// </summary>
         public partial class ModelHeader : KaitaiStruct
         {
@@ -1196,75 +1195,88 @@ namespace Kaitai
             }
             private void _read()
             {
-                _classification = m_io.ReadU1();
-                _subclassification = m_io.ReadU1();
-                _unknown = m_io.ReadU1();
-                _affectedByFog = m_io.ReadU1();
-                _childModelCount = m_io.ReadU4le();
-                _animationArrayOffset = m_io.ReadU4le();
+                _geometry = new GeometryHeader(m_io, this, m_root);
+                _modelType = m_io.ReadU1();
+                _unknown0 = m_io.ReadU1();
+                _padding0 = m_io.ReadU1();
+                _fog = m_io.ReadU1();
+                _unknown1 = m_io.ReadU4le();
+                _offsetToAnimations = m_io.ReadU4le();
                 _animationCount = m_io.ReadU4le();
-                _animationCountDuplicate = m_io.ReadU4le();
-                _parentModelPointer = m_io.ReadU4le();
+                _animationCount2 = m_io.ReadU4le();
+                _unknown2 = m_io.ReadU4le();
                 _boundingBoxMin = new Vec3f(m_io, this, m_root);
                 _boundingBoxMax = new Vec3f(m_io, this, m_root);
                 _radius = m_io.ReadF4le();
                 _animationScale = m_io.ReadF4le();
                 _supermodelName = System.Text.Encoding.GetEncoding("ASCII").GetString(KaitaiStream.BytesTerminate(m_io.ReadBytes(32), 0, false));
+                _offsetToSuperRoot = m_io.ReadU4le();
+                _unknown3 = m_io.ReadU4le();
+                _mdxDataSize = m_io.ReadU4le();
+                _mdxDataOffset = m_io.ReadU4le();
+                _offsetToNameOffsets = m_io.ReadU4le();
+                _nameOffsetsCount = m_io.ReadU4le();
+                _nameOffsetsCount2 = m_io.ReadU4le();
             }
-            private byte _classification;
-            private byte _subclassification;
-            private byte _unknown;
-            private byte _affectedByFog;
-            private uint _childModelCount;
-            private uint _animationArrayOffset;
+            private GeometryHeader _geometry;
+            private byte _modelType;
+            private byte _unknown0;
+            private byte _padding0;
+            private byte _fog;
+            private uint _unknown1;
+            private uint _offsetToAnimations;
             private uint _animationCount;
-            private uint _animationCountDuplicate;
-            private uint _parentModelPointer;
+            private uint _animationCount2;
+            private uint _unknown2;
             private Vec3f _boundingBoxMin;
             private Vec3f _boundingBoxMax;
             private float _radius;
             private float _animationScale;
             private string _supermodelName;
+            private uint _offsetToSuperRoot;
+            private uint _unknown3;
+            private uint _mdxDataSize;
+            private uint _mdxDataOffset;
+            private uint _offsetToNameOffsets;
+            private uint _nameOffsetsCount;
+            private uint _nameOffsetsCount2;
             private Mdl m_root;
             private Mdl m_parent;
 
             /// <summary>
-            /// Model classification:
-            /// - 0x00: Other
-            /// - 0x01: Effect
-            /// - 0x02: Tile
-            /// - 0x04: Character
-            /// - 0x08: Door
-            /// - 0x10: Lightsaber
-            /// - 0x20: Placeable
-            /// - 0x40: Flyer
+            /// Geometry header (80 bytes)
             /// </summary>
-            public byte Classification { get { return _classification; } }
+            public GeometryHeader Geometry { get { return _geometry; } }
 
             /// <summary>
-            /// Model subclassification value
+            /// Model classification byte
             /// </summary>
-            public byte Subclassification { get { return _subclassification; } }
+            public byte ModelType { get { return _modelType; } }
 
             /// <summary>
-            /// Purpose unknown (possibly smoothing-related)
+            /// TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
             /// </summary>
-            public byte Unknown { get { return _unknown; } }
+            public byte Unknown0 { get { return _unknown0; } }
 
             /// <summary>
-            /// 0 = Not affected by fog, 1 = Affected by fog
+            /// Padding byte
             /// </summary>
-            public byte AffectedByFog { get { return _affectedByFog; } }
+            public byte Padding0 { get { return _padding0; } }
 
             /// <summary>
-            /// Number of child models
+            /// Fog interaction (1 = affected, 0 = ignore fog)
             /// </summary>
-            public uint ChildModelCount { get { return _childModelCount; } }
+            public byte Fog { get { return _fog; } }
 
             /// <summary>
-            /// Offset to animation array (relative to MDL data start, offset 12)
+            /// TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
             /// </summary>
-            public uint AnimationArrayOffset { get { return _animationArrayOffset; } }
+            public uint Unknown1 { get { return _unknown1; } }
+
+            /// <summary>
+            /// Offset to animation offset array (relative to data_start)
+            /// </summary>
+            public uint OffsetToAnimations { get { return _offsetToAnimations; } }
 
             /// <summary>
             /// Number of animations
@@ -1272,14 +1284,14 @@ namespace Kaitai
             public uint AnimationCount { get { return _animationCount; } }
 
             /// <summary>
-            /// Duplicate value of animation count
+            /// Duplicate animation count / allocated count
             /// </summary>
-            public uint AnimationCountDuplicate { get { return _animationCountDuplicate; } }
+            public uint AnimationCount2 { get { return _animationCount2; } }
 
             /// <summary>
-            /// Pointer to parent model (context-dependent)
+            /// TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
             /// </summary>
-            public uint ParentModelPointer { get { return _parentModelPointer; } }
+            public uint Unknown2 { get { return _unknown2; } }
 
             /// <summary>
             /// Minimum coordinates of bounding box (X, Y, Z)
@@ -1305,6 +1317,41 @@ namespace Kaitai
             /// Name of supermodel (null-terminated string, &quot;null&quot; if empty)
             /// </summary>
             public string SupermodelName { get { return _supermodelName; } }
+
+            /// <summary>
+            /// TODO: VERIFY - offset to super-root node (relative to data_start)
+            /// </summary>
+            public uint OffsetToSuperRoot { get { return _offsetToSuperRoot; } }
+
+            /// <summary>
+            /// TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+            /// </summary>
+            public uint Unknown3 { get { return _unknown3; } }
+
+            /// <summary>
+            /// Size of MDX file data in bytes
+            /// </summary>
+            public uint MdxDataSize { get { return _mdxDataSize; } }
+
+            /// <summary>
+            /// Offset to MDX data (typically 0)
+            /// </summary>
+            public uint MdxDataOffset { get { return _mdxDataOffset; } }
+
+            /// <summary>
+            /// Offset to name offset array (relative to data_start)
+            /// </summary>
+            public uint OffsetToNameOffsets { get { return _offsetToNameOffsets; } }
+
+            /// <summary>
+            /// Count of name offsets / partnames
+            /// </summary>
+            public uint NameOffsetsCount { get { return _nameOffsetsCount; } }
+
+            /// <summary>
+            /// Duplicate name offsets count / allocated count
+            /// </summary>
+            public uint NameOffsetsCount2 { get { return _nameOffsetsCount2; } }
             public Mdl M_Root { get { return m_root; } }
             public Mdl M_Parent { get { return m_parent; } }
         }
@@ -1340,80 +1387,6 @@ namespace Kaitai
             private Mdl m_root;
             private Mdl m_parent;
             public List<string> Strings { get { return _strings; } }
-            public Mdl M_Root { get { return m_root; } }
-            public Mdl M_Parent { get { return m_parent; } }
-        }
-
-        /// <summary>
-        /// Names header (28 bytes) - Located at offset 180
-        /// </summary>
-        public partial class NamesHeader : KaitaiStruct
-        {
-            public static NamesHeader FromFile(string fileName)
-            {
-                return new NamesHeader(new KaitaiStream(fileName));
-            }
-
-            public NamesHeader(KaitaiStream p__io, Mdl p__parent = null, Mdl p__root = null) : base(p__io)
-            {
-                m_parent = p__parent;
-                m_root = p__root;
-                _read();
-            }
-            private void _read()
-            {
-                _rootNodeOffset = m_io.ReadU4le();
-                _unknownPadding = m_io.ReadU4le();
-                _mdxDataSize = m_io.ReadU4le();
-                _mdxDataOffset = m_io.ReadU4le();
-                _namesArrayOffset = m_io.ReadU4le();
-                _nameCount = m_io.ReadU4le();
-                _nameCountDuplicate = m_io.ReadU4le();
-            }
-            private uint _rootNodeOffset;
-            private uint _unknownPadding;
-            private uint _mdxDataSize;
-            private uint _mdxDataOffset;
-            private uint _namesArrayOffset;
-            private uint _nameCount;
-            private uint _nameCountDuplicate;
-            private Mdl m_root;
-            private Mdl m_parent;
-
-            /// <summary>
-            /// Offset to root node (often duplicate of geometry header value)
-            /// </summary>
-            public uint RootNodeOffset { get { return _rootNodeOffset; } }
-
-            /// <summary>
-            /// Unknown field, typically unused or padding
-            /// </summary>
-            public uint UnknownPadding { get { return _unknownPadding; } }
-
-            /// <summary>
-            /// Size of MDX file data in bytes
-            /// </summary>
-            public uint MdxDataSize { get { return _mdxDataSize; } }
-
-            /// <summary>
-            /// Offset to MDX data within MDX file (typically 0)
-            /// </summary>
-            public uint MdxDataOffset { get { return _mdxDataOffset; } }
-
-            /// <summary>
-            /// Offset to array of name string offsets
-            /// </summary>
-            public uint NamesArrayOffset { get { return _namesArrayOffset; } }
-
-            /// <summary>
-            /// Number of node names in array
-            /// </summary>
-            public uint NameCount { get { return _nameCount; } }
-
-            /// <summary>
-            /// Duplicate value of name count
-            /// </summary>
-            public uint NameCountDuplicate { get { return _nameCountDuplicate; } }
             public Mdl M_Root { get { return m_root; } }
             public Mdl M_Parent { get { return m_parent; } }
         }
@@ -2075,10 +2048,10 @@ namespace Kaitai
                 _padding = m_io.ReadU1();
                 _totalArea = m_io.ReadF4le();
                 _unknown2 = m_io.ReadU4le();
-                if (M_Root.GeometryHeader.IsKotor2) {
+                if (M_Root.ModelHeader.Geometry.IsKotor2) {
                     _k2Unknown1 = m_io.ReadU4le();
                 }
-                if (M_Root.GeometryHeader.IsKotor2) {
+                if (M_Root.ModelHeader.Geometry.IsKotor2) {
                     _k2Unknown2 = m_io.ReadU4le();
                 }
                 _mdxDataOffset = m_io.ReadU4le();
@@ -2491,11 +2464,37 @@ namespace Kaitai
             public Mdl M_Root { get { return m_root; } }
             public KaitaiStruct M_Parent { get { return m_parent; } }
         }
+        private bool f_animationOffsets;
+        private List<uint> _animationOffsets;
+
+        /// <summary>
+        /// Animation header offsets (relative to data_start)
+        /// </summary>
+        public List<uint> AnimationOffsets
+        {
+            get
+            {
+                if (f_animationOffsets)
+                    return _animationOffsets;
+                f_animationOffsets = true;
+                if (ModelHeader.AnimationCount > 0) {
+                    long _pos = m_io.Pos;
+                    m_io.Seek(DataStart + ModelHeader.OffsetToAnimations);
+                    _animationOffsets = new List<uint>();
+                    for (var i = 0; i < ModelHeader.AnimationCount; i++)
+                    {
+                        _animationOffsets.Add(m_io.ReadU4le());
+                    }
+                    m_io.Seek(_pos);
+                }
+                return _animationOffsets;
+            }
+        }
         private bool f_animations;
         private List<AnimationHeader> _animations;
 
         /// <summary>
-        /// Animation header array
+        /// Animation headers (resolved via animation_offsets)
         /// </summary>
         public List<AnimationHeader> Animations
         {
@@ -2506,7 +2505,7 @@ namespace Kaitai
                 f_animations = true;
                 if (ModelHeader.AnimationCount > 0) {
                     long _pos = m_io.Pos;
-                    m_io.Seek(DataStart + ModelHeader.AnimationArrayOffset);
+                    m_io.Seek(DataStart + AnimationOffsets[i]);
                     _animations = new List<AnimationHeader>();
                     for (var i = 0; i < ModelHeader.AnimationCount; i++)
                     {
@@ -2535,37 +2534,37 @@ namespace Kaitai
                 return _dataStart;
             }
         }
-        private bool f_nameIndexes;
-        private List<uint> _nameIndexes;
+        private bool f_nameOffsets;
+        private List<uint> _nameOffsets;
 
         /// <summary>
-        /// Array of name string offsets (relative to data_start)
+        /// Name string offsets (relative to data_start)
         /// </summary>
-        public List<uint> NameIndexes
+        public List<uint> NameOffsets
         {
             get
             {
-                if (f_nameIndexes)
-                    return _nameIndexes;
-                f_nameIndexes = true;
-                if (NamesHeader.NameCount > 0) {
+                if (f_nameOffsets)
+                    return _nameOffsets;
+                f_nameOffsets = true;
+                if (ModelHeader.NameOffsetsCount > 0) {
                     long _pos = m_io.Pos;
-                    m_io.Seek(DataStart + NamesHeader.NamesArrayOffset);
-                    _nameIndexes = new List<uint>();
-                    for (var i = 0; i < NamesHeader.NameCount; i++)
+                    m_io.Seek(DataStart + ModelHeader.OffsetToNameOffsets);
+                    _nameOffsets = new List<uint>();
+                    for (var i = 0; i < ModelHeader.NameOffsetsCount; i++)
                     {
-                        _nameIndexes.Add(m_io.ReadU4le());
+                        _nameOffsets.Add(m_io.ReadU4le());
                     }
                     m_io.Seek(_pos);
                 }
-                return _nameIndexes;
+                return _nameOffsets;
             }
         }
         private bool f_namesData;
         private NameStrings _namesData;
 
         /// <summary>
-        /// Name string blob (substream). This follows the name index array and continues up to the animation array.
+        /// Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
         /// Parsed as null-terminated ASCII strings in `name_strings`.
         /// </summary>
         public NameStrings NamesData
@@ -2575,10 +2574,10 @@ namespace Kaitai
                 if (f_namesData)
                     return _namesData;
                 f_namesData = true;
-                if (NamesHeader.NameCount > 0) {
+                if (ModelHeader.NameOffsetsCount > 0) {
                     long _pos = m_io.Pos;
-                    m_io.Seek((DataStart + NamesHeader.NamesArrayOffset) + 4 * NamesHeader.NameCount);
-                    __raw_namesData = m_io.ReadBytes((DataStart + ModelHeader.AnimationArrayOffset) - ((DataStart + NamesHeader.NamesArrayOffset) + 4 * NamesHeader.NameCount));
+                    m_io.Seek((DataStart + ModelHeader.OffsetToNameOffsets) + 4 * ModelHeader.NameOffsetsCount);
+                    __raw_namesData = m_io.ReadBytes((DataStart + ModelHeader.OffsetToAnimations) - ((DataStart + ModelHeader.OffsetToNameOffsets) + 4 * ModelHeader.NameOffsetsCount));
                     var io___raw_namesData = new KaitaiStream(__raw_namesData);
                     _namesData = new NameStrings(io___raw_namesData, this, m_root);
                     m_io.Seek(_pos);
@@ -2595,9 +2594,9 @@ namespace Kaitai
                 if (f_rootNode)
                     return _rootNode;
                 f_rootNode = true;
-                if (GeometryHeader.RootNodeOffset > 0) {
+                if (ModelHeader.Geometry.RootNodeOffset > 0) {
                     long _pos = m_io.Pos;
-                    m_io.Seek(DataStart + GeometryHeader.RootNodeOffset);
+                    m_io.Seek(DataStart + ModelHeader.Geometry.RootNodeOffset);
                     _rootNode = new Node(m_io, this, m_root);
                     m_io.Seek(_pos);
                 }
@@ -2605,16 +2604,12 @@ namespace Kaitai
             }
         }
         private FileHeader _fileHeader;
-        private GeometryHeader _geometryHeader;
         private ModelHeader _modelHeader;
-        private NamesHeader _namesHeader;
         private Mdl m_root;
         private KaitaiStruct m_parent;
         private byte[] __raw_namesData;
         public FileHeader FileHeader { get { return _fileHeader; } }
-        public GeometryHeader GeometryHeader { get { return _geometryHeader; } }
         public ModelHeader ModelHeader { get { return _modelHeader; } }
-        public NamesHeader NamesHeader { get { return _namesHeader; } }
         public Mdl M_Root { get { return m_root; } }
         public KaitaiStruct M_Parent { get { return m_parent; } }
         public byte[] M_RawNamesData { get { return __raw_namesData; } }

@@ -155,28 +155,11 @@ seq:
     encoding: ASCII
     doc: |
       Raw ASCII text content of the entire LYT file.
-      The file format structure is:
-      - Header: "beginlayout" followed by newline (\n or \r\n)
-      - Sections (optional, must appear in order if present):
-        * roomcount <N> followed by N room entries (<model> <x> <y> <z>)
-        * trackcount <N> followed by N track entries (<model> <x> <y> <z>)
-        * obstaclecount <N> followed by N obstacle entries (<model> <x> <y> <z>)
-        * doorhookcount <N> followed by N doorhook entries
-          - PyKotor format: <room> <door> 0 <x> <y> <z> <qx> <qy> <qz> <qw>
-          - xoreos format: <room> <door> <x> <y> <z> <qx> <qy> <qz> <qw> <unk1> <unk2>
-        * artplaceablecount <N> followed by N art placeable entries (<model> <x> <y> <z>)
-        * walkmeshRooms <N> followed by N room model names (<room_model>)
-      - Footer: "donelayout"
+      This Kaitai implementation captures the raw text for application-level parsing.
+      Application code should parse this line-by-line to extract structured data.
 
-      Application code should parse raw_content line-by-line to extract structured data.
-      See https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py for reference implementation.
-
-      Line format details:
-      - Lines are separated by \n or \r\n (Windows/Unix line endings)
-      - Leading whitespace is typically ignored but some implementations use indentation (3 spaces)
-      - Tokens within a line are separated by whitespace (space or tab)
-      - Empty lines are ignored
-      - Comments (lines starting with #) may be ignored by some implementations
+      Reference implementation:
+      https://github.com/OldRepublicDevs/PyKotor/blob/master/Libraries/PyKotor/src/pykotor/resource/formats/lyt/io_lyt.py
 
 types:
   # Type definitions document the expected structure of each section

@@ -5,9 +5,12 @@ $ErrorActionPreference = "Continue"
 
 # All Kaitai Struct supported languages
 $languages = @(
+    "construct",   # Construct (Python) codegen
     "cpp_stl",     # Native tools
     "csharp",      # Andastra, KotOR.NET  
     "go",          # Performance tools
+    "graphviz",    # Structure diagrams
+    "html",        # HTML documentation
     "java",        # Android tools
     "javascript",  # Web tools, KotOR.js
     "lua",         # Game modding
@@ -16,10 +19,7 @@ $languages = @(
     "php",         # Web backend
     "python",      # PyKotor compatibility
     "ruby",        # Scripting
-    "rust",        # Safe parsing
-    "graphviz",    # Structure diagrams
-    "html",        # HTML documentation
-    "construct"   # Construct (Python) codegen
+    "rust"         # Safe parsing
 )
 
 Write-Host "Compiling all .ksy files to $($languages.Count) languages..."
@@ -27,7 +27,7 @@ Write-Host ("=" * 80)
 
 $ksyFiles = Get-ChildItem -Path "formats" -Filter "*.ksy" -Recurse | Where-Object {
     # Exclude failing formats (TODO: FIX LATER, EVERY SINGLE ONE OF THESE ARE HIGH PRIORITY!)
-    $_.Name -notin @("DA2S.ksy", "DAS.ksy", "LYT.ksy", "PCC.ksy", "TGA.ksy", "TPC.ksy")
+    $_.Name -notin @("DA2S.ksy", "DAS.ksy", "PCC.ksy", "TGA.ksy", "TPC.ksy")
 }
 
 Write-Host "Found $($ksyFiles.Count) .ksy files to compile"
