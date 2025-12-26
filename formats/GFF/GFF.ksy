@@ -408,13 +408,13 @@ types:
       - id: struct_index
         type: u4
         doc: Index into struct_array
-    seq:
-      - id: entry
+    instances:
+      entry:
         type: struct_entry
         pos: _root.header.struct_offset + struct_index * 12
         doc: Raw struct entry at struct_index
 
-      - id: field_indices
+      field_indices:
         type: u4
         repeat: expr
         repeat-expr: entry.field_count
@@ -424,14 +424,14 @@ types:
           Field indices for this struct (only present when field_count > 1).
           When field_count == 1, the single field index is stored directly in entry.data_or_offset.
 
-      - id: fields
+      fields:
         type: resolved_field(field_indices[_index])
         repeat: expr
         repeat-expr: entry.field_count
         if: entry.field_count > 1
         doc: Resolved fields (multi-field struct)
 
-      - id: single_field
+      single_field:
         type: resolved_field(entry.data_or_offset)
         if: entry.field_count == 1
         doc: Resolved field (single-field struct)
@@ -444,18 +444,17 @@ types:
       - id: field_index
         type: u4
         doc: Index into field_array
-    seq:
-      - id: entry
+    instances:
+      entry:
         type: field_entry
         pos: _root.header.field_offset + field_index * 12
         doc: Raw field entry at field_index
 
-      - id: label
+      label:
         type: label_entry_terminated
         pos: _root.header.label_offset + entry.label_index * 16
         doc: Resolved field label string
 
-    instances:
       field_entry_pos:
         value: _root.header.field_offset + field_index * 12
         doc: Absolute file offset of this field entry (start of 12-byte record)
