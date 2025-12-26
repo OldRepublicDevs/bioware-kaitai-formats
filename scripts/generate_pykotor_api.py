@@ -522,7 +522,7 @@ if __name__ == "__main__":
         test_file = test_dir / f"test_{self.spec.id}{self.lang_config['file_ext']}"
         test_file.write_text(self.generate_test_suite())
 
-        print(f"✓ Generated {self.class_name} code for {self.target_lang}")
+        print(f"OK Generated {self.class_name} code for {self.target_lang}")
 
 
 def generate_for_all_languages():
