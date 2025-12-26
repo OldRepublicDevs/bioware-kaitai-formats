@@ -17,15 +17,13 @@ use std::rc::{Rc, Weak};
  * 
  * The MDL file contains:
  * - File header (12 bytes)
- * - Geometry header (80 bytes)
- * - Model header (92 bytes)
- * - Names header (28 bytes)
- * - Node name arrays
- * - Animation headers and nodes
+ * - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+ * - Name offset array + name strings
+ * - Animation offset array + animation headers + animation nodes
  * - Node hierarchy with geometry data
  * 
  * Reference implementations:
- * - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+ * - https://github.com/th3w1zard1/MDLOpsM.pm
  * - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
  * \sa https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md Source
  */
@@ -36,17 +34,17 @@ pub struct Mdl {
     pub _parent: SharedType<Mdl>,
     pub _self: SharedType<Self>,
     file_header: RefCell<OptRc<Mdl_FileHeader>>,
-    geometry_header: RefCell<OptRc<Mdl_GeometryHeader>>,
     model_header: RefCell<OptRc<Mdl_ModelHeader>>,
-    names_header: RefCell<OptRc<Mdl_NamesHeader>>,
     _io: RefCell<BytesReader>,
     names_data_raw: RefCell<Vec<u8>>,
+    f_animation_offsets: Cell<bool>,
+    animation_offsets: RefCell<Vec<u32>>,
     f_animations: Cell<bool>,
     animations: RefCell<Vec<OptRc<Mdl_AnimationHeader>>>,
     f_data_start: Cell<bool>,
     data_start: RefCell<i8>,
-    f_name_indexes: Cell<bool>,
-    name_indexes: RefCell<Vec<u32>>,
+    f_name_offsets: Cell<bool>,
+    name_offsets: RefCell<Vec<u32>>,
     f_names_data: Cell<bool>,
     names_data: RefCell<OptRc<Mdl_NameStrings>>,
     f_root_node: Cell<bool>,
@@ -71,19 +69,42 @@ impl KStruct for Mdl {
         let _r = _rrc.as_ref().unwrap();
         let t = Self::read_into::<_, Mdl_FileHeader>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
         *self_rc.file_header.borrow_mut() = t;
-        let t = Self::read_into::<_, Mdl_GeometryHeader>(&*_io, Some(self_rc._root.clone()), None)?.into();
-        *self_rc.geometry_header.borrow_mut() = t;
         let t = Self::read_into::<_, Mdl_ModelHeader>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
         *self_rc.model_header.borrow_mut() = t;
-        let t = Self::read_into::<_, Mdl_NamesHeader>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
-        *self_rc.names_header.borrow_mut() = t;
         Ok(())
     }
 }
 impl Mdl {
 
     /**
-     * Animation header array
+     * Animation header offsets (relative to data_start)
+     */
+    pub fn animation_offsets(
+        &self
+    ) -> KResult<Ref<'_, Vec<u32>>> {
+        let _io = self._io.borrow();
+        let _rrc = self._root.get_value().borrow().upgrade();
+        let _prc = self._parent.get_value().borrow().upgrade();
+        let _r = _rrc.as_ref().unwrap();
+        if self.f_animation_offsets.get() {
+            return Ok(self.animation_offsets.borrow());
+        }
+        self.f_animation_offsets.set(true);
+        if ((*self.model_header().animation_count() as u32) > (0 as u32)) {
+            let _pos = _io.pos();
+            _io.seek(((*self.data_start()? as u32) + (*self.model_header().offset_to_animations() as u32)) as usize)?;
+            *self.animation_offsets.borrow_mut() = Vec::new();
+            let l_animation_offsets = *self.model_header().animation_count();
+            for _i in 0..l_animation_offsets {
+                self.animation_offsets.borrow_mut().push(_io.read_u4le()?.into());
+            }
+            _io.seek(_pos)?;
+        }
+        Ok(self.animation_offsets.borrow())
+    }
+
+    /**
+     * Animation headers (resolved via animation_offsets)
      */
     pub fn animations(
         &self
@@ -98,7 +119,7 @@ impl Mdl {
         self.f_animations.set(true);
         if ((*self.model_header().animation_count() as u32) > (0 as u32)) {
             let _pos = _io.pos();
-            _io.seek(((*self.data_start()? as u32) + (*self.model_header().animation_array_offset() as u32)) as usize)?;
+            _io.seek(((*self.data_start()? as u32) + (self.animation_offsets()?[_i as usize] as u32)) as usize)?;
             *self.animations.borrow_mut() = Vec::new();
             let l_animations = *self.model_header().animation_count();
             for _i in 0..l_animations {
@@ -130,34 +151,34 @@ impl Mdl {
     }
 
     /**
-     * Array of name string offsets (relative to data_start)
+     * Name string offsets (relative to data_start)
      */
-    pub fn name_indexes(
+    pub fn name_offsets(
         &self
     ) -> KResult<Ref<'_, Vec<u32>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
-        if self.f_name_indexes.get() {
-            return Ok(self.name_indexes.borrow());
+        if self.f_name_offsets.get() {
+            return Ok(self.name_offsets.borrow());
         }
-        self.f_name_indexes.set(true);
-        if ((*self.names_header().name_count() as u32) > (0 as u32)) {
+        self.f_name_offsets.set(true);
+        if ((*self.model_header().name_offsets_count() as u32) > (0 as u32)) {
             let _pos = _io.pos();
-            _io.seek(((*self.data_start()? as u32) + (*self.names_header().names_array_offset() as u32)) as usize)?;
-            *self.name_indexes.borrow_mut() = Vec::new();
-            let l_name_indexes = *self.names_header().name_count();
-            for _i in 0..l_name_indexes {
-                self.name_indexes.borrow_mut().push(_io.read_u4le()?.into());
+            _io.seek(((*self.data_start()? as u32) + (*self.model_header().offset_to_name_offsets() as u32)) as usize)?;
+            *self.name_offsets.borrow_mut() = Vec::new();
+            let l_name_offsets = *self.model_header().name_offsets_count();
+            for _i in 0..l_name_offsets {
+                self.name_offsets.borrow_mut().push(_io.read_u4le()?.into());
             }
             _io.seek(_pos)?;
         }
-        Ok(self.name_indexes.borrow())
+        Ok(self.name_offsets.borrow())
     }
 
     /**
-     * Name string blob (substream). This follows the name index array and continues up to the animation array.
+     * Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
      * Parsed as null-terminated ASCII strings in `name_strings`.
      */
     pub fn names_data(
@@ -170,10 +191,10 @@ impl Mdl {
         if self.f_names_data.get() {
             return Ok(self.names_data.borrow());
         }
-        if ((*self.names_header().name_count() as u32) > (0 as u32)) {
+        if ((*self.model_header().name_offsets_count() as u32) > (0 as u32)) {
             let _pos = _io.pos();
-            _io.seek(((((*self.data_start()? as u32) + (*self.names_header().names_array_offset() as u32)) as i32) + (((4 as u32) * (*self.names_header().name_count() as u32)) as i32)) as usize)?;
-            *self.names_data_raw.borrow_mut() = _io.read_bytes(((((*self.data_start()? as u32) + (*self.model_header().animation_array_offset() as u32)) as i32) - (((((*self.data_start()? as u32) + (*self.names_header().names_array_offset() as u32)) as i32) + (((4 as u32) * (*self.names_header().name_count() as u32)) as i32)) as i32)) as usize)?.into();
+            _io.seek(((((*self.data_start()? as u32) + (*self.model_header().offset_to_name_offsets() as u32)) as i32) + (((4 as u32) * (*self.model_header().name_offsets_count() as u32)) as i32)) as usize)?;
+            *self.names_data_raw.borrow_mut() = _io.read_bytes(((((*self.data_start()? as u32) + (*self.model_header().offset_to_animations() as u32)) as i32) - (((((*self.data_start()? as u32) + (*self.model_header().offset_to_name_offsets() as u32)) as i32) + (((4 as u32) * (*self.model_header().name_offsets_count() as u32)) as i32)) as i32)) as usize)?.into();
             let names_data_raw = self.names_data_raw.borrow();
             let _t_names_data_raw_io = BytesReader::from(names_data_raw.clone());
             let t = Self::read_into::<BytesReader, Mdl_NameStrings>(&_t_names_data_raw_io, Some(self._root.clone()), Some(self._self.clone()))?.into();
@@ -192,9 +213,9 @@ impl Mdl {
         if self.f_root_node.get() {
             return Ok(self.root_node.borrow());
         }
-        if ((*self.geometry_header().root_node_offset() as u32) > (0 as u32)) {
+        if ((*self.model_header().geometry().root_node_offset() as u32) > (0 as u32)) {
             let _pos = _io.pos();
-            _io.seek(((*self.data_start()? as u32) + (*self.geometry_header().root_node_offset() as u32)) as usize)?;
+            _io.seek(((*self.data_start()? as u32) + (*self.model_header().geometry().root_node_offset() as u32)) as usize)?;
             let t = Self::read_into::<_, Mdl_Node>(&*_io, Some(self._root.clone()), Some(self._self.clone()))?.into();
             *self.root_node.borrow_mut() = t;
             _io.seek(_pos)?;
@@ -208,18 +229,8 @@ impl Mdl {
     }
 }
 impl Mdl {
-    pub fn geometry_header(&self) -> Ref<'_, OptRc<Mdl_GeometryHeader>> {
-        self.geometry_header.borrow()
-    }
-}
-impl Mdl {
     pub fn model_header(&self) -> Ref<'_, OptRc<Mdl_ModelHeader>> {
         self.model_header.borrow()
-    }
-}
-impl Mdl {
-    pub fn names_header(&self) -> Ref<'_, OptRc<Mdl_NamesHeader>> {
-        self.names_header.borrow()
     }
 }
 impl Mdl {
@@ -2038,7 +2049,9 @@ impl Mdl_LightsaberHeader {
 }
 
 /**
- * Model header (92 bytes) - Located at offset 92
+ * Model header (196 bytes) starting at offset 12 (data_start).
+ * This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+ * model-wide metadata, offsets, and counts.
  */
 
 #[derive(Default, Debug, Clone)]
@@ -2046,20 +2059,28 @@ pub struct Mdl_ModelHeader {
     pub _root: SharedType<Mdl>,
     pub _parent: SharedType<Mdl>,
     pub _self: SharedType<Self>,
-    classification: RefCell<u8>,
-    subclassification: RefCell<u8>,
-    unknown: RefCell<u8>,
-    affected_by_fog: RefCell<u8>,
-    child_model_count: RefCell<u32>,
-    animation_array_offset: RefCell<u32>,
+    geometry: RefCell<OptRc<Mdl_GeometryHeader>>,
+    model_type: RefCell<u8>,
+    unknown0: RefCell<u8>,
+    padding0: RefCell<u8>,
+    fog: RefCell<u8>,
+    unknown1: RefCell<u32>,
+    offset_to_animations: RefCell<u32>,
     animation_count: RefCell<u32>,
-    animation_count_duplicate: RefCell<u32>,
-    parent_model_pointer: RefCell<u32>,
+    animation_count2: RefCell<u32>,
+    unknown2: RefCell<u32>,
     bounding_box_min: RefCell<OptRc<Mdl_Vec3f>>,
     bounding_box_max: RefCell<OptRc<Mdl_Vec3f>>,
     radius: RefCell<f32>,
     animation_scale: RefCell<f32>,
     supermodel_name: RefCell<String>,
+    offset_to_super_root: RefCell<u32>,
+    unknown3: RefCell<u32>,
+    mdx_data_size: RefCell<u32>,
+    mdx_data_offset: RefCell<u32>,
+    offset_to_name_offsets: RefCell<u32>,
+    name_offsets_count: RefCell<u32>,
+    name_offsets_count2: RefCell<u32>,
     _io: RefCell<BytesReader>,
 }
 impl KStruct for Mdl_ModelHeader {
@@ -2079,15 +2100,17 @@ impl KStruct for Mdl_ModelHeader {
         let _rrc = self_rc._root.get_value().borrow().upgrade();
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
-        *self_rc.classification.borrow_mut() = _io.read_u1()?.into();
-        *self_rc.subclassification.borrow_mut() = _io.read_u1()?.into();
-        *self_rc.unknown.borrow_mut() = _io.read_u1()?.into();
-        *self_rc.affected_by_fog.borrow_mut() = _io.read_u1()?.into();
-        *self_rc.child_model_count.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.animation_array_offset.borrow_mut() = _io.read_u4le()?.into();
+        let t = Self::read_into::<_, Mdl_GeometryHeader>(&*_io, Some(self_rc._root.clone()), None)?.into();
+        *self_rc.geometry.borrow_mut() = t;
+        *self_rc.model_type.borrow_mut() = _io.read_u1()?.into();
+        *self_rc.unknown0.borrow_mut() = _io.read_u1()?.into();
+        *self_rc.padding0.borrow_mut() = _io.read_u1()?.into();
+        *self_rc.fog.borrow_mut() = _io.read_u1()?.into();
+        *self_rc.unknown1.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.offset_to_animations.borrow_mut() = _io.read_u4le()?.into();
         *self_rc.animation_count.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.animation_count_duplicate.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.parent_model_pointer.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.animation_count2.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.unknown2.borrow_mut() = _io.read_u4le()?.into();
         let t = Self::read_into::<_, Mdl_Vec3f>(&*_io, Some(self_rc._root.clone()), None)?.into();
         *self_rc.bounding_box_min.borrow_mut() = t;
         let t = Self::read_into::<_, Mdl_Vec3f>(&*_io, Some(self_rc._root.clone()), None)?.into();
@@ -2095,6 +2118,13 @@ impl KStruct for Mdl_ModelHeader {
         *self_rc.radius.borrow_mut() = _io.read_f4le()?.into();
         *self_rc.animation_scale.borrow_mut() = _io.read_f4le()?.into();
         *self_rc.supermodel_name.borrow_mut() = bytes_to_str(&bytes_terminate(&_io.read_bytes(32 as usize)?.into(), 0, false).into(), "ASCII")?;
+        *self_rc.offset_to_super_root.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.unknown3.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.mdx_data_size.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.mdx_data_offset.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.offset_to_name_offsets.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.name_offsets_count.borrow_mut() = _io.read_u4le()?.into();
+        *self_rc.name_offsets_count2.borrow_mut() = _io.read_u4le()?.into();
         Ok(())
     }
 }
@@ -2102,64 +2132,65 @@ impl Mdl_ModelHeader {
 }
 
 /**
- * Model classification:
- * - 0x00: Other
- * - 0x01: Effect
- * - 0x02: Tile
- * - 0x04: Character
- * - 0x08: Door
- * - 0x10: Lightsaber
- * - 0x20: Placeable
- * - 0x40: Flyer
+ * Geometry header (80 bytes)
  */
 impl Mdl_ModelHeader {
-    pub fn classification(&self) -> Ref<'_, u8> {
-        self.classification.borrow()
+    pub fn geometry(&self) -> Ref<'_, OptRc<Mdl_GeometryHeader>> {
+        self.geometry.borrow()
     }
 }
 
 /**
- * Model subclassification value
+ * Model classification byte
  */
 impl Mdl_ModelHeader {
-    pub fn subclassification(&self) -> Ref<'_, u8> {
-        self.subclassification.borrow()
+    pub fn model_type(&self) -> Ref<'_, u8> {
+        self.model_type.borrow()
     }
 }
 
 /**
- * Purpose unknown (possibly smoothing-related)
+ * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
  */
 impl Mdl_ModelHeader {
-    pub fn unknown(&self) -> Ref<'_, u8> {
-        self.unknown.borrow()
+    pub fn unknown0(&self) -> Ref<'_, u8> {
+        self.unknown0.borrow()
     }
 }
 
 /**
- * 0 = Not affected by fog, 1 = Affected by fog
+ * Padding byte
  */
 impl Mdl_ModelHeader {
-    pub fn affected_by_fog(&self) -> Ref<'_, u8> {
-        self.affected_by_fog.borrow()
+    pub fn padding0(&self) -> Ref<'_, u8> {
+        self.padding0.borrow()
     }
 }
 
 /**
- * Number of child models
+ * Fog interaction (1 = affected, 0 = ignore fog)
  */
 impl Mdl_ModelHeader {
-    pub fn child_model_count(&self) -> Ref<'_, u32> {
-        self.child_model_count.borrow()
+    pub fn fog(&self) -> Ref<'_, u8> {
+        self.fog.borrow()
     }
 }
 
 /**
- * Offset to animation array (relative to MDL data start, offset 12)
+ * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
  */
 impl Mdl_ModelHeader {
-    pub fn animation_array_offset(&self) -> Ref<'_, u32> {
-        self.animation_array_offset.borrow()
+    pub fn unknown1(&self) -> Ref<'_, u32> {
+        self.unknown1.borrow()
+    }
+}
+
+/**
+ * Offset to animation offset array (relative to data_start)
+ */
+impl Mdl_ModelHeader {
+    pub fn offset_to_animations(&self) -> Ref<'_, u32> {
+        self.offset_to_animations.borrow()
     }
 }
 
@@ -2173,20 +2204,20 @@ impl Mdl_ModelHeader {
 }
 
 /**
- * Duplicate value of animation count
+ * Duplicate animation count / allocated count
  */
 impl Mdl_ModelHeader {
-    pub fn animation_count_duplicate(&self) -> Ref<'_, u32> {
-        self.animation_count_duplicate.borrow()
+    pub fn animation_count2(&self) -> Ref<'_, u32> {
+        self.animation_count2.borrow()
     }
 }
 
 /**
- * Pointer to parent model (context-dependent)
+ * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
  */
 impl Mdl_ModelHeader {
-    pub fn parent_model_pointer(&self) -> Ref<'_, u32> {
-        self.parent_model_pointer.borrow()
+    pub fn unknown2(&self) -> Ref<'_, u32> {
+        self.unknown2.borrow()
     }
 }
 
@@ -2232,6 +2263,69 @@ impl Mdl_ModelHeader {
 impl Mdl_ModelHeader {
     pub fn supermodel_name(&self) -> Ref<'_, String> {
         self.supermodel_name.borrow()
+    }
+}
+
+/**
+ * TODO: VERIFY - offset to super-root node (relative to data_start)
+ */
+impl Mdl_ModelHeader {
+    pub fn offset_to_super_root(&self) -> Ref<'_, u32> {
+        self.offset_to_super_root.borrow()
+    }
+}
+
+/**
+ * TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+ */
+impl Mdl_ModelHeader {
+    pub fn unknown3(&self) -> Ref<'_, u32> {
+        self.unknown3.borrow()
+    }
+}
+
+/**
+ * Size of MDX file data in bytes
+ */
+impl Mdl_ModelHeader {
+    pub fn mdx_data_size(&self) -> Ref<'_, u32> {
+        self.mdx_data_size.borrow()
+    }
+}
+
+/**
+ * Offset to MDX data (typically 0)
+ */
+impl Mdl_ModelHeader {
+    pub fn mdx_data_offset(&self) -> Ref<'_, u32> {
+        self.mdx_data_offset.borrow()
+    }
+}
+
+/**
+ * Offset to name offset array (relative to data_start)
+ */
+impl Mdl_ModelHeader {
+    pub fn offset_to_name_offsets(&self) -> Ref<'_, u32> {
+        self.offset_to_name_offsets.borrow()
+    }
+}
+
+/**
+ * Count of name offsets / partnames
+ */
+impl Mdl_ModelHeader {
+    pub fn name_offsets_count(&self) -> Ref<'_, u32> {
+        self.name_offsets_count.borrow()
+    }
+}
+
+/**
+ * Duplicate name offsets count / allocated count
+ */
+impl Mdl_ModelHeader {
+    pub fn name_offsets_count2(&self) -> Ref<'_, u32> {
+        self.name_offsets_count2.borrow()
     }
 }
 impl Mdl_ModelHeader {
@@ -2288,122 +2382,6 @@ impl Mdl_NameStrings {
     }
 }
 impl Mdl_NameStrings {
-    pub fn _io(&self) -> Ref<'_, BytesReader> {
-        self._io.borrow()
-    }
-}
-
-/**
- * Names header (28 bytes) - Located at offset 180
- */
-
-#[derive(Default, Debug, Clone)]
-pub struct Mdl_NamesHeader {
-    pub _root: SharedType<Mdl>,
-    pub _parent: SharedType<Mdl>,
-    pub _self: SharedType<Self>,
-    root_node_offset: RefCell<u32>,
-    unknown_padding: RefCell<u32>,
-    mdx_data_size: RefCell<u32>,
-    mdx_data_offset: RefCell<u32>,
-    names_array_offset: RefCell<u32>,
-    name_count: RefCell<u32>,
-    name_count_duplicate: RefCell<u32>,
-    _io: RefCell<BytesReader>,
-}
-impl KStruct for Mdl_NamesHeader {
-    type Root = Mdl;
-    type Parent = Mdl;
-
-    fn read<S: KStream>(
-        self_rc: &OptRc<Self>,
-        _io: &S,
-        _root: SharedType<Self::Root>,
-        _parent: SharedType<Self::Parent>,
-    ) -> KResult<()> {
-        *self_rc._io.borrow_mut() = _io.clone();
-        self_rc._root.set(_root.get());
-        self_rc._parent.set(_parent.get());
-        self_rc._self.set(Ok(self_rc.clone()));
-        let _rrc = self_rc._root.get_value().borrow().upgrade();
-        let _prc = self_rc._parent.get_value().borrow().upgrade();
-        let _r = _rrc.as_ref().unwrap();
-        *self_rc.root_node_offset.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.unknown_padding.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.mdx_data_size.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.mdx_data_offset.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.names_array_offset.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.name_count.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.name_count_duplicate.borrow_mut() = _io.read_u4le()?.into();
-        Ok(())
-    }
-}
-impl Mdl_NamesHeader {
-}
-
-/**
- * Offset to root node (often duplicate of geometry header value)
- */
-impl Mdl_NamesHeader {
-    pub fn root_node_offset(&self) -> Ref<'_, u32> {
-        self.root_node_offset.borrow()
-    }
-}
-
-/**
- * Unknown field, typically unused or padding
- */
-impl Mdl_NamesHeader {
-    pub fn unknown_padding(&self) -> Ref<'_, u32> {
-        self.unknown_padding.borrow()
-    }
-}
-
-/**
- * Size of MDX file data in bytes
- */
-impl Mdl_NamesHeader {
-    pub fn mdx_data_size(&self) -> Ref<'_, u32> {
-        self.mdx_data_size.borrow()
-    }
-}
-
-/**
- * Offset to MDX data within MDX file (typically 0)
- */
-impl Mdl_NamesHeader {
-    pub fn mdx_data_offset(&self) -> Ref<'_, u32> {
-        self.mdx_data_offset.borrow()
-    }
-}
-
-/**
- * Offset to array of name string offsets
- */
-impl Mdl_NamesHeader {
-    pub fn names_array_offset(&self) -> Ref<'_, u32> {
-        self.names_array_offset.borrow()
-    }
-}
-
-/**
- * Number of node names in array
- */
-impl Mdl_NamesHeader {
-    pub fn name_count(&self) -> Ref<'_, u32> {
-        self.name_count.borrow()
-    }
-}
-
-/**
- * Duplicate value of name count
- */
-impl Mdl_NamesHeader {
-    pub fn name_count_duplicate(&self) -> Ref<'_, u32> {
-        self.name_count_duplicate.borrow()
-    }
-}
-impl Mdl_NamesHeader {
     pub fn _io(&self) -> Ref<'_, BytesReader> {
         self._io.borrow()
     }
@@ -3439,10 +3417,10 @@ impl KStruct for Mdl_TrimeshHeader {
         *self_rc.padding.borrow_mut() = _io.read_u1()?.into();
         *self_rc.total_area.borrow_mut() = _io.read_f4le()?.into();
         *self_rc.unknown2.borrow_mut() = _io.read_u4le()?.into();
-        if *_r.geometry_header().is_kotor2()? {
+        if *_r.model_header().geometry().is_kotor2()? {
             *self_rc.k2_unknown_1.borrow_mut() = _io.read_u4le()?.into();
         }
-        if *_r.geometry_header().is_kotor2()? {
+        if *_r.model_header().geometry().is_kotor2()? {
             *self_rc.k2_unknown_2.borrow_mut() = _io.read_u4le()?.into();
         }
         *self_rc.mdx_data_offset.borrow_mut() = _io.read_u4le()?.into();
