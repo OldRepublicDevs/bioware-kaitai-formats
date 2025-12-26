@@ -22,6 +22,7 @@ from dataclasses import dataclass
 @dataclass
 class KsyField:
     """Field definition from .ksy."""
+
     id: str
     type: str
     doc: str = ""
@@ -33,6 +34,7 @@ class KsyField:
 @dataclass
 class KsyType:
     """Type definition from .ksy."""
+
     name: str
     seq: List[KsyField]
     doc: str = ""
@@ -42,6 +44,7 @@ class KsyType:
 @dataclass
 class KsySpec:
     """Parsed .ksy specification."""
+
     id: str
     title: str
     file_extension: str
@@ -54,7 +57,7 @@ class KsySpec:
     @classmethod
     def from_file(cls, ksy_path: Path) -> KsySpec:
         """Parse .ksy file."""
-        with open(ksy_path, 'r', encoding='utf-8') as f:
+        with open(ksy_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         meta = data.get("meta", {})
@@ -66,7 +69,7 @@ class KsySpec:
                     name=name,
                     seq=seq,
                     doc=type_data.get("doc", ""),
-                    instances=type_data.get("instances", {})
+                    instances=type_data.get("instances", {}),
                 )
 
         root_type = None
@@ -109,8 +112,8 @@ class PyKotorCodeGenerator:
                 "imports": [
                     "from pykotor.resource.generics.base import GenericBase",
                     "from pykotor.resource.type import ResourceType",
-                    "from pykotor.resource.formats.gff import GFFBinaryReader, GFFBinaryWriter"
-                ]
+                    "from pykotor.resource.formats.gff import GFFBinaryReader, GFFBinaryWriter",
+                ],
             },
             "csharp": {
                 "file_ext": ".cs",
@@ -121,8 +124,8 @@ class PyKotorCodeGenerator:
                 "imports": [
                     "using PyKotor.Resource.Generics.Base;",
                     "using PyKotor.Resource.Type;",
-                    "using PyKotor.Resource.Formats.GFF;"
-                ]
+                    "using PyKotor.Resource.Formats.GFF;",
+                ],
             },
             "javascript": {
                 "file_ext": ".js",
@@ -130,8 +133,8 @@ class PyKotorCodeGenerator:
                 "reader_base": "GFFBinaryReader",
                 "writer_base": "GFFBinaryWriter",
                 "resource_type": f"ResourceType.{self.format_name}",
-                "imports": []
-            }
+                "imports": [],
+            },
         }
         return configs.get(self.target_lang, configs["python"])
 
@@ -163,7 +166,7 @@ class {self.class_name}(GenericBase):
 '''
 
         elif self.target_lang == "csharp":
-            return f'''/*
+            return f"""/*
 {self.spec.title} data class.
 Auto-generated from {self.spec.id}.ksy for PyKotor compatibility
 */
@@ -183,10 +186,10 @@ namespace PyKotor.Resource.Generics
         }}
     }}
 }}
-'''
+"""
 
         # Default fallback
-        return f'// TODO: Implement {self.class_name} for {self.target_lang}'
+        return f"// TODO: Implement {self.class_name} for {self.target_lang}"
 
     def generate_binary_reader(self) -> str:
         """Generate BinaryReader class."""
@@ -222,7 +225,7 @@ class {self.class_name}BinaryReader({config["reader_base"]}):
 '''
 
         elif self.target_lang == "csharp":
-            return f'''/*
+            return f"""/*
 Binary reader for {self.spec.title}.
 Auto-generated from {self.spec.id}.ksy for PyKotor compatibility
 */
@@ -249,9 +252,11 @@ namespace PyKotor.Resource.Formats.{self.spec.id}
         }}
     }}
 }}
-'''
+"""
 
-        return f'// TODO: Implement {self.class_name}BinaryReader for {self.target_lang}'
+        return (
+            f"// TODO: Implement {self.class_name}BinaryReader for {self.target_lang}"
+        )
 
     def generate_binary_writer(self) -> str:
         """Generate BinaryWriter class."""
@@ -292,7 +297,7 @@ class {self.class_name}BinaryWriter({config["writer_base"]}):
 '''
 
         elif self.target_lang == "csharp":
-            return f'''/*
+            return f"""/*
 Binary writer for {self.spec.title}.
 Auto-generated from {self.spec.id}.ksy for PyKotor compatibility
 */
@@ -319,13 +324,15 @@ namespace PyKotor.Resource.Formats.{self.spec.id}
         }}
     }}
 }}
-'''
+"""
 
-        return f'// TODO: Implement {self.class_name}BinaryWriter for {self.target_lang}'
+        return (
+            f"// TODO: Implement {self.class_name}BinaryWriter for {self.target_lang}"
+        )
 
     def generate_api_functions(self) -> str:
         """Generate read/write/bytes functions."""
-        config = self.lang_config
+        _config = self.lang_config
 
         if self.target_lang == "python":
             return f'''"""
@@ -421,11 +428,11 @@ def _dismantle_{self.spec.id}_to_gff({self.spec.id}: {self.class_name}):
     return GFF()
 '''
 
-        return f'// TODO: Implement API functions for {self.target_lang}'
+        return f"// TODO: Implement API functions for {self.target_lang}"
 
     def generate_test_suite(self) -> str:
         """Generate test suite matching PyKotor patterns."""
-        config = self.lang_config
+        _config = self.lang_config
 
         if self.target_lang == "python":
             return f'''"""
@@ -480,7 +487,7 @@ if __name__ == "__main__":
     unittest.main()
 '''
 
-        return f'// TODO: Implement test suite for {self.target_lang}'
+        return f"// TODO: Implement test suite for {self.target_lang}"
 
     def generate_all(self, output_dir: Path):
         """Generate all code files for this format and language."""
@@ -492,7 +499,11 @@ if __name__ == "__main__":
 
         # Generate reader/writer
         io_file = output_dir / f"io_{self.spec.id}{self.lang_config['file_ext']}"
-        io_content = self.generate_binary_reader() + "\n\n" + self.generate_binary_writer()
+        io_content = (
+            self.generate_binary_reader()
+            + "\n\n"
+            + self.generate_binary_writer()
+        )
         io_file.write_text(io_content)
 
         # Generate API functions
@@ -500,7 +511,13 @@ if __name__ == "__main__":
         api_file.write_text(self.generate_api_functions())
 
         # Generate tests
-        test_dir = output_dir.parent.parent / "tests" / self.target_lang / "resource" / "generics"
+        test_dir = (
+            output_dir.parent.parent
+            / "tests"
+            / self.target_lang
+            / "resource"
+            / "generics"
+        )
         test_dir.mkdir(parents=True, exist_ok=True)
         test_file = test_dir / f"test_{self.spec.id}{self.lang_config['file_ext']}"
         test_file.write_text(self.generate_test_suite())
@@ -515,14 +532,27 @@ def generate_for_all_languages():
 
     # Find all working GFF generic formats
     ksy_files = [
-        f for f in formats_dir.rglob("*.ksy")
-        if not f.stem.endswith("_XML") and not f.stem.endswith("_JSON") and
-        f.name not in ["DA2S.ksy", "DAS.ksy", "LYT.ksy", "MDL.ksy", "MDL_ASCII.ksy", "PCC.ksy", "TGA.ksy", "TPC.ksy"]
+        f
+        for f in formats_dir.rglob("*.ksy")
+        if not f.stem.endswith("_XML")
+        and not f.stem.endswith("_JSON")
+        and f.name not in [
+            "DA2S.ksy",
+            "DAS.ksy",
+            "LYT.ksy",
+            "MDL.ksy",
+            "MDL_ASCII.ksy",
+            "PCC.ksy",
+            "TGA.ksy",
+            "TPC.ksy",
+        ]
     ]
 
     languages = ["python", "csharp", "javascript"]  # Start with 3 languages
 
-    print(f"Generating PyKotor APIs for {len(ksy_files)} formats in {len(languages)} languages...")
+    print(
+        f"Generating PyKotor APIs for {len(ksy_files)} formats in {len(languages)} languages..."
+    )
     print("=" * 80)
 
     for lang in languages:
@@ -540,9 +570,8 @@ def generate_for_all_languages():
 
     print("=" * 80)
     print("PyKotor API generation complete!")
-    print(f"Generated code in: src/<language>/pykotor_generated/")
+    print("Generated code in: src/<language>/pykotor_generated/")
 
 
 if __name__ == "__main__":
     generate_for_all_languages()
-
