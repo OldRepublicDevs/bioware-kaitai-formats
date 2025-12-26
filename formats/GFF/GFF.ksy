@@ -111,6 +111,13 @@ instances:
     pos: header.list_indices_offset
     doc: Array of list entry structures (count + struct indices)
 
+  root_struct_resolved:
+    type: resolved_struct(0)
+    doc: |
+      Convenience "decoded" view of the root struct (struct_array[0]).
+      This resolves field indices to field entries, resolves labels to strings,
+      and decodes field values (including nested structs and lists) into typed instances.
+
 types:
   gff_header:
     seq:
@@ -376,6 +383,169 @@ types:
   # - bioware_common::bioware_vector3 for Vector3 fields
   # - bioware_common::bioware_vector4 for Vector4 fields
   # - bioware_common::bioware_binary_data for Binary fields
+
+  # ----------------------------
+  # Higher-level resolved views
+  # ----------------------------
+
+  label_entry_terminated:
+    doc: |
+      Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+      This avoids leaking trailing `\0` bytes into generated-code consumers.
+    seq:
+      - id: name
+        type: str
+        encoding: ASCII
+        size: 16
+        terminator: 0
+        include: false
+
+  resolved_struct:
+    doc: |
+      A decoded struct node: resolves field indices -> field entries -> typed values,
+      and recursively resolves nested structs and lists.
+    params:
+      - id: struct_index
+        type: u4
+        doc: Index into struct_array
+    seq:
+      - id: entry
+        type: struct_entry
+        pos: _root.header.struct_offset + struct_index * 12
+        doc: Raw struct entry at struct_index
+
+      - id: field_indices
+        type: u4
+        repeat: expr
+        repeat-expr: entry.field_count
+        if: entry.field_count > 1
+        pos: _root.header.field_indices_offset + entry.data_or_offset
+        doc: |
+          Field indices for this struct (only present when field_count > 1).
+          When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+
+      - id: fields
+        type: resolved_field(field_indices[_index])
+        repeat: expr
+        repeat-expr: entry.field_count
+        if: entry.field_count > 1
+        doc: Resolved fields (multi-field struct)
+
+      - id: single_field
+        type: resolved_field(entry.data_or_offset)
+        if: entry.field_count == 1
+        doc: Resolved field (single-field struct)
+
+  resolved_field:
+    doc: |
+      A decoded field: includes resolved label string and decoded typed value.
+      Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+    params:
+      - id: field_index
+        type: u4
+        doc: Index into field_array
+    seq:
+      - id: entry
+        type: field_entry
+        pos: _root.header.field_offset + field_index * 12
+        doc: Raw field entry at field_index
+
+      - id: label
+        type: label_entry_terminated
+        pos: _root.header.label_offset + entry.label_index * 16
+        doc: Resolved field label string
+
+    instances:
+      field_entry_pos:
+        value: _root.header.field_offset + field_index * 12
+        doc: Absolute file offset of this field entry (start of 12-byte record)
+
+      # Inline/simple field types (stored directly in the 4-byte data_or_offset slot)
+      value_uint8:
+        type: u1
+        if: entry.field_type == gff_field_type::uint8
+        pos: field_entry_pos + 8
+      value_int8:
+        type: s1
+        if: entry.field_type == gff_field_type::int8
+        pos: field_entry_pos + 8
+      value_uint16:
+        type: u2
+        if: entry.field_type == gff_field_type::uint16
+        pos: field_entry_pos + 8
+      value_int16:
+        type: s2
+        if: entry.field_type == gff_field_type::int16
+        pos: field_entry_pos + 8
+      value_uint32:
+        type: u4
+        if: entry.field_type == gff_field_type::uint32
+        pos: field_entry_pos + 8
+      value_int32:
+        type: s4
+        if: entry.field_type == gff_field_type::int32
+        pos: field_entry_pos + 8
+      value_single:
+        type: f4
+        if: entry.field_type == gff_field_type::single
+        pos: field_entry_pos + 8
+
+      # Complex field types (stored in field_data section, offset is entry.data_or_offset)
+      value_uint64:
+        type: u8
+        if: entry.field_type == gff_field_type::uint64
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_int64:
+        type: s8
+        if: entry.field_type == gff_field_type::int64
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_double:
+        type: f8
+        if: entry.field_type == gff_field_type::double
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_string:
+        type: bioware_common::bioware_cexo_string
+        if: entry.field_type == gff_field_type::string
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_resref:
+        type: bioware_common::bioware_resref
+        if: entry.field_type == gff_field_type::resref
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_localized_string:
+        type: bioware_common::bioware_locstring
+        if: entry.field_type == gff_field_type::localized_string
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_binary:
+        type: bioware_common::bioware_binary_data
+        if: entry.field_type == gff_field_type::binary
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_vector4:
+        type: bioware_common::bioware_vector4
+        if: entry.field_type == gff_field_type::vector4
+        pos: _root.header.field_data_offset + entry.data_or_offset
+      value_vector3:
+        type: bioware_common::bioware_vector3
+        if: entry.field_type == gff_field_type::vector3
+        pos: _root.header.field_data_offset + entry.data_or_offset
+
+      # Nested struct and list types (stored as indices/offsets in entry.data_or_offset)
+      value_struct:
+        type: resolved_struct(entry.data_or_offset)
+        if: entry.field_type == gff_field_type::struct
+        doc: Nested struct (struct index = entry.data_or_offset)
+
+      list_entry:
+        type: list_entry
+        if: entry.field_type == gff_field_type::list
+        pos: _root.header.list_indices_offset + entry.data_or_offset
+        doc: Parsed list entry at offset (list indices)
+
+      list_structs:
+        type: resolved_struct(list_entry.struct_indices[_index])
+        repeat: expr
+        repeat-expr: list_entry.num_struct_indices
+        if: entry.field_type == gff_field_type::list
+        doc: Resolved structs referenced by this list
 
 enums:
   gff_field_type:
