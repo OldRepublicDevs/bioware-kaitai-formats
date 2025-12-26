@@ -8,13 +8,17 @@ digraph {
 		mdl__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
 			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
 			<TR><TD PORT="file_header_pos">0</TD><TD PORT="file_header_size">12</TD><TD>FileHeader</TD><TD PORT="file_header_type">file_header</TD></TR>
-			<TR><TD PORT="geometry_header_pos">12</TD><TD PORT="geometry_header_size">80</TD><TD>GeometryHeader</TD><TD PORT="geometry_header_type">geometry_header</TD></TR>
-			<TR><TD PORT="model_header_pos">92</TD><TD PORT="model_header_size">88</TD><TD>ModelHeader</TD><TD PORT="model_header_type">model_header</TD></TR>
-			<TR><TD PORT="names_header_pos">180</TD><TD PORT="names_header_size">28</TD><TD>NamesHeader</TD><TD PORT="names_header_type">names_header</TD></TR>
+			<TR><TD PORT="model_header_pos">12</TD><TD PORT="model_header_size">196</TD><TD>ModelHeader</TD><TD PORT="model_header_type">model_header</TD></TR>
+		</TABLE>>];
+		mdl__inst__animation_offsets [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+			<TR><TD PORT="animation_offsets_pos">data_start + model_header.offset_to_animations</TD><TD PORT="animation_offsets_size">4</TD><TD>u4le</TD><TD PORT="animation_offsets_type">animation_offsets</TD></TR>
+			<TR><TD COLSPAN="4" PORT="animation_offsets__repeat">repeat model_header.animation_count times</TD></TR>
+			<TR><TD COLSPAN="4" PORT="animation_offsets__if">if model_header.animation_count &gt; 0</TD></TR>
 		</TABLE>>];
 		mdl__inst__animations [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
 			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
-			<TR><TD PORT="animations_pos">data_start + model_header.animation_array_offset</TD><TD PORT="animations_size">136</TD><TD>AnimationHeader</TD><TD PORT="animations_type">animations</TD></TR>
+			<TR><TD PORT="animations_pos">data_start + animation_offsets[i]</TD><TD PORT="animations_size">136</TD><TD>AnimationHeader</TD><TD PORT="animations_type">animations</TD></TR>
 			<TR><TD COLSPAN="4" PORT="animations__repeat">repeat model_header.animation_count times</TD></TR>
 			<TR><TD COLSPAN="4" PORT="animations__if">if model_header.animation_count &gt; 0</TD></TR>
 		</TABLE>>];
@@ -22,21 +26,21 @@ digraph {
 			<TR><TD BGCOLOR="#E0FFE0">id</TD><TD BGCOLOR="#E0FFE0">value</TD></TR>
 			<TR><TD>data_start</TD><TD>12</TD></TR>
 		</TABLE>>];
-		mdl__inst__name_indexes [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+		mdl__inst__name_offsets [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
 			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
-			<TR><TD PORT="name_indexes_pos">data_start + names_header.names_array_offset</TD><TD PORT="name_indexes_size">4</TD><TD>u4le</TD><TD PORT="name_indexes_type">name_indexes</TD></TR>
-			<TR><TD COLSPAN="4" PORT="name_indexes__repeat">repeat names_header.name_count times</TD></TR>
-			<TR><TD COLSPAN="4" PORT="name_indexes__if">if names_header.name_count &gt; 0</TD></TR>
+			<TR><TD PORT="name_offsets_pos">data_start + model_header.offset_to_name_offsets</TD><TD PORT="name_offsets_size">4</TD><TD>u4le</TD><TD PORT="name_offsets_type">name_offsets</TD></TR>
+			<TR><TD COLSPAN="4" PORT="name_offsets__repeat">repeat model_header.name_offsets_count times</TD></TR>
+			<TR><TD COLSPAN="4" PORT="name_offsets__if">if model_header.name_offsets_count &gt; 0</TD></TR>
 		</TABLE>>];
 		mdl__inst__names_data [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
 			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
-			<TR><TD PORT="names_data_pos">(data_start + names_header.names_array_offset) + 4 * names_header.name_count</TD><TD PORT="names_data_size">(data_start + model_header.animation_array_offset) - ((data_start + names_header.names_array_offset) + 4 * names_header.name_count)</TD><TD>NameStrings</TD><TD PORT="names_data_type">names_data</TD></TR>
-			<TR><TD COLSPAN="4" PORT="names_data__if">if names_header.name_count &gt; 0</TD></TR>
+			<TR><TD PORT="names_data_pos">(data_start + model_header.offset_to_name_offsets) + 4 * model_header.name_offsets_count</TD><TD PORT="names_data_size">(data_start + model_header.offset_to_animations) - ((data_start + model_header.offset_to_name_offsets) + 4 * model_header.name_offsets_count)</TD><TD>NameStrings</TD><TD PORT="names_data_type">names_data</TD></TR>
+			<TR><TD COLSPAN="4" PORT="names_data__if">if model_header.name_offsets_count &gt; 0</TD></TR>
 		</TABLE>>];
 		mdl__inst__root_node [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
 			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
-			<TR><TD PORT="root_node_pos">data_start + geometry_header.root_node_offset</TD><TD PORT="root_node_size">2710</TD><TD>Node</TD><TD PORT="root_node_type">root_node</TD></TR>
-			<TR><TD COLSPAN="4" PORT="root_node__if">if geometry_header.root_node_offset &gt; 0</TD></TR>
+			<TR><TD PORT="root_node_pos">data_start + model_header.geometry.root_node_offset</TD><TD PORT="root_node_size">2710</TD><TD>Node</TD><TD PORT="root_node_type">root_node</TD></TR>
+			<TR><TD COLSPAN="4" PORT="root_node__if">if model_header.geometry.root_node_offset &gt; 0</TD></TR>
 		</TABLE>>];
 		subgraph cluster__aabb_header {
 			label="Mdl::AabbHeader";
@@ -246,20 +250,28 @@ digraph {
 
 			model_header__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
 				<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
-				<TR><TD PORT="classification_pos">0</TD><TD PORT="classification_size">1</TD><TD>u1</TD><TD PORT="classification_type">classification</TD></TR>
-				<TR><TD PORT="subclassification_pos">1</TD><TD PORT="subclassification_size">1</TD><TD>u1</TD><TD PORT="subclassification_type">subclassification</TD></TR>
-				<TR><TD PORT="unknown_pos">2</TD><TD PORT="unknown_size">1</TD><TD>u1</TD><TD PORT="unknown_type">unknown</TD></TR>
-				<TR><TD PORT="affected_by_fog_pos">3</TD><TD PORT="affected_by_fog_size">1</TD><TD>u1</TD><TD PORT="affected_by_fog_type">affected_by_fog</TD></TR>
-				<TR><TD PORT="child_model_count_pos">4</TD><TD PORT="child_model_count_size">4</TD><TD>u4le</TD><TD PORT="child_model_count_type">child_model_count</TD></TR>
-				<TR><TD PORT="animation_array_offset_pos">8</TD><TD PORT="animation_array_offset_size">4</TD><TD>u4le</TD><TD PORT="animation_array_offset_type">animation_array_offset</TD></TR>
-				<TR><TD PORT="animation_count_pos">12</TD><TD PORT="animation_count_size">4</TD><TD>u4le</TD><TD PORT="animation_count_type">animation_count</TD></TR>
-				<TR><TD PORT="animation_count_duplicate_pos">16</TD><TD PORT="animation_count_duplicate_size">4</TD><TD>u4le</TD><TD PORT="animation_count_duplicate_type">animation_count_duplicate</TD></TR>
-				<TR><TD PORT="parent_model_pointer_pos">20</TD><TD PORT="parent_model_pointer_size">4</TD><TD>u4le</TD><TD PORT="parent_model_pointer_type">parent_model_pointer</TD></TR>
-				<TR><TD PORT="bounding_box_min_pos">24</TD><TD PORT="bounding_box_min_size">12</TD><TD>Vec3f</TD><TD PORT="bounding_box_min_type">bounding_box_min</TD></TR>
-				<TR><TD PORT="bounding_box_max_pos">36</TD><TD PORT="bounding_box_max_size">12</TD><TD>Vec3f</TD><TD PORT="bounding_box_max_type">bounding_box_max</TD></TR>
-				<TR><TD PORT="radius_pos">48</TD><TD PORT="radius_size">4</TD><TD>f4le</TD><TD PORT="radius_type">radius</TD></TR>
-				<TR><TD PORT="animation_scale_pos">52</TD><TD PORT="animation_scale_size">4</TD><TD>f4le</TD><TD PORT="animation_scale_type">animation_scale</TD></TR>
-				<TR><TD PORT="supermodel_name_pos">56</TD><TD PORT="supermodel_name_size">32</TD><TD>str(ASCII)</TD><TD PORT="supermodel_name_type">supermodel_name</TD></TR>
+				<TR><TD PORT="geometry_pos">0</TD><TD PORT="geometry_size">80</TD><TD>GeometryHeader</TD><TD PORT="geometry_type">geometry</TD></TR>
+				<TR><TD PORT="model_type_pos">80</TD><TD PORT="model_type_size">1</TD><TD>u1</TD><TD PORT="model_type_type">model_type</TD></TR>
+				<TR><TD PORT="unknown0_pos">81</TD><TD PORT="unknown0_size">1</TD><TD>u1</TD><TD PORT="unknown0_type">unknown0</TD></TR>
+				<TR><TD PORT="padding0_pos">82</TD><TD PORT="padding0_size">1</TD><TD>u1</TD><TD PORT="padding0_type">padding0</TD></TR>
+				<TR><TD PORT="fog_pos">83</TD><TD PORT="fog_size">1</TD><TD>u1</TD><TD PORT="fog_type">fog</TD></TR>
+				<TR><TD PORT="unknown1_pos">84</TD><TD PORT="unknown1_size">4</TD><TD>u4le</TD><TD PORT="unknown1_type">unknown1</TD></TR>
+				<TR><TD PORT="offset_to_animations_pos">88</TD><TD PORT="offset_to_animations_size">4</TD><TD>u4le</TD><TD PORT="offset_to_animations_type">offset_to_animations</TD></TR>
+				<TR><TD PORT="animation_count_pos">92</TD><TD PORT="animation_count_size">4</TD><TD>u4le</TD><TD PORT="animation_count_type">animation_count</TD></TR>
+				<TR><TD PORT="animation_count2_pos">96</TD><TD PORT="animation_count2_size">4</TD><TD>u4le</TD><TD PORT="animation_count2_type">animation_count2</TD></TR>
+				<TR><TD PORT="unknown2_pos">100</TD><TD PORT="unknown2_size">4</TD><TD>u4le</TD><TD PORT="unknown2_type">unknown2</TD></TR>
+				<TR><TD PORT="bounding_box_min_pos">104</TD><TD PORT="bounding_box_min_size">12</TD><TD>Vec3f</TD><TD PORT="bounding_box_min_type">bounding_box_min</TD></TR>
+				<TR><TD PORT="bounding_box_max_pos">116</TD><TD PORT="bounding_box_max_size">12</TD><TD>Vec3f</TD><TD PORT="bounding_box_max_type">bounding_box_max</TD></TR>
+				<TR><TD PORT="radius_pos">128</TD><TD PORT="radius_size">4</TD><TD>f4le</TD><TD PORT="radius_type">radius</TD></TR>
+				<TR><TD PORT="animation_scale_pos">132</TD><TD PORT="animation_scale_size">4</TD><TD>f4le</TD><TD PORT="animation_scale_type">animation_scale</TD></TR>
+				<TR><TD PORT="supermodel_name_pos">136</TD><TD PORT="supermodel_name_size">32</TD><TD>str(ASCII)</TD><TD PORT="supermodel_name_type">supermodel_name</TD></TR>
+				<TR><TD PORT="offset_to_super_root_pos">168</TD><TD PORT="offset_to_super_root_size">4</TD><TD>u4le</TD><TD PORT="offset_to_super_root_type">offset_to_super_root</TD></TR>
+				<TR><TD PORT="unknown3_pos">172</TD><TD PORT="unknown3_size">4</TD><TD>u4le</TD><TD PORT="unknown3_type">unknown3</TD></TR>
+				<TR><TD PORT="mdx_data_size_pos">176</TD><TD PORT="mdx_data_size_size">4</TD><TD>u4le</TD><TD PORT="mdx_data_size_type">mdx_data_size</TD></TR>
+				<TR><TD PORT="mdx_data_offset_pos">180</TD><TD PORT="mdx_data_offset_size">4</TD><TD>u4le</TD><TD PORT="mdx_data_offset_type">mdx_data_offset</TD></TR>
+				<TR><TD PORT="offset_to_name_offsets_pos">184</TD><TD PORT="offset_to_name_offsets_size">4</TD><TD>u4le</TD><TD PORT="offset_to_name_offsets_type">offset_to_name_offsets</TD></TR>
+				<TR><TD PORT="name_offsets_count_pos">188</TD><TD PORT="name_offsets_count_size">4</TD><TD>u4le</TD><TD PORT="name_offsets_count_type">name_offsets_count</TD></TR>
+				<TR><TD PORT="name_offsets_count2_pos">192</TD><TD PORT="name_offsets_count2_size">4</TD><TD>u4le</TD><TD PORT="name_offsets_count2_type">name_offsets_count2</TD></TR>
 			</TABLE>>];
 		}
 		subgraph cluster__name_strings {
@@ -270,21 +282,6 @@ digraph {
 				<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
 				<TR><TD PORT="strings_pos">0</TD><TD PORT="strings_size">...</TD><TD>str(term=0, ASCII)</TD><TD PORT="strings_type">strings</TD></TR>
 				<TR><TD COLSPAN="4" PORT="strings__repeat">repeat to end of stream</TD></TR>
-			</TABLE>>];
-		}
-		subgraph cluster__names_header {
-			label="Mdl::NamesHeader";
-			graph[style=dotted];
-
-			names_header__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
-				<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
-				<TR><TD PORT="root_node_offset_pos">0</TD><TD PORT="root_node_offset_size">4</TD><TD>u4le</TD><TD PORT="root_node_offset_type">root_node_offset</TD></TR>
-				<TR><TD PORT="unknown_padding_pos">4</TD><TD PORT="unknown_padding_size">4</TD><TD>u4le</TD><TD PORT="unknown_padding_type">unknown_padding</TD></TR>
-				<TR><TD PORT="mdx_data_size_pos">8</TD><TD PORT="mdx_data_size_size">4</TD><TD>u4le</TD><TD PORT="mdx_data_size_type">mdx_data_size</TD></TR>
-				<TR><TD PORT="mdx_data_offset_pos">12</TD><TD PORT="mdx_data_offset_size">4</TD><TD>u4le</TD><TD PORT="mdx_data_offset_type">mdx_data_offset</TD></TR>
-				<TR><TD PORT="names_array_offset_pos">16</TD><TD PORT="names_array_offset_size">4</TD><TD>u4le</TD><TD PORT="names_array_offset_type">names_array_offset</TD></TR>
-				<TR><TD PORT="name_count_pos">20</TD><TD PORT="name_count_size">4</TD><TD>u4le</TD><TD PORT="name_count_type">name_count</TD></TR>
-				<TR><TD PORT="name_count_duplicate_pos">24</TD><TD PORT="name_count_duplicate_size">4</TD><TD>u4le</TD><TD PORT="name_count_duplicate_type">name_count_duplicate</TD></TR>
 			</TABLE>>];
 		}
 		subgraph cluster__node {
@@ -488,9 +485,9 @@ digraph {
 				<TR><TD PORT="total_area_pos">320</TD><TD PORT="total_area_size">4</TD><TD>f4le</TD><TD PORT="total_area_type">total_area</TD></TR>
 				<TR><TD PORT="unknown2_pos">324</TD><TD PORT="unknown2_size">4</TD><TD>u4le</TD><TD PORT="unknown2_type">unknown2</TD></TR>
 				<TR><TD PORT="k2_unknown_1_pos">328</TD><TD PORT="k2_unknown_1_size">4</TD><TD>u4le</TD><TD PORT="k2_unknown_1_type">k2_unknown_1</TD></TR>
-				<TR><TD COLSPAN="4" PORT="k2_unknown_1__if">if _root.geometry_header.is_kotor2</TD></TR>
+				<TR><TD COLSPAN="4" PORT="k2_unknown_1__if">if _root.model_header.geometry.is_kotor2</TD></TR>
 				<TR><TD PORT="k2_unknown_2_pos">332</TD><TD PORT="k2_unknown_2_size">4</TD><TD>u4le</TD><TD PORT="k2_unknown_2_type">k2_unknown_2</TD></TR>
-				<TR><TD COLSPAN="4" PORT="k2_unknown_2__if">if _root.geometry_header.is_kotor2</TD></TR>
+				<TR><TD COLSPAN="4" PORT="k2_unknown_2__if">if _root.model_header.geometry.is_kotor2</TD></TR>
 				<TR><TD PORT="mdx_data_offset_pos">336</TD><TD PORT="mdx_data_offset_size">4</TD><TD>u4le</TD><TD PORT="mdx_data_offset_type">mdx_data_offset</TD></TR>
 				<TR><TD PORT="mdl_vertices_offset_pos">340</TD><TD PORT="mdl_vertices_offset_size">4</TD><TD>u4le</TD><TD PORT="mdl_vertices_offset_type">mdl_vertices_offset</TD></TR>
 			</TABLE>>];
@@ -508,27 +505,29 @@ digraph {
 		}
 	}
 	mdl__seq:file_header_type -> file_header__seq [style=bold];
-	mdl__seq:geometry_header_type -> geometry_header__seq [style=bold];
 	mdl__seq:model_header_type -> model_header__seq [style=bold];
-	mdl__seq:names_header_type -> names_header__seq [style=bold];
+	mdl__inst__data_start:data_start_type -> mdl__inst__animation_offsets:animation_offsets_pos [color="#404040"];
+	model_header__seq:offset_to_animations_type -> mdl__inst__animation_offsets:animation_offsets_pos [color="#404040"];
+	model_header__seq:animation_count_type -> mdl__inst__animation_offsets:animation_offsets__repeat [color="#404040"];
+	model_header__seq:animation_count_type -> mdl__inst__animation_offsets:animation_offsets__if [color="#404040"];
 	mdl__inst__data_start:data_start_type -> mdl__inst__animations:animations_pos [color="#404040"];
-	model_header__seq:animation_array_offset_type -> mdl__inst__animations:animations_pos [color="#404040"];
+	mdl__inst__animation_offsets:animation_offsets_type -> mdl__inst__animations:animations_pos [color="#404040"];
 	mdl__inst__animations:animations_type -> animation_header__seq [style=bold];
 	model_header__seq:animation_count_type -> mdl__inst__animations:animations__repeat [color="#404040"];
 	model_header__seq:animation_count_type -> mdl__inst__animations:animations__if [color="#404040"];
-	mdl__inst__data_start:data_start_type -> mdl__inst__name_indexes:name_indexes_pos [color="#404040"];
-	names_header__seq:names_array_offset_type -> mdl__inst__name_indexes:name_indexes_pos [color="#404040"];
-	names_header__seq:name_count_type -> mdl__inst__name_indexes:name_indexes__repeat [color="#404040"];
-	names_header__seq:name_count_type -> mdl__inst__name_indexes:name_indexes__if [color="#404040"];
+	mdl__inst__data_start:data_start_type -> mdl__inst__name_offsets:name_offsets_pos [color="#404040"];
+	model_header__seq:offset_to_name_offsets_type -> mdl__inst__name_offsets:name_offsets_pos [color="#404040"];
+	model_header__seq:name_offsets_count_type -> mdl__inst__name_offsets:name_offsets__repeat [color="#404040"];
+	model_header__seq:name_offsets_count_type -> mdl__inst__name_offsets:name_offsets__if [color="#404040"];
 	mdl__inst__data_start:data_start_type -> mdl__inst__names_data:names_data_pos [color="#404040"];
-	names_header__seq:names_array_offset_type -> mdl__inst__names_data:names_data_pos [color="#404040"];
-	names_header__seq:name_count_type -> mdl__inst__names_data:names_data_pos [color="#404040"];
+	model_header__seq:offset_to_name_offsets_type -> mdl__inst__names_data:names_data_pos [color="#404040"];
+	model_header__seq:name_offsets_count_type -> mdl__inst__names_data:names_data_pos [color="#404040"];
 	mdl__inst__data_start:data_start_type -> mdl__inst__names_data:names_data_size [color="#404040"];
-	model_header__seq:animation_array_offset_type -> mdl__inst__names_data:names_data_size [color="#404040"];
-	names_header__seq:names_array_offset_type -> mdl__inst__names_data:names_data_size [color="#404040"];
-	names_header__seq:name_count_type -> mdl__inst__names_data:names_data_size [color="#404040"];
+	model_header__seq:offset_to_animations_type -> mdl__inst__names_data:names_data_size [color="#404040"];
+	model_header__seq:offset_to_name_offsets_type -> mdl__inst__names_data:names_data_size [color="#404040"];
+	model_header__seq:name_offsets_count_type -> mdl__inst__names_data:names_data_size [color="#404040"];
 	mdl__inst__names_data:names_data_type -> name_strings__seq [style=bold];
-	names_header__seq:name_count_type -> mdl__inst__names_data:names_data__if [color="#404040"];
+	model_header__seq:name_offsets_count_type -> mdl__inst__names_data:names_data__if [color="#404040"];
 	mdl__inst__data_start:data_start_type -> mdl__inst__root_node:root_node_pos [color="#404040"];
 	geometry_header__seq:root_node_offset_type -> mdl__inst__root_node:root_node_pos [color="#404040"];
 	mdl__inst__root_node:root_node_type -> node__seq [style=bold];
@@ -543,6 +542,7 @@ digraph {
 	geometry_header__seq:unknown_array_2_type -> array_definition__seq [style=bold];
 	geometry_header__seq:function_pointer_0_type -> geometry_header__inst__is_kotor2 [color="#404040"];
 	lightsaber_header__seq:trimesh_base_type -> trimesh_header__seq [style=bold];
+	model_header__seq:geometry_type -> geometry_header__seq [style=bold];
 	model_header__seq:bounding_box_min_type -> vec3f__seq [style=bold];
 	model_header__seq:bounding_box_max_type -> vec3f__seq [style=bold];
 	node__seq:header_type -> node_header__seq [style=bold];

@@ -23,15 +23,13 @@
 
 The MDL file contains:
 - File header (12 bytes)
-- Geometry header (80 bytes)
-- Model header (92 bytes)
-- Names header (28 bytes)
-- Node name arrays
-- Animation headers and nodes
+- Model header (196 bytes) which begins with a Geometry header (80 bytes)
+- Name offset array + name strings
+- Animation offset array + animation headers + animation nodes
 - Node hierarchy with geometry data
 
 Reference implementations:
-- https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+- https://github.com/th3w1zard1/MDLOpsM.pm
 - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 </p>
 <table class="table">
@@ -46,56 +44,52 @@ Reference implementations:
 <tr>
 <td>12</td>
 <td>...</td>
-<td>geometry_header</td>
-<td><a href="#type-mdl-geometry_header">GeometryHeader</a></td>
-<td></td>
-</tr>
-<tr>
-<td>92</td>
-<td>...</td>
 <td>model_header</td>
 <td><a href="#type-mdl-model_header">ModelHeader</a></td>
 <td></td>
 </tr>
+</table>
+<p><b>Parse instance</b>: animation_offsets</p>
+<table class="table">
 <tr>
-<td>180</td>
+<td>data_start + model_header.offset_to_animations</td>
 <td>...</td>
-<td>names_header</td>
-<td><a href="#type-mdl-names_header">NamesHeader</a></td>
-<td></td>
+<td>animation_offsets</td>
+<td>u4le</td>
+<td>Animation header offsets (relative to data_start)</td>
 </tr>
 </table>
 <p><b>Parse instance</b>: animations</p>
 <table class="table">
 <tr>
-<td>data_start + model_header.animation_array_offset</td>
+<td>data_start + animation_offsets[i]</td>
 <td>...</td>
 <td>animations</td>
 <td><a href="#type-mdl-animation_header">AnimationHeader</a></td>
-<td>Animation header array</td>
+<td>Animation headers (resolved via animation_offsets)</td>
 </tr>
 </table>
 value instance: ValueInstanceSpec(InstanceIdentifier(data_start),List(instances, data_start),IntNum(12),None,Some(Int1Type(true)),DocSpec(Some(MDL "data start" offset. Most offsets in this file are relative to the start of the MDL data
 section, which begins immediately after the 12-byte file header.
 ),List()))
-<p><b>Parse instance</b>: name_indexes</p>
+<p><b>Parse instance</b>: name_offsets</p>
 <table class="table">
 <tr>
-<td>data_start + names_header.names_array_offset</td>
+<td>data_start + model_header.offset_to_name_offsets</td>
 <td>...</td>
-<td>name_indexes</td>
+<td>name_offsets</td>
 <td>u4le</td>
-<td>Array of name string offsets (relative to data_start)</td>
+<td>Name string offsets (relative to data_start)</td>
 </tr>
 </table>
 <p><b>Parse instance</b>: names_data</p>
 <table class="table">
 <tr>
-<td>(data_start + names_header.names_array_offset) + 4 * names_header.name_count</td>
+<td>(data_start + model_header.offset_to_name_offsets) + 4 * model_header.name_offsets_count</td>
 <td>...</td>
 <td>names_data</td>
 <td><a href="#type-mdl-name_strings">NameStrings</a></td>
-<td>Name string blob (substream). This follows the name index array and continues up to the animation array.
+<td>Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
 Parsed as null-terminated ASCII strings in `name_strings`.
 </td>
 </tr>
@@ -103,7 +97,7 @@ Parsed as null-terminated ASCII strings in `name_strings`.
 <p><b>Parse instance</b>: root_node</p>
 <table class="table">
 <tr>
-<td>data_start + geometry_header.root_node_offset</td>
+<td>data_start + model_header.geometry.root_node_offset</td>
 <td>...</td>
 <td>root_node</td>
 <td><a href="#type-mdl-node">Node</a></td>
@@ -1045,115 +1039,165 @@ value instance: ValueInstanceSpec(InstanceIdentifier(is_kotor2),List(types, geom
 <a name='type-mdl-model_header'></a>
 <h2>Type: ModelHeader</h2>
 
-<p>Model header (92 bytes) - Located at offset 92</p>
+<p>Model header (196 bytes) starting at offset 12 (data_start).
+This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+model-wide metadata, offsets, and counts.
+</p>
 <table class="table">
 <tr><th>Offset</th><th>Size</th><th>ID</th><th>Type</th><th>Note</th></tr>
 <tr>
 <td>0</td>
 <td>...</td>
-<td>classification</td>
-<td>u1</td>
-<td>Model classification:
-- 0x00: Other
-- 0x01: Effect
-- 0x02: Tile
-- 0x04: Character
-- 0x08: Door
-- 0x10: Lightsaber
-- 0x20: Placeable
-- 0x40: Flyer
-</td>
+<td>geometry</td>
+<td><a href="#type-mdl-geometry_header">GeometryHeader</a></td>
+<td>Geometry header (80 bytes)</td>
 </tr>
 <tr>
-<td>1</td>
+<td>80</td>
 <td>...</td>
-<td>subclassification</td>
+<td>model_type</td>
 <td>u1</td>
-<td>Model subclassification value</td>
+<td>Model classification byte</td>
 </tr>
 <tr>
-<td>2</td>
+<td>81</td>
 <td>...</td>
-<td>unknown</td>
+<td>unknown0</td>
 <td>u1</td>
-<td>Purpose unknown (possibly smoothing-related)</td>
+<td>TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)</td>
 </tr>
 <tr>
-<td>3</td>
+<td>82</td>
 <td>...</td>
-<td>affected_by_fog</td>
+<td>padding0</td>
 <td>u1</td>
-<td>0 = Not affected by fog, 1 = Affected by fog</td>
+<td>Padding byte</td>
 </tr>
 <tr>
-<td>4</td>
+<td>83</td>
 <td>...</td>
-<td>child_model_count</td>
+<td>fog</td>
+<td>u1</td>
+<td>Fog interaction (1 = affected, 0 = ignore fog)</td>
+</tr>
+<tr>
+<td>84</td>
+<td>...</td>
+<td>unknown1</td>
 <td>u4le</td>
-<td>Number of child models</td>
+<td>TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)</td>
 </tr>
 <tr>
-<td>8</td>
+<td>88</td>
 <td>...</td>
-<td>animation_array_offset</td>
+<td>offset_to_animations</td>
 <td>u4le</td>
-<td>Offset to animation array (relative to MDL data start, offset 12)</td>
+<td>Offset to animation offset array (relative to data_start)</td>
 </tr>
 <tr>
-<td>12</td>
+<td>92</td>
 <td>...</td>
 <td>animation_count</td>
 <td>u4le</td>
 <td>Number of animations</td>
 </tr>
 <tr>
-<td>16</td>
+<td>96</td>
 <td>...</td>
-<td>animation_count_duplicate</td>
+<td>animation_count2</td>
 <td>u4le</td>
-<td>Duplicate value of animation count</td>
+<td>Duplicate animation count / allocated count</td>
 </tr>
 <tr>
-<td>20</td>
+<td>100</td>
 <td>...</td>
-<td>parent_model_pointer</td>
+<td>unknown2</td>
 <td>u4le</td>
-<td>Pointer to parent model (context-dependent)</td>
+<td>TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)</td>
 </tr>
 <tr>
-<td>24</td>
+<td>104</td>
 <td>...</td>
 <td>bounding_box_min</td>
 <td><a href="#type-mdl-vec3f">Vec3f</a></td>
 <td>Minimum coordinates of bounding box (X, Y, Z)</td>
 </tr>
 <tr>
-<td>36</td>
+<td>116</td>
 <td>...</td>
 <td>bounding_box_max</td>
 <td><a href="#type-mdl-vec3f">Vec3f</a></td>
 <td>Maximum coordinates of bounding box (X, Y, Z)</td>
 </tr>
 <tr>
-<td>48</td>
+<td>128</td>
 <td>...</td>
 <td>radius</td>
 <td>f4le</td>
 <td>Radius of model's bounding sphere</td>
 </tr>
 <tr>
-<td>52</td>
+<td>132</td>
 <td>...</td>
 <td>animation_scale</td>
 <td>f4le</td>
 <td>Scale factor for animations (typically 1.0)</td>
 </tr>
 <tr>
-<td>56</td>
+<td>136</td>
 <td>...</td>
 <td>supermodel_name</td>
 <td>str(ASCII)</td>
 <td>Name of supermodel (null-terminated string, "null" if empty)</td>
+</tr>
+<tr>
+<td>168</td>
+<td>...</td>
+<td>offset_to_super_root</td>
+<td>u4le</td>
+<td>TODO: VERIFY - offset to super-root node (relative to data_start)</td>
+</tr>
+<tr>
+<td>172</td>
+<td>...</td>
+<td>unknown3</td>
+<td>u4le</td>
+<td>TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)</td>
+</tr>
+<tr>
+<td>176</td>
+<td>...</td>
+<td>mdx_data_size</td>
+<td>u4le</td>
+<td>Size of MDX file data in bytes</td>
+</tr>
+<tr>
+<td>180</td>
+<td>...</td>
+<td>mdx_data_offset</td>
+<td>u4le</td>
+<td>Offset to MDX data (typically 0)</td>
+</tr>
+<tr>
+<td>184</td>
+<td>...</td>
+<td>offset_to_name_offsets</td>
+<td>u4le</td>
+<td>Offset to name offset array (relative to data_start)</td>
+</tr>
+<tr>
+<td>188</td>
+<td>...</td>
+<td>name_offsets_count</td>
+<td>u4le</td>
+<td>Count of name offsets / partnames</td>
+</tr>
+<tr>
+<td>192</td>
+<td>...</td>
+<td>name_offsets_count2</td>
+<td>u4le</td>
+<td>Duplicate name offsets count / allocated count</td>
 </tr>
 </table>
 <a name='type-mdl-name_strings'></a>
@@ -1168,62 +1212,6 @@ value instance: ValueInstanceSpec(InstanceIdentifier(is_kotor2),List(types, geom
 <td>strings</td>
 <td>str(term=0, ASCII)</td>
 <td></td>
-</tr>
-</table>
-<a name='type-mdl-names_header'></a>
-<h2>Type: NamesHeader</h2>
-
-<p>Names header (28 bytes) - Located at offset 180</p>
-<table class="table">
-<tr><th>Offset</th><th>Size</th><th>ID</th><th>Type</th><th>Note</th></tr>
-<tr>
-<td>0</td>
-<td>...</td>
-<td>root_node_offset</td>
-<td>u4le</td>
-<td>Offset to root node (often duplicate of geometry header value)</td>
-</tr>
-<tr>
-<td>4</td>
-<td>...</td>
-<td>unknown_padding</td>
-<td>u4le</td>
-<td>Unknown field, typically unused or padding</td>
-</tr>
-<tr>
-<td>8</td>
-<td>...</td>
-<td>mdx_data_size</td>
-<td>u4le</td>
-<td>Size of MDX file data in bytes</td>
-</tr>
-<tr>
-<td>12</td>
-<td>...</td>
-<td>mdx_data_offset</td>
-<td>u4le</td>
-<td>Offset to MDX data within MDX file (typically 0)</td>
-</tr>
-<tr>
-<td>16</td>
-<td>...</td>
-<td>names_array_offset</td>
-<td>u4le</td>
-<td>Offset to array of name string offsets</td>
-</tr>
-<tr>
-<td>20</td>
-<td>...</td>
-<td>name_count</td>
-<td>u4le</td>
-<td>Number of node names in array</td>
-</tr>
-<tr>
-<td>24</td>
-<td>...</td>
-<td>name_count_duplicate</td>
-<td>u4le</td>
-<td>Duplicate value of name count</td>
 </tr>
 </table>
 <a name='type-mdl-node'></a>
