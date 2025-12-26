@@ -59,3 +59,10 @@ instances:
       gff_data.header.file_version == "V4.0" or
       gff_data.header.file_version == "V4.1"
     doc: Validates GFF version is supported
+
+  root_struct_resolved:
+    value: gff_data.root_struct_resolved
+    doc: |
+      Convenience access to the decoded GFF root struct (struct_array[0]).
+      Use this to iterate all resolved fields (label + typed value), including:
+      "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
