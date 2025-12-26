@@ -8,12 +8,15 @@ type
     `parent`*: KaitaiStruct
     `fileTypeValidInst`: bool
     `fileTypeValidInstFlag`: bool
+    `rootStructResolvedInst`: Gff_ResolvedStruct
+    `rootStructResolvedInstFlag`: bool
     `versionValidInst`: bool
     `versionValidInstFlag`: bool
 
 proc read*(_: typedesc[Are], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Are
 
 proc fileTypeValid*(this: Are): bool
+proc rootStructResolved*(this: Are): Gff_ResolvedStruct
 proc versionValid*(this: Are): bool
 
 
@@ -74,6 +77,20 @@ proc fileTypeValid(this: Are): bool =
   this.fileTypeValidInst = fileTypeValidInstExpr
   this.fileTypeValidInstFlag = true
   return this.fileTypeValidInst
+
+proc rootStructResolved(this: Are): Gff_ResolvedStruct = 
+
+  ##[
+  Convenience access to the decoded GFF root struct (struct_array[0]).
+Use this to iterate all resolved fields (label + typed value), including:
+"Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+  ]##
+  if this.rootStructResolvedInstFlag:
+    return this.rootStructResolvedInst
+  let rootStructResolvedInstExpr = Gff_ResolvedStruct(this.gffData.rootStructResolved)
+  this.rootStructResolvedInst = rootStructResolvedInstExpr
+  this.rootStructResolvedInstFlag = true
+  return this.rootStructResolvedInst
 
 proc versionValid(this: Are): bool = 
 

@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use IO::KaitaiStruct 0.011_000;
+use BiowareCommon;
 use Encode;
 
 ########################################################################
@@ -115,6 +116,13 @@ sub list_indices_array {
         $self->{_io}->seek($_pos);
     }
     return $self->{list_indices_array};
+}
+
+sub root_struct_resolved {
+    my ($self) = @_;
+    return $self->{root_struct_resolved} if ($self->{root_struct_resolved});
+    $self->{root_struct_resolved} = Gff::ResolvedStruct->new($self->{_io}, $self, $self->{_root});
+    return $self->{root_struct_resolved};
 }
 
 sub struct_array {
@@ -558,6 +566,44 @@ sub name {
 }
 
 ########################################################################
+package Gff::LabelEntryTerminated;
+
+our @ISA = 'IO::KaitaiStruct::Struct';
+
+sub from_file {
+    my ($class, $filename) = @_;
+    my $fd;
+
+    open($fd, '<', $filename) or return undef;
+    binmode($fd);
+    return new($class, IO::KaitaiStruct::Stream->new($fd));
+}
+
+sub new {
+    my ($class, $_io, $_parent, $_root) = @_;
+    my $self = IO::KaitaiStruct::Struct->new($_io);
+
+    bless $self, $class;
+    $self->{_parent} = $_parent;
+    $self->{_root} = $_root;
+
+    $self->_read();
+
+    return $self;
+}
+
+sub _read {
+    my ($self) = @_;
+
+    $self->{name} = Encode::decode("ASCII", IO::KaitaiStruct::Stream::bytes_terminate($self->{_io}->read_bytes(16), 0, 0));
+}
+
+sub name {
+    my ($self) = @_;
+    return $self->{name};
+}
+
+########################################################################
 package Gff::ListEntry;
 
 our @ISA = 'IO::KaitaiStruct::Struct';
@@ -641,6 +687,381 @@ sub _read {
 sub raw_data {
     my ($self) = @_;
     return $self->{raw_data};
+}
+
+########################################################################
+package Gff::ResolvedField;
+
+our @ISA = 'IO::KaitaiStruct::Struct';
+
+sub from_file {
+    my ($class, $filename) = @_;
+    my $fd;
+
+    open($fd, '<', $filename) or return undef;
+    binmode($fd);
+    return new($class, IO::KaitaiStruct::Stream->new($fd));
+}
+
+sub new {
+    my ($class, $_io, $_parent, $_root) = @_;
+    my $self = IO::KaitaiStruct::Struct->new($_io);
+
+    bless $self, $class;
+    $self->{_parent} = $_parent;
+    $self->{_root} = $_root;
+
+    $self->_read();
+
+    return $self;
+}
+
+sub _read {
+    my ($self) = @_;
+
+}
+
+sub entry {
+    my ($self) = @_;
+    return $self->{entry} if ($self->{entry});
+    my $_pos = $self->{_io}->pos();
+    $self->{_io}->seek($self->_root()->header()->field_offset() + $self->field_index() * 12);
+    $self->{entry} = Gff::FieldEntry->new($self->{_io}, $self, $self->{_root});
+    $self->{_io}->seek($_pos);
+    return $self->{entry};
+}
+
+sub field_entry_pos {
+    my ($self) = @_;
+    return $self->{field_entry_pos} if ($self->{field_entry_pos});
+    $self->{field_entry_pos} = $self->_root()->header()->field_offset() + $self->field_index() * 12;
+    return $self->{field_entry_pos};
+}
+
+sub label {
+    my ($self) = @_;
+    return $self->{label} if ($self->{label});
+    my $_pos = $self->{_io}->pos();
+    $self->{_io}->seek($self->_root()->header()->label_offset() + $self->entry()->label_index() * 16);
+    $self->{label} = Gff::LabelEntryTerminated->new($self->{_io}, $self, $self->{_root});
+    $self->{_io}->seek($_pos);
+    return $self->{label};
+}
+
+sub list_entry {
+    my ($self) = @_;
+    return $self->{list_entry} if ($self->{list_entry});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_LIST) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->list_indices_offset() + $self->entry()->data_or_offset());
+        $self->{list_entry} = Gff::ListEntry->new($self->{_io}, $self, $self->{_root});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{list_entry};
+}
+
+sub list_structs {
+    my ($self) = @_;
+    return $self->{list_structs} if ($self->{list_structs});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_LIST) {
+        $self->{list_structs} = [];
+        my $n_list_structs = $self->list_entry()->num_struct_indices();
+        for (my $i = 0; $i < $n_list_structs; $i++) {
+            push @{$self->{list_structs}}, Gff::ResolvedStruct->new($self->{_io}, $self, $self->{_root});
+        }
+    }
+    return $self->{list_structs};
+}
+
+sub value_binary {
+    my ($self) = @_;
+    return $self->{value_binary} if ($self->{value_binary});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_BINARY) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_binary} = BiowareCommon::BiowareBinaryData->new($self->{_io});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_binary};
+}
+
+sub value_double {
+    my ($self) = @_;
+    return $self->{value_double} if ($self->{value_double});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_DOUBLE) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_double} = $self->{_io}->read_f8le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_double};
+}
+
+sub value_int16 {
+    my ($self) = @_;
+    return $self->{value_int16} if ($self->{value_int16});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_INT16) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_int16} = $self->{_io}->read_s2le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_int16};
+}
+
+sub value_int32 {
+    my ($self) = @_;
+    return $self->{value_int32} if ($self->{value_int32});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_INT32) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_int32} = $self->{_io}->read_s4le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_int32};
+}
+
+sub value_int64 {
+    my ($self) = @_;
+    return $self->{value_int64} if ($self->{value_int64});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_INT64) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_int64} = $self->{_io}->read_s8le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_int64};
+}
+
+sub value_int8 {
+    my ($self) = @_;
+    return $self->{value_int8} if ($self->{value_int8});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_INT8) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_int8} = $self->{_io}->read_s1();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_int8};
+}
+
+sub value_localized_string {
+    my ($self) = @_;
+    return $self->{value_localized_string} if ($self->{value_localized_string});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_LOCALIZED_STRING) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_localized_string} = BiowareCommon::BiowareLocstring->new($self->{_io});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_localized_string};
+}
+
+sub value_resref {
+    my ($self) = @_;
+    return $self->{value_resref} if ($self->{value_resref});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_RESREF) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_resref} = BiowareCommon::BiowareResref->new($self->{_io});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_resref};
+}
+
+sub value_single {
+    my ($self) = @_;
+    return $self->{value_single} if ($self->{value_single});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_SINGLE) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_single} = $self->{_io}->read_f4le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_single};
+}
+
+sub value_string {
+    my ($self) = @_;
+    return $self->{value_string} if ($self->{value_string});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_STRING) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_string} = BiowareCommon::BiowareCexoString->new($self->{_io});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_string};
+}
+
+sub value_struct {
+    my ($self) = @_;
+    return $self->{value_struct} if ($self->{value_struct});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_STRUCT) {
+        $self->{value_struct} = Gff::ResolvedStruct->new($self->{_io}, $self, $self->{_root});
+    }
+    return $self->{value_struct};
+}
+
+sub value_uint16 {
+    my ($self) = @_;
+    return $self->{value_uint16} if ($self->{value_uint16});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_UINT16) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_uint16} = $self->{_io}->read_u2le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_uint16};
+}
+
+sub value_uint32 {
+    my ($self) = @_;
+    return $self->{value_uint32} if ($self->{value_uint32});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_UINT32) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_uint32} = $self->{_io}->read_u4le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_uint32};
+}
+
+sub value_uint64 {
+    my ($self) = @_;
+    return $self->{value_uint64} if ($self->{value_uint64});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_UINT64) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_uint64} = $self->{_io}->read_u8le();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_uint64};
+}
+
+sub value_uint8 {
+    my ($self) = @_;
+    return $self->{value_uint8} if ($self->{value_uint8});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_UINT8) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->field_entry_pos() + 8);
+        $self->{value_uint8} = $self->{_io}->read_u1();
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_uint8};
+}
+
+sub value_vector3 {
+    my ($self) = @_;
+    return $self->{value_vector3} if ($self->{value_vector3});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_VECTOR3) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_vector3} = BiowareCommon::BiowareVector3->new($self->{_io});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_vector3};
+}
+
+sub value_vector4 {
+    my ($self) = @_;
+    return $self->{value_vector4} if ($self->{value_vector4});
+    if ($self->entry()->field_type() == $Gff::GFF_FIELD_TYPE_VECTOR4) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_data_offset() + $self->entry()->data_or_offset());
+        $self->{value_vector4} = BiowareCommon::BiowareVector4->new($self->{_io});
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{value_vector4};
+}
+
+sub field_index {
+    my ($self) = @_;
+    return $self->{field_index};
+}
+
+########################################################################
+package Gff::ResolvedStruct;
+
+our @ISA = 'IO::KaitaiStruct::Struct';
+
+sub from_file {
+    my ($class, $filename) = @_;
+    my $fd;
+
+    open($fd, '<', $filename) or return undef;
+    binmode($fd);
+    return new($class, IO::KaitaiStruct::Stream->new($fd));
+}
+
+sub new {
+    my ($class, $_io, $_parent, $_root) = @_;
+    my $self = IO::KaitaiStruct::Struct->new($_io);
+
+    bless $self, $class;
+    $self->{_parent} = $_parent;
+    $self->{_root} = $_root;
+
+    $self->_read();
+
+    return $self;
+}
+
+sub _read {
+    my ($self) = @_;
+
+}
+
+sub entry {
+    my ($self) = @_;
+    return $self->{entry} if ($self->{entry});
+    my $_pos = $self->{_io}->pos();
+    $self->{_io}->seek($self->_root()->header()->struct_offset() + $self->struct_index() * 12);
+    $self->{entry} = Gff::StructEntry->new($self->{_io}, $self, $self->{_root});
+    $self->{_io}->seek($_pos);
+    return $self->{entry};
+}
+
+sub field_indices {
+    my ($self) = @_;
+    return $self->{field_indices} if ($self->{field_indices});
+    if ($self->entry()->field_count() > 1) {
+        my $_pos = $self->{_io}->pos();
+        $self->{_io}->seek($self->_root()->header()->field_indices_offset() + $self->entry()->data_or_offset());
+        $self->{field_indices} = [];
+        my $n_field_indices = $self->entry()->field_count();
+        for (my $i = 0; $i < $n_field_indices; $i++) {
+            push @{$self->{field_indices}}, $self->{_io}->read_u4le();
+        }
+        $self->{_io}->seek($_pos);
+    }
+    return $self->{field_indices};
+}
+
+sub fields {
+    my ($self) = @_;
+    return $self->{fields} if ($self->{fields});
+    if ($self->entry()->field_count() > 1) {
+        $self->{fields} = [];
+        my $n_fields = $self->entry()->field_count();
+        for (my $i = 0; $i < $n_fields; $i++) {
+            push @{$self->{fields}}, Gff::ResolvedField->new($self->{_io}, $self, $self->{_root});
+        }
+    }
+    return $self->{fields};
+}
+
+sub single_field {
+    my ($self) = @_;
+    return $self->{single_field} if ($self->{single_field});
+    if ($self->entry()->field_count() == 1) {
+        $self->{single_field} = Gff::ResolvedField->new($self->{_io}, $self, $self->{_root});
+    }
+    return $self->{single_field};
+}
+
+sub struct_index {
+    my ($self) = @_;
+    return $self->{struct_index};
 }
 
 ########################################################################

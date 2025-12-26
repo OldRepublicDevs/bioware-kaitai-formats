@@ -45,6 +45,13 @@ sub file_type_valid {
     return $self->{file_type_valid};
 }
 
+sub root_struct_resolved {
+    my ($self) = @_;
+    return $self->{root_struct_resolved} if ($self->{root_struct_resolved});
+    $self->{root_struct_resolved} = $self->gff_data()->root_struct_resolved();
+    return $self->{root_struct_resolved};
+}
+
 sub version_valid {
     my ($self) = @_;
     return $self->{version_valid} if ($self->{version_valid});

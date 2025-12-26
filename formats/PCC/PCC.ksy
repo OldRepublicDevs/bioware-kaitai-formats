@@ -29,26 +29,26 @@ seq:
   - id: header
     type: file_header
     doc: File header containing format metadata and table offsets.
-  
-  - id: name_table
+
+instances:
+  name_table:
     type: name_table
     if: header.name_count > 0
     pos: header.name_table_offset
     doc: Table containing all string names used in the package.
   
-  - id: import_table
+  import_table:
     type: import_table
     if: header.import_count > 0
     pos: header.import_table_offset
     doc: Table containing references to external packages and classes.
   
-  - id: export_table
+  export_table:
     type: export_table
     if: header.export_count > 0
     pos: header.export_table_offset
     doc: Table containing all objects exported from this package.
 
-instances:
   is_compressed:
     value: (header.package_flags & 0x2000000) != 0
     doc: True if package uses compressed chunks (bit 25 of package_flags).
@@ -216,7 +216,7 @@ types:
       - id: name
         type: str
         encoding: UTF-16LE
-        size: (length < 0 ? -length : length) * 2
+        size: "(length < 0 ? -length : length) * 2"
         doc: |
           Name string encoded as UTF-16LE (WCHAR).
           Size is absolute value of length * 2 bytes per character.
@@ -224,7 +224,7 @@ types:
     
     instances:
       abs_length:
-        value: length < 0 ? -length : length
+        value: "length < 0 ? -length : length"
         doc: Absolute value of length for size calculation
       
       name_size:
@@ -339,7 +339,8 @@ types:
       - id: components
         type: s4
         repeat: expr
-        repeat-expr: (component_count > 0 ? component_count : 0)
+        repeat-expr: component_count
+        if: component_count > 0
         doc: |
           Array of component indices.
           Only present if component_count > 0.

@@ -4,6 +4,7 @@
 
 local class = require("class")
 require("kaitaistruct")
+require("bioware_common")
 local enum = require("enum")
 local str_decode = require("string_decode")
 
@@ -170,6 +171,20 @@ function Gff.property.list_indices_array:get()
     self._io:seek(_pos)
   end
   return self._m_list_indices_array
+end
+
+-- 
+-- Convenience "decoded" view of the root struct (struct_array[0]).
+-- This resolves field indices to field entries, resolves labels to strings,
+-- and decodes field values (including nested structs and lists) into typed instances.
+Gff.property.root_struct_resolved = {}
+function Gff.property.root_struct_resolved:get()
+  if self._m_root_struct_resolved ~= nil then
+    return self._m_root_struct_resolved
+  end
+
+  self._m_root_struct_resolved = Gff.ResolvedStruct(0, self._io, self, self._root)
+  return self._m_root_struct_resolved
 end
 
 -- 
@@ -472,6 +487,23 @@ end
 -- The actual label length is determined by the first null byte.
 -- Application code should trim trailing null bytes when using this field.
 
+-- 
+-- Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+-- This avoids leaking trailing `\0` bytes into generated-code consumers.
+Gff.LabelEntryTerminated = class.class(KaitaiStruct)
+
+function Gff.LabelEntryTerminated:_init(io, parent, root)
+  KaitaiStruct._init(self, io)
+  self._parent = parent
+  self._root = root
+  self:_read()
+end
+
+function Gff.LabelEntryTerminated:_read()
+  self.name = str_decode.decode(KaitaiStream.bytes_terminate(self._io:read_bytes(16), 0, false), "ASCII")
+end
+
+
 Gff.ListEntry = class.class(KaitaiStruct)
 
 function Gff.ListEntry:_init(io, parent, root)
@@ -515,6 +547,441 @@ end
 -- Note: This is a raw data block. In practice, list entries are accessed via
 -- offsets stored in list-type field entries, not as a sequential array.
 -- Use list_entry type to parse individual entries at specific offsets.
+
+-- 
+-- A decoded field: includes resolved label string and decoded typed value.
+-- Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+Gff.ResolvedField = class.class(KaitaiStruct)
+
+function Gff.ResolvedField:_init(field_index, io, parent, root)
+  KaitaiStruct._init(self, io)
+  self._parent = parent
+  self._root = root
+  self.field_index = field_index
+  self:_read()
+end
+
+function Gff.ResolvedField:_read()
+end
+
+-- 
+-- Raw field entry at field_index.
+Gff.ResolvedField.property.entry = {}
+function Gff.ResolvedField.property.entry:get()
+  if self._m_entry ~= nil then
+    return self._m_entry
+  end
+
+  local _pos = self._io:pos()
+  self._io:seek(self._root.header.field_offset + self.field_index * 12)
+  self._m_entry = Gff.FieldEntry(self._io, self, self._root)
+  self._io:seek(_pos)
+  return self._m_entry
+end
+
+-- 
+-- Absolute file offset of this field entry (start of 12-byte record).
+Gff.ResolvedField.property.field_entry_pos = {}
+function Gff.ResolvedField.property.field_entry_pos:get()
+  if self._m_field_entry_pos ~= nil then
+    return self._m_field_entry_pos
+  end
+
+  self._m_field_entry_pos = self._root.header.field_offset + self.field_index * 12
+  return self._m_field_entry_pos
+end
+
+-- 
+-- Resolved field label string.
+Gff.ResolvedField.property.label = {}
+function Gff.ResolvedField.property.label:get()
+  if self._m_label ~= nil then
+    return self._m_label
+  end
+
+  local _pos = self._io:pos()
+  self._io:seek(self._root.header.label_offset + self.entry.label_index * 16)
+  self._m_label = Gff.LabelEntryTerminated(self._io, self, self._root)
+  self._io:seek(_pos)
+  return self._m_label
+end
+
+-- 
+-- Parsed list entry at offset (list indices).
+Gff.ResolvedField.property.list_entry = {}
+function Gff.ResolvedField.property.list_entry:get()
+  if self._m_list_entry ~= nil then
+    return self._m_list_entry
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.list then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.list_indices_offset + self.entry.data_or_offset)
+    self._m_list_entry = Gff.ListEntry(self._io, self, self._root)
+    self._io:seek(_pos)
+  end
+  return self._m_list_entry
+end
+
+-- 
+-- Resolved structs referenced by this list.
+Gff.ResolvedField.property.list_structs = {}
+function Gff.ResolvedField.property.list_structs:get()
+  if self._m_list_structs ~= nil then
+    return self._m_list_structs
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.list then
+    self._m_list_structs = {}
+    for i = 0, self.list_entry.num_struct_indices - 1 do
+      self._m_list_structs[i + 1] = Gff.ResolvedStruct(self.list_entry.struct_indices[i + 1], self._io, self, self._root)
+    end
+  end
+  return self._m_list_structs
+end
+
+Gff.ResolvedField.property.value_binary = {}
+function Gff.ResolvedField.property.value_binary:get()
+  if self._m_value_binary ~= nil then
+    return self._m_value_binary
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.binary then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_binary = BiowareCommon.BiowareBinaryData(self._io)
+    self._io:seek(_pos)
+  end
+  return self._m_value_binary
+end
+
+Gff.ResolvedField.property.value_double = {}
+function Gff.ResolvedField.property.value_double:get()
+  if self._m_value_double ~= nil then
+    return self._m_value_double
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.double then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_double = self._io:read_f8le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_double
+end
+
+Gff.ResolvedField.property.value_int16 = {}
+function Gff.ResolvedField.property.value_int16:get()
+  if self._m_value_int16 ~= nil then
+    return self._m_value_int16
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.int16 then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_int16 = self._io:read_s2le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_int16
+end
+
+Gff.ResolvedField.property.value_int32 = {}
+function Gff.ResolvedField.property.value_int32:get()
+  if self._m_value_int32 ~= nil then
+    return self._m_value_int32
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.int32 then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_int32 = self._io:read_s4le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_int32
+end
+
+Gff.ResolvedField.property.value_int64 = {}
+function Gff.ResolvedField.property.value_int64:get()
+  if self._m_value_int64 ~= nil then
+    return self._m_value_int64
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.int64 then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_int64 = self._io:read_s8le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_int64
+end
+
+Gff.ResolvedField.property.value_int8 = {}
+function Gff.ResolvedField.property.value_int8:get()
+  if self._m_value_int8 ~= nil then
+    return self._m_value_int8
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.int8 then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_int8 = self._io:read_s1()
+    self._io:seek(_pos)
+  end
+  return self._m_value_int8
+end
+
+Gff.ResolvedField.property.value_localized_string = {}
+function Gff.ResolvedField.property.value_localized_string:get()
+  if self._m_value_localized_string ~= nil then
+    return self._m_value_localized_string
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.localized_string then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_localized_string = BiowareCommon.BiowareLocstring(self._io)
+    self._io:seek(_pos)
+  end
+  return self._m_value_localized_string
+end
+
+Gff.ResolvedField.property.value_resref = {}
+function Gff.ResolvedField.property.value_resref:get()
+  if self._m_value_resref ~= nil then
+    return self._m_value_resref
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.resref then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_resref = BiowareCommon.BiowareResref(self._io)
+    self._io:seek(_pos)
+  end
+  return self._m_value_resref
+end
+
+Gff.ResolvedField.property.value_single = {}
+function Gff.ResolvedField.property.value_single:get()
+  if self._m_value_single ~= nil then
+    return self._m_value_single
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.single then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_single = self._io:read_f4le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_single
+end
+
+Gff.ResolvedField.property.value_string = {}
+function Gff.ResolvedField.property.value_string:get()
+  if self._m_value_string ~= nil then
+    return self._m_value_string
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.string then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_string = BiowareCommon.BiowareCexoString(self._io)
+    self._io:seek(_pos)
+  end
+  return self._m_value_string
+end
+
+-- 
+-- Nested struct (struct index = entry.data_or_offset).
+Gff.ResolvedField.property.value_struct = {}
+function Gff.ResolvedField.property.value_struct:get()
+  if self._m_value_struct ~= nil then
+    return self._m_value_struct
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.struct then
+    self._m_value_struct = Gff.ResolvedStruct(self.entry.data_or_offset, self._io, self, self._root)
+  end
+  return self._m_value_struct
+end
+
+Gff.ResolvedField.property.value_uint16 = {}
+function Gff.ResolvedField.property.value_uint16:get()
+  if self._m_value_uint16 ~= nil then
+    return self._m_value_uint16
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.uint16 then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_uint16 = self._io:read_u2le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_uint16
+end
+
+Gff.ResolvedField.property.value_uint32 = {}
+function Gff.ResolvedField.property.value_uint32:get()
+  if self._m_value_uint32 ~= nil then
+    return self._m_value_uint32
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.uint32 then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_uint32 = self._io:read_u4le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_uint32
+end
+
+Gff.ResolvedField.property.value_uint64 = {}
+function Gff.ResolvedField.property.value_uint64:get()
+  if self._m_value_uint64 ~= nil then
+    return self._m_value_uint64
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.uint64 then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_uint64 = self._io:read_u8le()
+    self._io:seek(_pos)
+  end
+  return self._m_value_uint64
+end
+
+Gff.ResolvedField.property.value_uint8 = {}
+function Gff.ResolvedField.property.value_uint8:get()
+  if self._m_value_uint8 ~= nil then
+    return self._m_value_uint8
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.uint8 then
+    local _pos = self._io:pos()
+    self._io:seek(self.field_entry_pos + 8)
+    self._m_value_uint8 = self._io:read_u1()
+    self._io:seek(_pos)
+  end
+  return self._m_value_uint8
+end
+
+Gff.ResolvedField.property.value_vector3 = {}
+function Gff.ResolvedField.property.value_vector3:get()
+  if self._m_value_vector3 ~= nil then
+    return self._m_value_vector3
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.vector3 then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_vector3 = BiowareCommon.BiowareVector3(self._io)
+    self._io:seek(_pos)
+  end
+  return self._m_value_vector3
+end
+
+Gff.ResolvedField.property.value_vector4 = {}
+function Gff.ResolvedField.property.value_vector4:get()
+  if self._m_value_vector4 ~= nil then
+    return self._m_value_vector4
+  end
+
+  if self.entry.field_type == Gff.GffFieldType.vector4 then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_data_offset + self.entry.data_or_offset)
+    self._m_value_vector4 = BiowareCommon.BiowareVector4(self._io)
+    self._io:seek(_pos)
+  end
+  return self._m_value_vector4
+end
+
+-- 
+-- Index into field_array.
+
+-- 
+-- A decoded struct node: resolves field indices -> field entries -> typed values,
+-- and recursively resolves nested structs and lists.
+Gff.ResolvedStruct = class.class(KaitaiStruct)
+
+function Gff.ResolvedStruct:_init(struct_index, io, parent, root)
+  KaitaiStruct._init(self, io)
+  self._parent = parent
+  self._root = root
+  self.struct_index = struct_index
+  self:_read()
+end
+
+function Gff.ResolvedStruct:_read()
+end
+
+-- 
+-- Raw struct entry at struct_index.
+Gff.ResolvedStruct.property.entry = {}
+function Gff.ResolvedStruct.property.entry:get()
+  if self._m_entry ~= nil then
+    return self._m_entry
+  end
+
+  local _pos = self._io:pos()
+  self._io:seek(self._root.header.struct_offset + self.struct_index * 12)
+  self._m_entry = Gff.StructEntry(self._io, self, self._root)
+  self._io:seek(_pos)
+  return self._m_entry
+end
+
+-- 
+-- Field indices for this struct (only present when field_count > 1).
+-- When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+Gff.ResolvedStruct.property.field_indices = {}
+function Gff.ResolvedStruct.property.field_indices:get()
+  if self._m_field_indices ~= nil then
+    return self._m_field_indices
+  end
+
+  if self.entry.field_count > 1 then
+    local _pos = self._io:pos()
+    self._io:seek(self._root.header.field_indices_offset + self.entry.data_or_offset)
+    self._m_field_indices = {}
+    for i = 0, self.entry.field_count - 1 do
+      self._m_field_indices[i + 1] = self._io:read_u4le()
+    end
+    self._io:seek(_pos)
+  end
+  return self._m_field_indices
+end
+
+-- 
+-- Resolved fields (multi-field struct).
+Gff.ResolvedStruct.property.fields = {}
+function Gff.ResolvedStruct.property.fields:get()
+  if self._m_fields ~= nil then
+    return self._m_fields
+  end
+
+  if self.entry.field_count > 1 then
+    self._m_fields = {}
+    for i = 0, self.entry.field_count - 1 do
+      self._m_fields[i + 1] = Gff.ResolvedField(self.field_indices[i + 1], self._io, self, self._root)
+    end
+  end
+  return self._m_fields
+end
+
+-- 
+-- Resolved field (single-field struct).
+Gff.ResolvedStruct.property.single_field = {}
+function Gff.ResolvedStruct.property.single_field:get()
+  if self._m_single_field ~= nil then
+    return self._m_single_field
+  end
+
+  if self.entry.field_count == 1 then
+    self._m_single_field = Gff.ResolvedField(self.entry.data_or_offset, self._io, self, self._root)
+  end
+  return self._m_single_field
+end
+
+-- 
+-- Index into struct_array.
 
 Gff.StructArray = class.class(KaitaiStruct)
 

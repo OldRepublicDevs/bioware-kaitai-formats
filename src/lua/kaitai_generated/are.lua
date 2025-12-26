@@ -59,6 +59,20 @@ function Are.property.file_type_valid:get()
 end
 
 -- 
+-- Convenience access to the decoded GFF root struct (struct_array[0]).
+-- Use this to iterate all resolved fields (label + typed value), including:
+-- "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+Are.property.root_struct_resolved = {}
+function Are.property.root_struct_resolved:get()
+  if self._m_root_struct_resolved ~= nil then
+    return self._m_root_struct_resolved
+  end
+
+  self._m_root_struct_resolved = self.gff_data.root_struct_resolved
+  return self._m_root_struct_resolved
+end
+
+-- 
 -- Validates GFF version is supported.
 Are.property.version_valid = {}
 function Are.property.version_valid:get()

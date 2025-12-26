@@ -1,5 +1,6 @@
 import kaitai_struct_nim_runtime
 import options
+import bioware_common
 
 type
   Gff* = ref object of KaitaiStruct
@@ -15,6 +16,8 @@ type
     `labelArrayInstFlag`: bool
     `listIndicesArrayInst`: Gff_ListIndicesArray
     `listIndicesArrayInstFlag`: bool
+    `rootStructResolvedInst`: Gff_ResolvedStruct
+    `rootStructResolvedInstFlag`: bool
     `structArrayInst`: Gff_StructArray
     `structArrayInstFlag`: bool
   Gff_GffFieldType* = enum
@@ -46,7 +49,7 @@ type
     `fieldType`*: Gff_GffFieldType
     `labelIndex`*: uint32
     `dataOrOffset`*: uint32
-    `parent`*: Gff_FieldArray
+    `parent`*: KaitaiStruct
     `fieldDataOffsetValueInst`: int
     `fieldDataOffsetValueInstFlag`: bool
     `isComplexTypeInst`: bool
@@ -86,13 +89,74 @@ type
   Gff_LabelEntry* = ref object of KaitaiStruct
     `name`*: string
     `parent`*: Gff_LabelArray
+  Gff_LabelEntryTerminated* = ref object of KaitaiStruct
+    `name`*: string
+    `parent`*: Gff_ResolvedField
   Gff_ListEntry* = ref object of KaitaiStruct
     `numStructIndices`*: uint32
     `structIndices`*: seq[uint32]
-    `parent`*: KaitaiStruct
+    `parent`*: Gff_ResolvedField
   Gff_ListIndicesArray* = ref object of KaitaiStruct
     `rawData`*: seq[byte]
     `parent`*: Gff
+  Gff_ResolvedField* = ref object of KaitaiStruct
+    `fieldIndex`*: uint32
+    `parent`*: Gff_ResolvedStruct
+    `entryInst`: Gff_FieldEntry
+    `entryInstFlag`: bool
+    `fieldEntryPosInst`: int
+    `fieldEntryPosInstFlag`: bool
+    `labelInst`: Gff_LabelEntryTerminated
+    `labelInstFlag`: bool
+    `listEntryInst`: Gff_ListEntry
+    `listEntryInstFlag`: bool
+    `listStructsInst`: seq[Gff_ResolvedStruct]
+    `listStructsInstFlag`: bool
+    `valueBinaryInst`: BiowareCommon_BiowareBinaryData
+    `valueBinaryInstFlag`: bool
+    `valueDoubleInst`: float64
+    `valueDoubleInstFlag`: bool
+    `valueInt16Inst`: int16
+    `valueInt16InstFlag`: bool
+    `valueInt32Inst`: int32
+    `valueInt32InstFlag`: bool
+    `valueInt64Inst`: int64
+    `valueInt64InstFlag`: bool
+    `valueInt8Inst`: int8
+    `valueInt8InstFlag`: bool
+    `valueLocalizedStringInst`: BiowareCommon_BiowareLocstring
+    `valueLocalizedStringInstFlag`: bool
+    `valueResrefInst`: BiowareCommon_BiowareResref
+    `valueResrefInstFlag`: bool
+    `valueSingleInst`: float32
+    `valueSingleInstFlag`: bool
+    `valueStringInst`: BiowareCommon_BiowareCexoString
+    `valueStringInstFlag`: bool
+    `valueStructInst`: Gff_ResolvedStruct
+    `valueStructInstFlag`: bool
+    `valueUint16Inst`: uint16
+    `valueUint16InstFlag`: bool
+    `valueUint32Inst`: uint32
+    `valueUint32InstFlag`: bool
+    `valueUint64Inst`: uint64
+    `valueUint64InstFlag`: bool
+    `valueUint8Inst`: uint8
+    `valueUint8InstFlag`: bool
+    `valueVector3Inst`: BiowareCommon_BiowareVector3
+    `valueVector3InstFlag`: bool
+    `valueVector4Inst`: BiowareCommon_BiowareVector4
+    `valueVector4InstFlag`: bool
+  Gff_ResolvedStruct* = ref object of KaitaiStruct
+    `structIndex`*: uint32
+    `parent`*: KaitaiStruct
+    `entryInst`: Gff_StructEntry
+    `entryInstFlag`: bool
+    `fieldIndicesInst`: seq[uint32]
+    `fieldIndicesInstFlag`: bool
+    `fieldsInst`: seq[Gff_ResolvedField]
+    `fieldsInstFlag`: bool
+    `singleFieldInst`: Gff_ResolvedField
+    `singleFieldInstFlag`: bool
   Gff_StructArray* = ref object of KaitaiStruct
     `entries`*: seq[Gff_StructEntry]
     `parent`*: Gff
@@ -100,7 +164,7 @@ type
     `structId`*: int32
     `dataOrOffset`*: uint32
     `fieldCount`*: uint32
-    `parent`*: Gff_StructArray
+    `parent`*: KaitaiStruct
     `fieldIndicesOffsetInst`: uint32
     `fieldIndicesOffsetInstFlag`: bool
     `hasMultipleFieldsInst`: bool
@@ -113,21 +177,25 @@ type
 proc read*(_: typedesc[Gff], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff
 proc read*(_: typedesc[Gff_FieldArray], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_FieldArray
 proc read*(_: typedesc[Gff_FieldData], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_FieldData
-proc read*(_: typedesc[Gff_FieldEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_FieldArray): Gff_FieldEntry
+proc read*(_: typedesc[Gff_FieldEntry], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff_FieldEntry
 proc read*(_: typedesc[Gff_FieldIndicesArray], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_FieldIndicesArray
 proc read*(_: typedesc[Gff_GffHeader], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_GffHeader
 proc read*(_: typedesc[Gff_LabelArray], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_LabelArray
 proc read*(_: typedesc[Gff_LabelEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_LabelArray): Gff_LabelEntry
-proc read*(_: typedesc[Gff_ListEntry], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff_ListEntry
+proc read*(_: typedesc[Gff_LabelEntryTerminated], io: KaitaiStream, root: KaitaiStruct, parent: Gff_ResolvedField): Gff_LabelEntryTerminated
+proc read*(_: typedesc[Gff_ListEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_ResolvedField): Gff_ListEntry
 proc read*(_: typedesc[Gff_ListIndicesArray], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_ListIndicesArray
+proc read*(_: typedesc[Gff_ResolvedField], io: KaitaiStream, root: KaitaiStruct, parent: Gff_ResolvedStruct, fieldIndex: any): Gff_ResolvedField
+proc read*(_: typedesc[Gff_ResolvedStruct], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct, structIndex: any): Gff_ResolvedStruct
 proc read*(_: typedesc[Gff_StructArray], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_StructArray
-proc read*(_: typedesc[Gff_StructEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_StructArray): Gff_StructEntry
+proc read*(_: typedesc[Gff_StructEntry], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff_StructEntry
 
 proc fieldArray*(this: Gff): Gff_FieldArray
 proc fieldData*(this: Gff): Gff_FieldData
 proc fieldIndicesArray*(this: Gff): Gff_FieldIndicesArray
 proc labelArray*(this: Gff): Gff_LabelArray
 proc listIndicesArray*(this: Gff): Gff_ListIndicesArray
+proc rootStructResolved*(this: Gff): Gff_ResolvedStruct
 proc structArray*(this: Gff): Gff_StructArray
 proc fieldDataOffsetValue*(this: Gff_FieldEntry): int
 proc isComplexType*(this: Gff_FieldEntry): bool
@@ -136,6 +204,32 @@ proc isSimpleType*(this: Gff_FieldEntry): bool
 proc isStructType*(this: Gff_FieldEntry): bool
 proc listIndicesOffsetValue*(this: Gff_FieldEntry): int
 proc structIndexValue*(this: Gff_FieldEntry): uint32
+proc entry*(this: Gff_ResolvedField): Gff_FieldEntry
+proc fieldEntryPos*(this: Gff_ResolvedField): int
+proc label*(this: Gff_ResolvedField): Gff_LabelEntryTerminated
+proc listEntry*(this: Gff_ResolvedField): Gff_ListEntry
+proc listStructs*(this: Gff_ResolvedField): seq[Gff_ResolvedStruct]
+proc valueBinary*(this: Gff_ResolvedField): BiowareCommon_BiowareBinaryData
+proc valueDouble*(this: Gff_ResolvedField): float64
+proc valueInt16*(this: Gff_ResolvedField): int16
+proc valueInt32*(this: Gff_ResolvedField): int32
+proc valueInt64*(this: Gff_ResolvedField): int64
+proc valueInt8*(this: Gff_ResolvedField): int8
+proc valueLocalizedString*(this: Gff_ResolvedField): BiowareCommon_BiowareLocstring
+proc valueResref*(this: Gff_ResolvedField): BiowareCommon_BiowareResref
+proc valueSingle*(this: Gff_ResolvedField): float32
+proc valueString*(this: Gff_ResolvedField): BiowareCommon_BiowareCexoString
+proc valueStruct*(this: Gff_ResolvedField): Gff_ResolvedStruct
+proc valueUint16*(this: Gff_ResolvedField): uint16
+proc valueUint32*(this: Gff_ResolvedField): uint32
+proc valueUint64*(this: Gff_ResolvedField): uint64
+proc valueUint8*(this: Gff_ResolvedField): uint8
+proc valueVector3*(this: Gff_ResolvedField): BiowareCommon_BiowareVector3
+proc valueVector4*(this: Gff_ResolvedField): BiowareCommon_BiowareVector4
+proc entry*(this: Gff_ResolvedStruct): Gff_StructEntry
+proc fieldIndices*(this: Gff_ResolvedStruct): seq[uint32]
+proc fields*(this: Gff_ResolvedStruct): seq[Gff_ResolvedField]
+proc singleField*(this: Gff_ResolvedStruct): Gff_ResolvedField
 proc fieldIndicesOffset*(this: Gff_StructEntry): uint32
 proc hasMultipleFields*(this: Gff_StructEntry): bool
 proc hasSingleField*(this: Gff_StructEntry): bool
@@ -285,6 +379,21 @@ proc listIndicesArray(this: Gff): Gff_ListIndicesArray =
   this.listIndicesArrayInstFlag = true
   return this.listIndicesArrayInst
 
+proc rootStructResolved(this: Gff): Gff_ResolvedStruct = 
+
+  ##[
+  Convenience "decoded" view of the root struct (struct_array[0]).
+This resolves field indices to field entries, resolves labels to strings,
+and decodes field values (including nested structs and lists) into typed instances.
+
+  ]##
+  if this.rootStructResolvedInstFlag:
+    return this.rootStructResolvedInst
+  let rootStructResolvedInstExpr = Gff_ResolvedStruct.read(this.io, this.root, this, 0)
+  this.rootStructResolvedInst = rootStructResolvedInstExpr
+  this.rootStructResolvedInstFlag = true
+  return this.rootStructResolvedInst
+
 proc structArray(this: Gff): Gff_StructArray = 
 
   ##[
@@ -351,7 +460,7 @@ depends on the field_type:
 proc fromFile*(_: typedesc[Gff_FieldData], filename: string): Gff_FieldData =
   Gff_FieldData.read(newKaitaiFileStream(filename), nil, nil)
 
-proc read*(_: typedesc[Gff_FieldEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_FieldArray): Gff_FieldEntry =
+proc read*(_: typedesc[Gff_FieldEntry], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff_FieldEntry =
   template this: untyped = result
   this = new(Gff_FieldEntry)
   let root = if root == nil: cast[Gff](this) else: cast[Gff](root)
@@ -641,7 +750,27 @@ Application code should trim trailing null bytes when using this field.
 proc fromFile*(_: typedesc[Gff_LabelEntry], filename: string): Gff_LabelEntry =
   Gff_LabelEntry.read(newKaitaiFileStream(filename), nil, nil)
 
-proc read*(_: typedesc[Gff_ListEntry], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff_ListEntry =
+
+##[
+Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+This avoids leaking trailing `\0` bytes into generated-code consumers.
+
+]##
+proc read*(_: typedesc[Gff_LabelEntryTerminated], io: KaitaiStream, root: KaitaiStruct, parent: Gff_ResolvedField): Gff_LabelEntryTerminated =
+  template this: untyped = result
+  this = new(Gff_LabelEntryTerminated)
+  let root = if root == nil: cast[Gff](this) else: cast[Gff](root)
+  this.io = io
+  this.root = root
+  this.parent = parent
+
+  let nameExpr = encode(this.io.readBytes(int(16)).bytesTerminate(0, false), "ASCII")
+  this.name = nameExpr
+
+proc fromFile*(_: typedesc[Gff_LabelEntryTerminated], filename: string): Gff_LabelEntryTerminated =
+  Gff_LabelEntryTerminated.read(newKaitaiFileStream(filename), nil, nil)
+
+proc read*(_: typedesc[Gff_ListEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_ResolvedField): Gff_ListEntry =
   template this: untyped = result
   this = new(Gff_ListEntry)
   let root = if root == nil: cast[Gff](this) else: cast[Gff](root)
@@ -691,6 +820,384 @@ Use list_entry type to parse individual entries at specific offsets.
 proc fromFile*(_: typedesc[Gff_ListIndicesArray], filename: string): Gff_ListIndicesArray =
   Gff_ListIndicesArray.read(newKaitaiFileStream(filename), nil, nil)
 
+
+##[
+A decoded field: includes resolved label string and decoded typed value.
+Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+
+]##
+proc read*(_: typedesc[Gff_ResolvedField], io: KaitaiStream, root: KaitaiStruct, parent: Gff_ResolvedStruct, fieldIndex: any): Gff_ResolvedField =
+  template this: untyped = result
+  this = new(Gff_ResolvedField)
+  let root = if root == nil: cast[Gff](this) else: cast[Gff](root)
+  this.io = io
+  this.root = root
+  this.parent = parent
+  let fieldIndexExpr = uint32(fieldIndex)
+  this.fieldIndex = fieldIndexExpr
+
+
+proc entry(this: Gff_ResolvedField): Gff_FieldEntry = 
+
+  ##[
+  Raw field entry at field_index
+  ]##
+  if this.entryInstFlag:
+    return this.entryInst
+  let pos = this.io.pos()
+  this.io.seek(int(Gff(this.root).header.fieldOffset + this.fieldIndex * 12))
+  let entryInstExpr = Gff_FieldEntry.read(this.io, this.root, this)
+  this.entryInst = entryInstExpr
+  this.io.seek(pos)
+  this.entryInstFlag = true
+  return this.entryInst
+
+proc fieldEntryPos(this: Gff_ResolvedField): int = 
+
+  ##[
+  Absolute file offset of this field entry (start of 12-byte record)
+  ]##
+  if this.fieldEntryPosInstFlag:
+    return this.fieldEntryPosInst
+  let fieldEntryPosInstExpr = int(Gff(this.root).header.fieldOffset + this.fieldIndex * 12)
+  this.fieldEntryPosInst = fieldEntryPosInstExpr
+  this.fieldEntryPosInstFlag = true
+  return this.fieldEntryPosInst
+
+proc label(this: Gff_ResolvedField): Gff_LabelEntryTerminated = 
+
+  ##[
+  Resolved field label string
+  ]##
+  if this.labelInstFlag:
+    return this.labelInst
+  let pos = this.io.pos()
+  this.io.seek(int(Gff(this.root).header.labelOffset + this.entry.labelIndex * 16))
+  let labelInstExpr = Gff_LabelEntryTerminated.read(this.io, this.root, this)
+  this.labelInst = labelInstExpr
+  this.io.seek(pos)
+  this.labelInstFlag = true
+  return this.labelInst
+
+proc listEntry(this: Gff_ResolvedField): Gff_ListEntry = 
+
+  ##[
+  Parsed list entry at offset (list indices)
+  ]##
+  if this.listEntryInstFlag:
+    return this.listEntryInst
+  if this.entry.fieldType == gff.list:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.listIndicesOffset + this.entry.dataOrOffset))
+    let listEntryInstExpr = Gff_ListEntry.read(this.io, this.root, this)
+    this.listEntryInst = listEntryInstExpr
+    this.io.seek(pos)
+  this.listEntryInstFlag = true
+  return this.listEntryInst
+
+proc listStructs(this: Gff_ResolvedField): seq[Gff_ResolvedStruct] = 
+
+  ##[
+  Resolved structs referenced by this list
+  ]##
+  if this.listStructsInstFlag:
+    return this.listStructsInst
+  if this.entry.fieldType == gff.list:
+    for i in 0 ..< int(this.listEntry.numStructIndices):
+      let it = Gff_ResolvedStruct.read(this.io, this.root, this, this.listEntry.structIndices[i])
+      this.listStructsInst.add(it)
+  this.listStructsInstFlag = true
+  return this.listStructsInst
+
+proc valueBinary(this: Gff_ResolvedField): BiowareCommon_BiowareBinaryData = 
+  if this.valueBinaryInstFlag:
+    return this.valueBinaryInst
+  if this.entry.fieldType == gff.binary:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueBinaryInstExpr = BiowareCommon_BiowareBinaryData.read(this.io, nil, nil)
+    this.valueBinaryInst = valueBinaryInstExpr
+    this.io.seek(pos)
+  this.valueBinaryInstFlag = true
+  return this.valueBinaryInst
+
+proc valueDouble(this: Gff_ResolvedField): float64 = 
+  if this.valueDoubleInstFlag:
+    return this.valueDoubleInst
+  if this.entry.fieldType == gff.double:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueDoubleInstExpr = this.io.readF8le()
+    this.valueDoubleInst = valueDoubleInstExpr
+    this.io.seek(pos)
+  this.valueDoubleInstFlag = true
+  return this.valueDoubleInst
+
+proc valueInt16(this: Gff_ResolvedField): int16 = 
+  if this.valueInt16InstFlag:
+    return this.valueInt16Inst
+  if this.entry.fieldType == gff.int16:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueInt16InstExpr = this.io.readS2le()
+    this.valueInt16Inst = valueInt16InstExpr
+    this.io.seek(pos)
+  this.valueInt16InstFlag = true
+  return this.valueInt16Inst
+
+proc valueInt32(this: Gff_ResolvedField): int32 = 
+  if this.valueInt32InstFlag:
+    return this.valueInt32Inst
+  if this.entry.fieldType == gff.int32:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueInt32InstExpr = this.io.readS4le()
+    this.valueInt32Inst = valueInt32InstExpr
+    this.io.seek(pos)
+  this.valueInt32InstFlag = true
+  return this.valueInt32Inst
+
+proc valueInt64(this: Gff_ResolvedField): int64 = 
+  if this.valueInt64InstFlag:
+    return this.valueInt64Inst
+  if this.entry.fieldType == gff.int64:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueInt64InstExpr = this.io.readS8le()
+    this.valueInt64Inst = valueInt64InstExpr
+    this.io.seek(pos)
+  this.valueInt64InstFlag = true
+  return this.valueInt64Inst
+
+proc valueInt8(this: Gff_ResolvedField): int8 = 
+  if this.valueInt8InstFlag:
+    return this.valueInt8Inst
+  if this.entry.fieldType == gff.int8:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueInt8InstExpr = this.io.readS1()
+    this.valueInt8Inst = valueInt8InstExpr
+    this.io.seek(pos)
+  this.valueInt8InstFlag = true
+  return this.valueInt8Inst
+
+proc valueLocalizedString(this: Gff_ResolvedField): BiowareCommon_BiowareLocstring = 
+  if this.valueLocalizedStringInstFlag:
+    return this.valueLocalizedStringInst
+  if this.entry.fieldType == gff.localized_string:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueLocalizedStringInstExpr = BiowareCommon_BiowareLocstring.read(this.io, nil, nil)
+    this.valueLocalizedStringInst = valueLocalizedStringInstExpr
+    this.io.seek(pos)
+  this.valueLocalizedStringInstFlag = true
+  return this.valueLocalizedStringInst
+
+proc valueResref(this: Gff_ResolvedField): BiowareCommon_BiowareResref = 
+  if this.valueResrefInstFlag:
+    return this.valueResrefInst
+  if this.entry.fieldType == gff.resref:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueResrefInstExpr = BiowareCommon_BiowareResref.read(this.io, nil, nil)
+    this.valueResrefInst = valueResrefInstExpr
+    this.io.seek(pos)
+  this.valueResrefInstFlag = true
+  return this.valueResrefInst
+
+proc valueSingle(this: Gff_ResolvedField): float32 = 
+  if this.valueSingleInstFlag:
+    return this.valueSingleInst
+  if this.entry.fieldType == gff.single:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueSingleInstExpr = this.io.readF4le()
+    this.valueSingleInst = valueSingleInstExpr
+    this.io.seek(pos)
+  this.valueSingleInstFlag = true
+  return this.valueSingleInst
+
+proc valueString(this: Gff_ResolvedField): BiowareCommon_BiowareCexoString = 
+  if this.valueStringInstFlag:
+    return this.valueStringInst
+  if this.entry.fieldType == gff.string:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueStringInstExpr = BiowareCommon_BiowareCexoString.read(this.io, nil, nil)
+    this.valueStringInst = valueStringInstExpr
+    this.io.seek(pos)
+  this.valueStringInstFlag = true
+  return this.valueStringInst
+
+proc valueStruct(this: Gff_ResolvedField): Gff_ResolvedStruct = 
+
+  ##[
+  Nested struct (struct index = entry.data_or_offset)
+  ]##
+  if this.valueStructInstFlag:
+    return this.valueStructInst
+  if this.entry.fieldType == gff.struct:
+    let valueStructInstExpr = Gff_ResolvedStruct.read(this.io, this.root, this, this.entry.dataOrOffset)
+    this.valueStructInst = valueStructInstExpr
+  this.valueStructInstFlag = true
+  return this.valueStructInst
+
+proc valueUint16(this: Gff_ResolvedField): uint16 = 
+  if this.valueUint16InstFlag:
+    return this.valueUint16Inst
+  if this.entry.fieldType == gff.uint16:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueUint16InstExpr = this.io.readU2le()
+    this.valueUint16Inst = valueUint16InstExpr
+    this.io.seek(pos)
+  this.valueUint16InstFlag = true
+  return this.valueUint16Inst
+
+proc valueUint32(this: Gff_ResolvedField): uint32 = 
+  if this.valueUint32InstFlag:
+    return this.valueUint32Inst
+  if this.entry.fieldType == gff.uint32:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueUint32InstExpr = this.io.readU4le()
+    this.valueUint32Inst = valueUint32InstExpr
+    this.io.seek(pos)
+  this.valueUint32InstFlag = true
+  return this.valueUint32Inst
+
+proc valueUint64(this: Gff_ResolvedField): uint64 = 
+  if this.valueUint64InstFlag:
+    return this.valueUint64Inst
+  if this.entry.fieldType == gff.uint64:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueUint64InstExpr = this.io.readU8le()
+    this.valueUint64Inst = valueUint64InstExpr
+    this.io.seek(pos)
+  this.valueUint64InstFlag = true
+  return this.valueUint64Inst
+
+proc valueUint8(this: Gff_ResolvedField): uint8 = 
+  if this.valueUint8InstFlag:
+    return this.valueUint8Inst
+  if this.entry.fieldType == gff.uint8:
+    let pos = this.io.pos()
+    this.io.seek(int(this.fieldEntryPos + 8))
+    let valueUint8InstExpr = this.io.readU1()
+    this.valueUint8Inst = valueUint8InstExpr
+    this.io.seek(pos)
+  this.valueUint8InstFlag = true
+  return this.valueUint8Inst
+
+proc valueVector3(this: Gff_ResolvedField): BiowareCommon_BiowareVector3 = 
+  if this.valueVector3InstFlag:
+    return this.valueVector3Inst
+  if this.entry.fieldType == gff.vector3:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueVector3InstExpr = BiowareCommon_BiowareVector3.read(this.io, nil, nil)
+    this.valueVector3Inst = valueVector3InstExpr
+    this.io.seek(pos)
+  this.valueVector3InstFlag = true
+  return this.valueVector3Inst
+
+proc valueVector4(this: Gff_ResolvedField): BiowareCommon_BiowareVector4 = 
+  if this.valueVector4InstFlag:
+    return this.valueVector4Inst
+  if this.entry.fieldType == gff.vector4:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldDataOffset + this.entry.dataOrOffset))
+    let valueVector4InstExpr = BiowareCommon_BiowareVector4.read(this.io, nil, nil)
+    this.valueVector4Inst = valueVector4InstExpr
+    this.io.seek(pos)
+  this.valueVector4InstFlag = true
+  return this.valueVector4Inst
+
+proc fromFile*(_: typedesc[Gff_ResolvedField], filename: string): Gff_ResolvedField =
+  Gff_ResolvedField.read(newKaitaiFileStream(filename), nil, nil)
+
+
+##[
+A decoded struct node: resolves field indices -> field entries -> typed values,
+and recursively resolves nested structs and lists.
+
+]##
+proc read*(_: typedesc[Gff_ResolvedStruct], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct, structIndex: any): Gff_ResolvedStruct =
+  template this: untyped = result
+  this = new(Gff_ResolvedStruct)
+  let root = if root == nil: cast[Gff](this) else: cast[Gff](root)
+  this.io = io
+  this.root = root
+  this.parent = parent
+  let structIndexExpr = uint32(structIndex)
+  this.structIndex = structIndexExpr
+
+
+proc entry(this: Gff_ResolvedStruct): Gff_StructEntry = 
+
+  ##[
+  Raw struct entry at struct_index
+  ]##
+  if this.entryInstFlag:
+    return this.entryInst
+  let pos = this.io.pos()
+  this.io.seek(int(Gff(this.root).header.structOffset + this.structIndex * 12))
+  let entryInstExpr = Gff_StructEntry.read(this.io, this.root, this)
+  this.entryInst = entryInstExpr
+  this.io.seek(pos)
+  this.entryInstFlag = true
+  return this.entryInst
+
+proc fieldIndices(this: Gff_ResolvedStruct): seq[uint32] = 
+
+  ##[
+  Field indices for this struct (only present when field_count > 1).
+When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+
+  ]##
+  if this.fieldIndicesInstFlag:
+    return this.fieldIndicesInst
+  if this.entry.fieldCount > 1:
+    let pos = this.io.pos()
+    this.io.seek(int(Gff(this.root).header.fieldIndicesOffset + this.entry.dataOrOffset))
+    for i in 0 ..< int(this.entry.fieldCount):
+      let it = this.io.readU4le()
+      this.fieldIndicesInst.add(it)
+    this.io.seek(pos)
+  this.fieldIndicesInstFlag = true
+  return this.fieldIndicesInst
+
+proc fields(this: Gff_ResolvedStruct): seq[Gff_ResolvedField] = 
+
+  ##[
+  Resolved fields (multi-field struct)
+  ]##
+  if this.fieldsInstFlag:
+    return this.fieldsInst
+  if this.entry.fieldCount > 1:
+    for i in 0 ..< int(this.entry.fieldCount):
+      let it = Gff_ResolvedField.read(this.io, this.root, this, this.fieldIndices[i])
+      this.fieldsInst.add(it)
+  this.fieldsInstFlag = true
+  return this.fieldsInst
+
+proc singleField(this: Gff_ResolvedStruct): Gff_ResolvedField = 
+
+  ##[
+  Resolved field (single-field struct)
+  ]##
+  if this.singleFieldInstFlag:
+    return this.singleFieldInst
+  if this.entry.fieldCount == 1:
+    let singleFieldInstExpr = Gff_ResolvedField.read(this.io, this.root, this, this.entry.dataOrOffset)
+    this.singleFieldInst = singleFieldInstExpr
+  this.singleFieldInstFlag = true
+  return this.singleFieldInst
+
+proc fromFile*(_: typedesc[Gff_ResolvedStruct], filename: string): Gff_ResolvedStruct =
+  Gff_ResolvedStruct.read(newKaitaiFileStream(filename), nil, nil)
+
 proc read*(_: typedesc[Gff_StructArray], io: KaitaiStream, root: KaitaiStruct, parent: Gff): Gff_StructArray =
   template this: untyped = result
   this = new(Gff_StructArray)
@@ -710,7 +1217,7 @@ proc read*(_: typedesc[Gff_StructArray], io: KaitaiStream, root: KaitaiStruct, p
 proc fromFile*(_: typedesc[Gff_StructArray], filename: string): Gff_StructArray =
   Gff_StructArray.read(newKaitaiFileStream(filename), nil, nil)
 
-proc read*(_: typedesc[Gff_StructEntry], io: KaitaiStream, root: KaitaiStruct, parent: Gff_StructArray): Gff_StructEntry =
+proc read*(_: typedesc[Gff_StructEntry], io: KaitaiStream, root: KaitaiStruct, parent: KaitaiStruct): Gff_StructEntry =
   template this: untyped = result
   this = new(Gff_StructEntry)
   let root = if root == nil: cast[Gff](this) else: cast[Gff](root)

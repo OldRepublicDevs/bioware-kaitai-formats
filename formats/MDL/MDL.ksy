@@ -35,23 +35,43 @@ seq:
     type: model_header
   - id: names_header
     type: names_header
-  - id: name_indexes
+
+instances:
+  data_start:
+    value: 12
+    doc: |
+      MDL "data start" offset. Most offsets in this file are relative to the start of the MDL data
+      section, which begins immediately after the 12-byte file header.
+
+  name_indexes:
     type: u4
     repeat: expr
     repeat-expr: names_header.name_count
     if: names_header.name_count > 0
-  - id: names_data
+    pos: data_start + names_header.names_array_offset
+    doc: Array of name string offsets (relative to data_start)
+
+  names_data:
     type: name_strings
     if: names_header.name_count > 0
-    size: _parent.model_header.animation_root_offset - (names_header.name_indexes_offset + (4 * names_header.name_count))
-  - id: animations
+    pos: data_start + names_header.names_array_offset + (4 * names_header.name_count)
+    size: (data_start + model_header.animation_array_offset) - (data_start + names_header.names_array_offset + (4 * names_header.name_count))
+    doc: |
+      Name string blob (substream). This follows the name index array and continues up to the animation array.
+      Parsed as null-terminated ASCII strings in `name_strings`.
+
+  animations:
     type: animation_header
     repeat: expr
     repeat-expr: model_header.animation_count
-  - id: root_node
+    if: model_header.animation_count > 0
+    pos: data_start + model_header.animation_array_offset
+    doc: Animation header array
+
+  root_node:
     type: node
-    pos: geometry_header.root_node_offset
     if: geometry_header.root_node_offset > 0
+    pos: data_start + geometry_header.root_node_offset
 
 types:
   file_header:
@@ -112,7 +132,8 @@ types:
           If bit 7 (0x80) is set, model is compiled binary with absolute addresses
       - id: padding
         type: u1
-        size: 3
+        repeat: expr
+        repeat-expr: 3
         doc: Padding bytes for alignment
     instances:
       is_kotor2:
@@ -671,7 +692,8 @@ types:
         doc: Typically {-1, -1, 0}, purpose unknown
       - id: saber_unknown_data
         type: u1
-        size: 8
+        repeat: expr
+        repeat-expr: 8
         doc: Data specific to lightsaber meshes
       - id: unknown
         type: u4
@@ -795,7 +817,8 @@ types:
         doc: Purpose unknown (possibly compilation weights)
       - id: padding1
         type: u1
-        size: 8
+        repeat: expr
+        repeat-expr: 8
         doc: Padding
       - id: mdx_bone_weights_offset
         type: u4
@@ -1013,7 +1036,8 @@ types:
           If bit 4 (0x10) is set, controller uses Bezier interpolation and stores 3× data per keyframe
       - id: padding
         type: u1
-        size: 3
+        repeat: expr
+        repeat-expr: 3
         doc: Padding bytes for 16-byte alignment
     instances:
       uses_bezier:
