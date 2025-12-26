@@ -12,21 +12,21 @@ foreach ($fmt in $formats) {
     
     if (-not (Test-Path $path)) {
         $results[$fmt] = "FILE NOT FOUND"
-        Write-Host "$fmt: FILE NOT FOUND"
+        Write-Host "${fmt}: FILE NOT FOUND"
         continue
     }
     
-    Write-Host "Testing $fmt..."
+    Write-Host "Testing ${fmt}..."
     $output = kaitai-struct-compiler -t csharp -d test_output $path 2>&1
     $exitCode = $LASTEXITCODE
     
     if ($exitCode -eq 0) {
         $results[$fmt] = "OK"
-        Write-Host "  ✅ $fmt: OK"
+        Write-Host "  ✅ ${fmt}: OK"
     } else {
         $firstError = ($output | Select-Object -First 1).ToString()
         $results[$fmt] = "ERROR: $firstError"
-        Write-Host "  ❌ $fmt: ERROR"
+        Write-Host "  ❌ ${fmt}: ERROR"
         Write-Host "     $firstError"
     }
     
