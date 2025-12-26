@@ -63,6 +63,20 @@ var Are = (function() {
   });
 
   /**
+   * Convenience access to the decoded GFF root struct (struct_array[0]).
+   * Use this to iterate all resolved fields (label + typed value), including:
+   * "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+   */
+  Object.defineProperty(Are.prototype, 'rootStructResolved', {
+    get: function() {
+      if (this._m_rootStructResolved !== undefined)
+        return this._m_rootStructResolved;
+      this._m_rootStructResolved = this.gffData.rootStructResolved;
+      return this._m_rootStructResolved;
+    }
+  });
+
+  /**
    * Validates GFF version is supported
    */
   Object.defineProperty(Are.prototype, 'versionValid', {

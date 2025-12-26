@@ -2,13 +2,13 @@
 
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
-    define(['exports', 'kaitai-struct/KaitaiStream'], factory);
+    define(['exports', 'kaitai-struct/KaitaiStream', './BiowareCommon'], factory);
   } else if (typeof exports === 'object' && exports !== null && typeof exports.nodeType !== 'number') {
-    factory(exports, require('kaitai-struct/KaitaiStream'));
+    factory(exports, require('kaitai-struct/KaitaiStream'), require('./BiowareCommon'));
   } else {
-    factory(root.Gff || (root.Gff = {}), root.KaitaiStream);
+    factory(root.Gff || (root.Gff = {}), root.KaitaiStream, root.BiowareCommon || (root.BiowareCommon = {}));
   }
-})(typeof self !== 'undefined' ? self : this, function (Gff_, KaitaiStream) {
+})(typeof self !== 'undefined' ? self : this, function (Gff_, KaitaiStream, BiowareCommon_) {
 /**
  * GFF (Generic File Format) is BioWare's universal container format for structured game data.
  * It is used by many KotOR file types including UTC (creature), UTI (item), DLG (dialogue),
@@ -440,6 +440,26 @@ var Gff = (function() {
     return LabelEntry;
   })();
 
+  /**
+   * Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+   * This avoids leaking trailing `\0` bytes into generated-code consumers.
+   */
+
+  var LabelEntryTerminated = Gff.LabelEntryTerminated = (function() {
+    function LabelEntryTerminated(_io, _parent, _root) {
+      this._io = _io;
+      this._parent = _parent;
+      this._root = _root;
+
+      this._read();
+    }
+    LabelEntryTerminated.prototype._read = function() {
+      this.name = KaitaiStream.bytesToStr(KaitaiStream.bytesTerminate(this._io.readBytes(16), 0, false), "ASCII");
+    }
+
+    return LabelEntryTerminated;
+  })();
+
   var ListEntry = Gff.ListEntry = (function() {
     function ListEntry(_io, _parent, _root) {
       this._io = _io;
@@ -490,6 +510,419 @@ var Gff = (function() {
      */
 
     return ListIndicesArray;
+  })();
+
+  /**
+   * A decoded field: includes resolved label string and decoded typed value.
+   * Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+   */
+
+  var ResolvedField = Gff.ResolvedField = (function() {
+    function ResolvedField(_io, _parent, _root, fieldIndex) {
+      this._io = _io;
+      this._parent = _parent;
+      this._root = _root;
+      this.fieldIndex = fieldIndex;
+
+      this._read();
+    }
+    ResolvedField.prototype._read = function() {
+    }
+
+    /**
+     * Raw field entry at field_index
+     */
+    Object.defineProperty(ResolvedField.prototype, 'entry', {
+      get: function() {
+        if (this._m_entry !== undefined)
+          return this._m_entry;
+        var _pos = this._io.pos;
+        this._io.seek(this._root.header.fieldOffset + this.fieldIndex * 12);
+        this._m_entry = new FieldEntry(this._io, this, this._root);
+        this._io.seek(_pos);
+        return this._m_entry;
+      }
+    });
+
+    /**
+     * Absolute file offset of this field entry (start of 12-byte record)
+     */
+    Object.defineProperty(ResolvedField.prototype, 'fieldEntryPos', {
+      get: function() {
+        if (this._m_fieldEntryPos !== undefined)
+          return this._m_fieldEntryPos;
+        this._m_fieldEntryPos = this._root.header.fieldOffset + this.fieldIndex * 12;
+        return this._m_fieldEntryPos;
+      }
+    });
+
+    /**
+     * Resolved field label string
+     */
+    Object.defineProperty(ResolvedField.prototype, 'label', {
+      get: function() {
+        if (this._m_label !== undefined)
+          return this._m_label;
+        var _pos = this._io.pos;
+        this._io.seek(this._root.header.labelOffset + this.entry.labelIndex * 16);
+        this._m_label = new LabelEntryTerminated(this._io, this, this._root);
+        this._io.seek(_pos);
+        return this._m_label;
+      }
+    });
+
+    /**
+     * Parsed list entry at offset (list indices)
+     */
+    Object.defineProperty(ResolvedField.prototype, 'listEntry', {
+      get: function() {
+        if (this._m_listEntry !== undefined)
+          return this._m_listEntry;
+        if (this.entry.fieldType == Gff.GffFieldType.LIST) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.listIndicesOffset + this.entry.dataOrOffset);
+          this._m_listEntry = new ListEntry(this._io, this, this._root);
+          this._io.seek(_pos);
+        }
+        return this._m_listEntry;
+      }
+    });
+
+    /**
+     * Resolved structs referenced by this list
+     */
+    Object.defineProperty(ResolvedField.prototype, 'listStructs', {
+      get: function() {
+        if (this._m_listStructs !== undefined)
+          return this._m_listStructs;
+        if (this.entry.fieldType == Gff.GffFieldType.LIST) {
+          this._m_listStructs = [];
+          for (var i = 0; i < this.listEntry.numStructIndices; i++) {
+            this._m_listStructs.push(new ResolvedStruct(this._io, this, this._root, this.listEntry.structIndices[i]));
+          }
+        }
+        return this._m_listStructs;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueBinary', {
+      get: function() {
+        if (this._m_valueBinary !== undefined)
+          return this._m_valueBinary;
+        if (this.entry.fieldType == Gff.GffFieldType.BINARY) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueBinary = new BiowareCommon_.BiowareCommon.BiowareBinaryData(this._io, null, null);
+          this._io.seek(_pos);
+        }
+        return this._m_valueBinary;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueDouble', {
+      get: function() {
+        if (this._m_valueDouble !== undefined)
+          return this._m_valueDouble;
+        if (this.entry.fieldType == Gff.GffFieldType.DOUBLE) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueDouble = this._io.readF8le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueDouble;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueInt16', {
+      get: function() {
+        if (this._m_valueInt16 !== undefined)
+          return this._m_valueInt16;
+        if (this.entry.fieldType == Gff.GffFieldType.INT16) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueInt16 = this._io.readS2le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueInt16;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueInt32', {
+      get: function() {
+        if (this._m_valueInt32 !== undefined)
+          return this._m_valueInt32;
+        if (this.entry.fieldType == Gff.GffFieldType.INT32) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueInt32 = this._io.readS4le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueInt32;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueInt64', {
+      get: function() {
+        if (this._m_valueInt64 !== undefined)
+          return this._m_valueInt64;
+        if (this.entry.fieldType == Gff.GffFieldType.INT64) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueInt64 = this._io.readS8le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueInt64;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueInt8', {
+      get: function() {
+        if (this._m_valueInt8 !== undefined)
+          return this._m_valueInt8;
+        if (this.entry.fieldType == Gff.GffFieldType.INT8) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueInt8 = this._io.readS1();
+          this._io.seek(_pos);
+        }
+        return this._m_valueInt8;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueLocalizedString', {
+      get: function() {
+        if (this._m_valueLocalizedString !== undefined)
+          return this._m_valueLocalizedString;
+        if (this.entry.fieldType == Gff.GffFieldType.LOCALIZED_STRING) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueLocalizedString = new BiowareCommon_.BiowareCommon.BiowareLocstring(this._io, null, null);
+          this._io.seek(_pos);
+        }
+        return this._m_valueLocalizedString;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueResref', {
+      get: function() {
+        if (this._m_valueResref !== undefined)
+          return this._m_valueResref;
+        if (this.entry.fieldType == Gff.GffFieldType.RESREF) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueResref = new BiowareCommon_.BiowareCommon.BiowareResref(this._io, null, null);
+          this._io.seek(_pos);
+        }
+        return this._m_valueResref;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueSingle', {
+      get: function() {
+        if (this._m_valueSingle !== undefined)
+          return this._m_valueSingle;
+        if (this.entry.fieldType == Gff.GffFieldType.SINGLE) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueSingle = this._io.readF4le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueSingle;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueString', {
+      get: function() {
+        if (this._m_valueString !== undefined)
+          return this._m_valueString;
+        if (this.entry.fieldType == Gff.GffFieldType.STRING) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueString = new BiowareCommon_.BiowareCommon.BiowareCexoString(this._io, null, null);
+          this._io.seek(_pos);
+        }
+        return this._m_valueString;
+      }
+    });
+
+    /**
+     * Nested struct (struct index = entry.data_or_offset)
+     */
+    Object.defineProperty(ResolvedField.prototype, 'valueStruct', {
+      get: function() {
+        if (this._m_valueStruct !== undefined)
+          return this._m_valueStruct;
+        if (this.entry.fieldType == Gff.GffFieldType.STRUCT) {
+          this._m_valueStruct = new ResolvedStruct(this._io, this, this._root, this.entry.dataOrOffset);
+        }
+        return this._m_valueStruct;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueUint16', {
+      get: function() {
+        if (this._m_valueUint16 !== undefined)
+          return this._m_valueUint16;
+        if (this.entry.fieldType == Gff.GffFieldType.UINT16) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueUint16 = this._io.readU2le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueUint16;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueUint32', {
+      get: function() {
+        if (this._m_valueUint32 !== undefined)
+          return this._m_valueUint32;
+        if (this.entry.fieldType == Gff.GffFieldType.UINT32) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueUint32 = this._io.readU4le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueUint32;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueUint64', {
+      get: function() {
+        if (this._m_valueUint64 !== undefined)
+          return this._m_valueUint64;
+        if (this.entry.fieldType == Gff.GffFieldType.UINT64) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueUint64 = this._io.readU8le();
+          this._io.seek(_pos);
+        }
+        return this._m_valueUint64;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueUint8', {
+      get: function() {
+        if (this._m_valueUint8 !== undefined)
+          return this._m_valueUint8;
+        if (this.entry.fieldType == Gff.GffFieldType.UINT8) {
+          var _pos = this._io.pos;
+          this._io.seek(this.fieldEntryPos + 8);
+          this._m_valueUint8 = this._io.readU1();
+          this._io.seek(_pos);
+        }
+        return this._m_valueUint8;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueVector3', {
+      get: function() {
+        if (this._m_valueVector3 !== undefined)
+          return this._m_valueVector3;
+        if (this.entry.fieldType == Gff.GffFieldType.VECTOR3) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueVector3 = new BiowareCommon_.BiowareCommon.BiowareVector3(this._io, null, null);
+          this._io.seek(_pos);
+        }
+        return this._m_valueVector3;
+      }
+    });
+    Object.defineProperty(ResolvedField.prototype, 'valueVector4', {
+      get: function() {
+        if (this._m_valueVector4 !== undefined)
+          return this._m_valueVector4;
+        if (this.entry.fieldType == Gff.GffFieldType.VECTOR4) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldDataOffset + this.entry.dataOrOffset);
+          this._m_valueVector4 = new BiowareCommon_.BiowareCommon.BiowareVector4(this._io, null, null);
+          this._io.seek(_pos);
+        }
+        return this._m_valueVector4;
+      }
+    });
+
+    /**
+     * Index into field_array
+     */
+
+    return ResolvedField;
+  })();
+
+  /**
+   * A decoded struct node: resolves field indices -> field entries -> typed values,
+   * and recursively resolves nested structs and lists.
+   */
+
+  var ResolvedStruct = Gff.ResolvedStruct = (function() {
+    function ResolvedStruct(_io, _parent, _root, structIndex) {
+      this._io = _io;
+      this._parent = _parent;
+      this._root = _root;
+      this.structIndex = structIndex;
+
+      this._read();
+    }
+    ResolvedStruct.prototype._read = function() {
+    }
+
+    /**
+     * Raw struct entry at struct_index
+     */
+    Object.defineProperty(ResolvedStruct.prototype, 'entry', {
+      get: function() {
+        if (this._m_entry !== undefined)
+          return this._m_entry;
+        var _pos = this._io.pos;
+        this._io.seek(this._root.header.structOffset + this.structIndex * 12);
+        this._m_entry = new StructEntry(this._io, this, this._root);
+        this._io.seek(_pos);
+        return this._m_entry;
+      }
+    });
+
+    /**
+     * Field indices for this struct (only present when field_count > 1).
+     * When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+     */
+    Object.defineProperty(ResolvedStruct.prototype, 'fieldIndices', {
+      get: function() {
+        if (this._m_fieldIndices !== undefined)
+          return this._m_fieldIndices;
+        if (this.entry.fieldCount > 1) {
+          var _pos = this._io.pos;
+          this._io.seek(this._root.header.fieldIndicesOffset + this.entry.dataOrOffset);
+          this._m_fieldIndices = [];
+          for (var i = 0; i < this.entry.fieldCount; i++) {
+            this._m_fieldIndices.push(this._io.readU4le());
+          }
+          this._io.seek(_pos);
+        }
+        return this._m_fieldIndices;
+      }
+    });
+
+    /**
+     * Resolved fields (multi-field struct)
+     */
+    Object.defineProperty(ResolvedStruct.prototype, 'fields', {
+      get: function() {
+        if (this._m_fields !== undefined)
+          return this._m_fields;
+        if (this.entry.fieldCount > 1) {
+          this._m_fields = [];
+          for (var i = 0; i < this.entry.fieldCount; i++) {
+            this._m_fields.push(new ResolvedField(this._io, this, this._root, this.fieldIndices[i]));
+          }
+        }
+        return this._m_fields;
+      }
+    });
+
+    /**
+     * Resolved field (single-field struct)
+     */
+    Object.defineProperty(ResolvedStruct.prototype, 'singleField', {
+      get: function() {
+        if (this._m_singleField !== undefined)
+          return this._m_singleField;
+        if (this.entry.fieldCount == 1) {
+          this._m_singleField = new ResolvedField(this._io, this, this._root, this.entry.dataOrOffset);
+        }
+        return this._m_singleField;
+      }
+    });
+
+    /**
+     * Index into struct_array
+     */
+
+    return ResolvedStruct;
   })();
 
   var StructArray = Gff.StructArray = (function() {
@@ -682,6 +1115,20 @@ var Gff = (function() {
         this._io.seek(_pos);
       }
       return this._m_listIndicesArray;
+    }
+  });
+
+  /**
+   * Convenience "decoded" view of the root struct (struct_array[0]).
+   * This resolves field indices to field entries, resolves labels to strings,
+   * and decodes field values (including nested structs and lists) into typed instances.
+   */
+  Object.defineProperty(Gff.prototype, 'rootStructResolved', {
+    get: function() {
+      if (this._m_rootStructResolved !== undefined)
+        return this._m_rootStructResolved;
+      this._m_rootStructResolved = new ResolvedStruct(this._io, this, this._root, 0);
+      return this._m_rootStructResolved;
     }
   });
 
