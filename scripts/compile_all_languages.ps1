@@ -17,7 +17,9 @@ $languages = @(
     "python",      # PyKotor compatibility
     "ruby",        # Scripting
     "rust",        # Safe parsing
-    "swift"        # iOS/Mac tools
+    "graphviz",    # Structure diagrams
+    "html",        # HTML documentation
+    "construct"   # Construct (Python) codegen
 )
 
 Write-Host "Compiling all .ksy files to $($languages.Count) languages..."
@@ -47,6 +49,7 @@ foreach ($lang in $languages) {
             $successes++
         } else {
             $failures++
+            Write-Host $output -ForegroundColor Red
         }
     }
     
