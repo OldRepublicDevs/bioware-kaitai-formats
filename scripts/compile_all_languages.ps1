@@ -27,7 +27,7 @@ Write-Host ("=" * 80)
 
 $ksyFiles = Get-ChildItem -Path "formats" -Filter "*.ksy" -Recurse | Where-Object {
     # Exclude failing formats (TODO: FIX LATER, EVERY SINGLE ONE OF THESE ARE HIGH PRIORITY!)
-    $_.Name -notin @("DA2S.ksy", "DAS.ksy", "LYT.ksy", "MDL.ksy", "MDL_ASCII.ksy", "PCC.ksy", "TGA.ksy", "TPC.ksy")
+    $_.Name -notin @("DA2S.ksy", "DAS.ksy", "LYT.ksy", "PCC.ksy", "TGA.ksy", "TPC.ksy")
 }
 
 Write-Host "Found $($ksyFiles.Count) .ksy files to compile"

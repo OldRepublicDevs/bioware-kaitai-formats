@@ -105,7 +105,7 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Model name (null-terminated string, max 32 bytes)
       - id: root_node_offset
         type: u4
@@ -208,7 +208,7 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Name of supermodel (null-terminated string, "null" if empty)
 
   vec3f:
@@ -283,7 +283,7 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Root node name for animation (null-terminated string)
       - id: event_array_offset
         type: u4
@@ -308,7 +308,7 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Name of event (null-terminated string, e.g., "detonate")
 
   node:
@@ -531,31 +531,31 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Update behavior script name (e.g., "single", "fountain")
       - id: render_script
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Render mode script name (e.g., "normal", "billboard_to_local_z")
       - id: blend_script
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Blend mode script name (e.g., "normal", "lighten")
       - id: texture_name
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Particle texture name (null-terminated string)
       - id: chunk_name
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Associated model chunk name (null-terminated string)
       - id: two_sided_texture
         type: u4
@@ -573,7 +573,7 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Depth/softparticle texture name (null-terminated string)
       - id: padding
         type: u1
@@ -589,7 +589,7 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Referenced model resource name without extension (null-terminated string)
       - id: reattachable
         type: u4
@@ -638,25 +638,25 @@ types:
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Primary diffuse texture name (null-terminated string)
       - id: texture_1_name
         type: str
         size: 32
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Secondary texture name, often lightmap (null-terminated string)
       - id: texture_2_name
         type: str
         size: 12
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Tertiary texture name (null-terminated string)
       - id: texture_3_name
         type: str
         size: 12
         encoding: ASCII
-        pad-right: 0
+        terminator: 0
         doc: Quaternary texture name (null-terminated string)
       - id: indices_count_array_offset
         type: u4
