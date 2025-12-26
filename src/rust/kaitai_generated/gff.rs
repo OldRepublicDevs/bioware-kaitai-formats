@@ -11,11 +11,11 @@ use kaitai::*;
 use std::convert::{TryFrom, TryInto};
 use std::cell::{Ref, Cell, RefCell};
 use std::rc::{Rc, Weak};
-use super::bioware_common::BiowareCommon_BiowareVector3;
 use super::bioware_common::BiowareCommon_BiowareBinaryData;
 use super::bioware_common::BiowareCommon_BiowareVector4;
-use super::bioware_common::BiowareCommon_BiowareLocstring;
 use super::bioware_common::BiowareCommon_BiowareCexoString;
+use super::bioware_common::BiowareCommon_BiowareVector3;
+use super::bioware_common::BiowareCommon_BiowareLocstring;
 use super::bioware_common::BiowareCommon_BiowareResref;
 
 /**
