@@ -83,7 +83,6 @@ types:
           Each mip level is half the size of the previous level.
 
       - id: reserved
-        size: 114
         type: u1
         repeat: expr
         repeat-expr: 114
