@@ -52,8 +52,8 @@ seq:
   
   - id: color_map_spec
     type: color_map_specification
-    if: color_map_type == 1
-    doc: Color map specification (only present if color_map_type == 1)
+    if: color_map_type == color_map_type::present
+    doc: Color map specification (only present if color_map_type == present)
   
   - id: image_spec
     type: image_specification
@@ -69,8 +69,8 @@ seq:
   - id: color_map_data
     type: u1
     repeat: expr
-    repeat-expr: color_map_spec.length if color_map_type == 1 else 0
-    if: color_map_type == 1
+    repeat-expr: color_map_spec.length
+    if: color_map_type == color_map_type::present
     doc: Color map data (palette entries)
   
   - id: image_data
