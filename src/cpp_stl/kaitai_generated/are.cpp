@@ -7,6 +7,7 @@ are_t::are_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, are_t* p__root)
     m__root = p__root ? p__root : this;
     m_gff_data = 0;
     f_file_type_valid = false;
+    f_root_struct_resolved = false;
     f_version_valid = false;
 
     try {
@@ -37,6 +38,14 @@ bool are_t::file_type_valid() {
     f_file_type_valid = true;
     m_file_type_valid = gff_data()->header()->file_type() == std::string("ARE ");
     return m_file_type_valid;
+}
+
+gff_t::resolved_struct_t* are_t::root_struct_resolved() {
+    if (f_root_struct_resolved)
+        return m_root_struct_resolved;
+    f_root_struct_resolved = true;
+    m_root_struct_resolved = gff_data()->root_struct_resolved();
+    return m_root_struct_resolved;
 }
 
 bool are_t::version_valid() {

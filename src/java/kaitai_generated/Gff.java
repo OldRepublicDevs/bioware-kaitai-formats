@@ -134,6 +134,10 @@ public class Gff extends KaitaiStruct {
         if (this.listIndicesArray != null) {
             this.listIndicesArray._fetchInstances();
         }
+        rootStructResolved();
+        if (this.rootStructResolved != null) {
+            this.rootStructResolved._fetchInstances();
+        }
         structArray();
         if (this.structArray != null) {
             this.structArray._fetchInstances();
@@ -235,11 +239,11 @@ public class Gff extends KaitaiStruct {
             this(_io, null, null);
         }
 
-        public FieldEntry(KaitaiStream _io, Gff.FieldArray _parent) {
+        public FieldEntry(KaitaiStream _io, KaitaiStruct _parent) {
             this(_io, _parent, null);
         }
 
-        public FieldEntry(KaitaiStream _io, Gff.FieldArray _parent, Gff _root) {
+        public FieldEntry(KaitaiStream _io, KaitaiStruct _parent, Gff _root) {
             super(_io);
             this._parent = _parent;
             this._root = _root;
@@ -340,7 +344,7 @@ public class Gff extends KaitaiStruct {
         private long labelIndex;
         private long dataOrOffset;
         private Gff _root;
-        private Gff.FieldArray _parent;
+        private KaitaiStruct _parent;
 
         /**
          * Field data type (see gff_field_type enum):
@@ -365,7 +369,7 @@ public class Gff extends KaitaiStruct {
          */
         public long dataOrOffset() { return dataOrOffset; }
         public Gff _root() { return _root; }
-        public Gff.FieldArray _parent() { return _parent; }
+        public KaitaiStruct _parent() { return _parent; }
     }
     public static class FieldIndicesArray extends KaitaiStruct {
         public static FieldIndicesArray fromFile(String fileName) throws IOException {
@@ -620,6 +624,43 @@ public class Gff extends KaitaiStruct {
         public Gff _root() { return _root; }
         public Gff.LabelArray _parent() { return _parent; }
     }
+
+    /**
+     * Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+     * This avoids leaking trailing `\0` bytes into generated-code consumers.
+     */
+    public static class LabelEntryTerminated extends KaitaiStruct {
+        public static LabelEntryTerminated fromFile(String fileName) throws IOException {
+            return new LabelEntryTerminated(new ByteBufferKaitaiStream(fileName));
+        }
+
+        public LabelEntryTerminated(KaitaiStream _io) {
+            this(_io, null, null);
+        }
+
+        public LabelEntryTerminated(KaitaiStream _io, Gff.ResolvedField _parent) {
+            this(_io, _parent, null);
+        }
+
+        public LabelEntryTerminated(KaitaiStream _io, Gff.ResolvedField _parent, Gff _root) {
+            super(_io);
+            this._parent = _parent;
+            this._root = _root;
+            _read();
+        }
+        private void _read() {
+            this.name = new String(KaitaiStream.bytesTerminate(this._io.readBytes(16), (byte) 0, false), StandardCharsets.US_ASCII);
+        }
+
+        public void _fetchInstances() {
+        }
+        private String name;
+        private Gff _root;
+        private Gff.ResolvedField _parent;
+        public String name() { return name; }
+        public Gff _root() { return _root; }
+        public Gff.ResolvedField _parent() { return _parent; }
+    }
     public static class ListEntry extends KaitaiStruct {
         public static ListEntry fromFile(String fileName) throws IOException {
             return new ListEntry(new ByteBufferKaitaiStream(fileName));
@@ -629,11 +670,11 @@ public class Gff extends KaitaiStruct {
             this(_io, null, null);
         }
 
-        public ListEntry(KaitaiStream _io, KaitaiStruct _parent) {
+        public ListEntry(KaitaiStream _io, Gff.ResolvedField _parent) {
             this(_io, _parent, null);
         }
 
-        public ListEntry(KaitaiStream _io, KaitaiStruct _parent, Gff _root) {
+        public ListEntry(KaitaiStream _io, Gff.ResolvedField _parent, Gff _root) {
             super(_io);
             this._parent = _parent;
             this._root = _root;
@@ -654,7 +695,7 @@ public class Gff extends KaitaiStruct {
         private long numStructIndices;
         private List<Long> structIndices;
         private Gff _root;
-        private KaitaiStruct _parent;
+        private Gff.ResolvedField _parent;
 
         /**
          * Number of struct indices in this list
@@ -666,7 +707,7 @@ public class Gff extends KaitaiStruct {
          */
         public List<Long> structIndices() { return structIndices; }
         public Gff _root() { return _root; }
-        public KaitaiStruct _parent() { return _parent; }
+        public Gff.ResolvedField _parent() { return _parent; }
     }
     public static class ListIndicesArray extends KaitaiStruct {
         public static ListIndicesArray fromFile(String fileName) throws IOException {
@@ -709,6 +750,516 @@ public class Gff extends KaitaiStruct {
         public byte[] rawData() { return rawData; }
         public Gff _root() { return _root; }
         public Gff _parent() { return _parent; }
+    }
+
+    /**
+     * A decoded field: includes resolved label string and decoded typed value.
+     * Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+     */
+    public static class ResolvedField extends KaitaiStruct {
+
+        public ResolvedField(KaitaiStream _io, long fieldIndex) {
+            this(_io, null, null, fieldIndex);
+        }
+
+        public ResolvedField(KaitaiStream _io, Gff.ResolvedStruct _parent, long fieldIndex) {
+            this(_io, _parent, null, fieldIndex);
+        }
+
+        public ResolvedField(KaitaiStream _io, Gff.ResolvedStruct _parent, Gff _root, long fieldIndex) {
+            super(_io);
+            this._parent = _parent;
+            this._root = _root;
+            this.fieldIndex = fieldIndex;
+            _read();
+        }
+        private void _read() {
+        }
+
+        public void _fetchInstances() {
+            entry();
+            if (this.entry != null) {
+                this.entry._fetchInstances();
+            }
+            label();
+            if (this.label != null) {
+                this.label._fetchInstances();
+            }
+            listEntry();
+            if (this.listEntry != null) {
+                this.listEntry._fetchInstances();
+            }
+            listStructs();
+            if (this.listStructs != null) {
+                for (int i = 0; i < this.listStructs.size(); i++) {
+                    this.listStructs.get(((Number) (i)).intValue())._fetchInstances();
+                }
+            }
+            valueBinary();
+            if (this.valueBinary != null) {
+                this.valueBinary._fetchInstances();
+            }
+            valueDouble();
+            if (this.valueDouble != null) {
+            }
+            valueInt16();
+            if (this.valueInt16 != null) {
+            }
+            valueInt32();
+            if (this.valueInt32 != null) {
+            }
+            valueInt64();
+            if (this.valueInt64 != null) {
+            }
+            valueInt8();
+            if (this.valueInt8 != null) {
+            }
+            valueLocalizedString();
+            if (this.valueLocalizedString != null) {
+                this.valueLocalizedString._fetchInstances();
+            }
+            valueResref();
+            if (this.valueResref != null) {
+                this.valueResref._fetchInstances();
+            }
+            valueSingle();
+            if (this.valueSingle != null) {
+            }
+            valueString();
+            if (this.valueString != null) {
+                this.valueString._fetchInstances();
+            }
+            valueStruct();
+            if (this.valueStruct != null) {
+                this.valueStruct._fetchInstances();
+            }
+            valueUint16();
+            if (this.valueUint16 != null) {
+            }
+            valueUint32();
+            if (this.valueUint32 != null) {
+            }
+            valueUint64();
+            if (this.valueUint64 != null) {
+            }
+            valueUint8();
+            if (this.valueUint8 != null) {
+            }
+            valueVector3();
+            if (this.valueVector3 != null) {
+                this.valueVector3._fetchInstances();
+            }
+            valueVector4();
+            if (this.valueVector4 != null) {
+                this.valueVector4._fetchInstances();
+            }
+        }
+        private FieldEntry entry;
+
+        /**
+         * Raw field entry at field_index
+         */
+        public FieldEntry entry() {
+            if (this.entry != null)
+                return this.entry;
+            long _pos = this._io.pos();
+            this._io.seek(_root().header().fieldOffset() + fieldIndex() * 12);
+            this.entry = new FieldEntry(this._io, this, _root);
+            this._io.seek(_pos);
+            return this.entry;
+        }
+        private Integer fieldEntryPos;
+
+        /**
+         * Absolute file offset of this field entry (start of 12-byte record)
+         */
+        public Integer fieldEntryPos() {
+            if (this.fieldEntryPos != null)
+                return this.fieldEntryPos;
+            this.fieldEntryPos = ((Number) (_root().header().fieldOffset() + fieldIndex() * 12)).intValue();
+            return this.fieldEntryPos;
+        }
+        private LabelEntryTerminated label;
+
+        /**
+         * Resolved field label string
+         */
+        public LabelEntryTerminated label() {
+            if (this.label != null)
+                return this.label;
+            long _pos = this._io.pos();
+            this._io.seek(_root().header().labelOffset() + entry().labelIndex() * 16);
+            this.label = new LabelEntryTerminated(this._io, this, _root);
+            this._io.seek(_pos);
+            return this.label;
+        }
+        private ListEntry listEntry;
+
+        /**
+         * Parsed list entry at offset (list indices)
+         */
+        public ListEntry listEntry() {
+            if (this.listEntry != null)
+                return this.listEntry;
+            if (entry().fieldType() == Gff.GffFieldType.LIST) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().listIndicesOffset() + entry().dataOrOffset());
+                this.listEntry = new ListEntry(this._io, this, _root);
+                this._io.seek(_pos);
+            }
+            return this.listEntry;
+        }
+        private List<ResolvedStruct> listStructs;
+
+        /**
+         * Resolved structs referenced by this list
+         */
+        public List<ResolvedStruct> listStructs() {
+            if (this.listStructs != null)
+                return this.listStructs;
+            if (entry().fieldType() == Gff.GffFieldType.LIST) {
+                this.listStructs = new ArrayList<ResolvedStruct>();
+                for (int i = 0; i < listEntry().numStructIndices(); i++) {
+                    this.listStructs.add(new ResolvedStruct(this._io, this, _root, listEntry().structIndices().get(((Number) (i)).intValue())));
+                }
+            }
+            return this.listStructs;
+        }
+        private BiowareCommon.BiowareBinaryData valueBinary;
+        public BiowareCommon.BiowareBinaryData valueBinary() {
+            if (this.valueBinary != null)
+                return this.valueBinary;
+            if (entry().fieldType() == Gff.GffFieldType.BINARY) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueBinary = new BiowareCommon.BiowareBinaryData(this._io);
+                this._io.seek(_pos);
+            }
+            return this.valueBinary;
+        }
+        private Double valueDouble;
+        public Double valueDouble() {
+            if (this.valueDouble != null)
+                return this.valueDouble;
+            if (entry().fieldType() == Gff.GffFieldType.DOUBLE) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueDouble = this._io.readF8le();
+                this._io.seek(_pos);
+            }
+            return this.valueDouble;
+        }
+        private Short valueInt16;
+        public Short valueInt16() {
+            if (this.valueInt16 != null)
+                return this.valueInt16;
+            if (entry().fieldType() == Gff.GffFieldType.INT16) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueInt16 = this._io.readS2le();
+                this._io.seek(_pos);
+            }
+            return this.valueInt16;
+        }
+        private Integer valueInt32;
+        public Integer valueInt32() {
+            if (this.valueInt32 != null)
+                return this.valueInt32;
+            if (entry().fieldType() == Gff.GffFieldType.INT32) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueInt32 = this._io.readS4le();
+                this._io.seek(_pos);
+            }
+            return this.valueInt32;
+        }
+        private Long valueInt64;
+        public Long valueInt64() {
+            if (this.valueInt64 != null)
+                return this.valueInt64;
+            if (entry().fieldType() == Gff.GffFieldType.INT64) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueInt64 = this._io.readS8le();
+                this._io.seek(_pos);
+            }
+            return this.valueInt64;
+        }
+        private Byte valueInt8;
+        public Byte valueInt8() {
+            if (this.valueInt8 != null)
+                return this.valueInt8;
+            if (entry().fieldType() == Gff.GffFieldType.INT8) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueInt8 = this._io.readS1();
+                this._io.seek(_pos);
+            }
+            return this.valueInt8;
+        }
+        private BiowareCommon.BiowareLocstring valueLocalizedString;
+        public BiowareCommon.BiowareLocstring valueLocalizedString() {
+            if (this.valueLocalizedString != null)
+                return this.valueLocalizedString;
+            if (entry().fieldType() == Gff.GffFieldType.LOCALIZED_STRING) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueLocalizedString = new BiowareCommon.BiowareLocstring(this._io);
+                this._io.seek(_pos);
+            }
+            return this.valueLocalizedString;
+        }
+        private BiowareCommon.BiowareResref valueResref;
+        public BiowareCommon.BiowareResref valueResref() {
+            if (this.valueResref != null)
+                return this.valueResref;
+            if (entry().fieldType() == Gff.GffFieldType.RESREF) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueResref = new BiowareCommon.BiowareResref(this._io);
+                this._io.seek(_pos);
+            }
+            return this.valueResref;
+        }
+        private Float valueSingle;
+        public Float valueSingle() {
+            if (this.valueSingle != null)
+                return this.valueSingle;
+            if (entry().fieldType() == Gff.GffFieldType.SINGLE) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueSingle = this._io.readF4le();
+                this._io.seek(_pos);
+            }
+            return this.valueSingle;
+        }
+        private BiowareCommon.BiowareCexoString valueString;
+        public BiowareCommon.BiowareCexoString valueString() {
+            if (this.valueString != null)
+                return this.valueString;
+            if (entry().fieldType() == Gff.GffFieldType.STRING) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueString = new BiowareCommon.BiowareCexoString(this._io);
+                this._io.seek(_pos);
+            }
+            return this.valueString;
+        }
+        private ResolvedStruct valueStruct;
+
+        /**
+         * Nested struct (struct index = entry.data_or_offset)
+         */
+        public ResolvedStruct valueStruct() {
+            if (this.valueStruct != null)
+                return this.valueStruct;
+            if (entry().fieldType() == Gff.GffFieldType.STRUCT) {
+                this.valueStruct = new ResolvedStruct(this._io, this, _root, entry().dataOrOffset());
+            }
+            return this.valueStruct;
+        }
+        private Integer valueUint16;
+        public Integer valueUint16() {
+            if (this.valueUint16 != null)
+                return this.valueUint16;
+            if (entry().fieldType() == Gff.GffFieldType.UINT16) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueUint16 = this._io.readU2le();
+                this._io.seek(_pos);
+            }
+            return this.valueUint16;
+        }
+        private Long valueUint32;
+        public Long valueUint32() {
+            if (this.valueUint32 != null)
+                return this.valueUint32;
+            if (entry().fieldType() == Gff.GffFieldType.UINT32) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueUint32 = this._io.readU4le();
+                this._io.seek(_pos);
+            }
+            return this.valueUint32;
+        }
+        private Long valueUint64;
+        public Long valueUint64() {
+            if (this.valueUint64 != null)
+                return this.valueUint64;
+            if (entry().fieldType() == Gff.GffFieldType.UINT64) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueUint64 = this._io.readU8le();
+                this._io.seek(_pos);
+            }
+            return this.valueUint64;
+        }
+        private Integer valueUint8;
+        public Integer valueUint8() {
+            if (this.valueUint8 != null)
+                return this.valueUint8;
+            if (entry().fieldType() == Gff.GffFieldType.UINT8) {
+                long _pos = this._io.pos();
+                this._io.seek(fieldEntryPos() + 8);
+                this.valueUint8 = this._io.readU1();
+                this._io.seek(_pos);
+            }
+            return this.valueUint8;
+        }
+        private BiowareCommon.BiowareVector3 valueVector3;
+        public BiowareCommon.BiowareVector3 valueVector3() {
+            if (this.valueVector3 != null)
+                return this.valueVector3;
+            if (entry().fieldType() == Gff.GffFieldType.VECTOR3) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueVector3 = new BiowareCommon.BiowareVector3(this._io);
+                this._io.seek(_pos);
+            }
+            return this.valueVector3;
+        }
+        private BiowareCommon.BiowareVector4 valueVector4;
+        public BiowareCommon.BiowareVector4 valueVector4() {
+            if (this.valueVector4 != null)
+                return this.valueVector4;
+            if (entry().fieldType() == Gff.GffFieldType.VECTOR4) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldDataOffset() + entry().dataOrOffset());
+                this.valueVector4 = new BiowareCommon.BiowareVector4(this._io);
+                this._io.seek(_pos);
+            }
+            return this.valueVector4;
+        }
+        private long fieldIndex;
+        private Gff _root;
+        private Gff.ResolvedStruct _parent;
+
+        /**
+         * Index into field_array
+         */
+        public long fieldIndex() { return fieldIndex; }
+        public Gff _root() { return _root; }
+        public Gff.ResolvedStruct _parent() { return _parent; }
+    }
+
+    /**
+     * A decoded struct node: resolves field indices -> field entries -> typed values,
+     * and recursively resolves nested structs and lists.
+     */
+    public static class ResolvedStruct extends KaitaiStruct {
+
+        public ResolvedStruct(KaitaiStream _io, long structIndex) {
+            this(_io, null, null, structIndex);
+        }
+
+        public ResolvedStruct(KaitaiStream _io, KaitaiStruct _parent, long structIndex) {
+            this(_io, _parent, null, structIndex);
+        }
+
+        public ResolvedStruct(KaitaiStream _io, KaitaiStruct _parent, Gff _root, long structIndex) {
+            super(_io);
+            this._parent = _parent;
+            this._root = _root;
+            this.structIndex = structIndex;
+            _read();
+        }
+        private void _read() {
+        }
+
+        public void _fetchInstances() {
+            entry();
+            if (this.entry != null) {
+                this.entry._fetchInstances();
+            }
+            fieldIndices();
+            if (this.fieldIndices != null) {
+                for (int i = 0; i < this.fieldIndices.size(); i++) {
+                }
+            }
+            fields();
+            if (this.fields != null) {
+                for (int i = 0; i < this.fields.size(); i++) {
+                    this.fields.get(((Number) (i)).intValue())._fetchInstances();
+                }
+            }
+            singleField();
+            if (this.singleField != null) {
+                this.singleField._fetchInstances();
+            }
+        }
+        private StructEntry entry;
+
+        /**
+         * Raw struct entry at struct_index
+         */
+        public StructEntry entry() {
+            if (this.entry != null)
+                return this.entry;
+            long _pos = this._io.pos();
+            this._io.seek(_root().header().structOffset() + structIndex() * 12);
+            this.entry = new StructEntry(this._io, this, _root);
+            this._io.seek(_pos);
+            return this.entry;
+        }
+        private List<Long> fieldIndices;
+
+        /**
+         * Field indices for this struct (only present when field_count > 1).
+         * When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+         */
+        public List<Long> fieldIndices() {
+            if (this.fieldIndices != null)
+                return this.fieldIndices;
+            if (entry().fieldCount() > 1) {
+                long _pos = this._io.pos();
+                this._io.seek(_root().header().fieldIndicesOffset() + entry().dataOrOffset());
+                this.fieldIndices = new ArrayList<Long>();
+                for (int i = 0; i < entry().fieldCount(); i++) {
+                    this.fieldIndices.add(this._io.readU4le());
+                }
+                this._io.seek(_pos);
+            }
+            return this.fieldIndices;
+        }
+        private List<ResolvedField> fields;
+
+        /**
+         * Resolved fields (multi-field struct)
+         */
+        public List<ResolvedField> fields() {
+            if (this.fields != null)
+                return this.fields;
+            if (entry().fieldCount() > 1) {
+                this.fields = new ArrayList<ResolvedField>();
+                for (int i = 0; i < entry().fieldCount(); i++) {
+                    this.fields.add(new ResolvedField(this._io, this, _root, fieldIndices().get(((Number) (i)).intValue())));
+                }
+            }
+            return this.fields;
+        }
+        private ResolvedField singleField;
+
+        /**
+         * Resolved field (single-field struct)
+         */
+        public ResolvedField singleField() {
+            if (this.singleField != null)
+                return this.singleField;
+            if (entry().fieldCount() == 1) {
+                this.singleField = new ResolvedField(this._io, this, _root, entry().dataOrOffset());
+            }
+            return this.singleField;
+        }
+        private long structIndex;
+        private Gff _root;
+        private KaitaiStruct _parent;
+
+        /**
+         * Index into struct_array
+         */
+        public long structIndex() { return structIndex; }
+        public Gff _root() { return _root; }
+        public KaitaiStruct _parent() { return _parent; }
     }
     public static class StructArray extends KaitaiStruct {
         public static StructArray fromFile(String fileName) throws IOException {
@@ -761,11 +1312,11 @@ public class Gff extends KaitaiStruct {
             this(_io, null, null);
         }
 
-        public StructEntry(KaitaiStream _io, Gff.StructArray _parent) {
+        public StructEntry(KaitaiStream _io, KaitaiStruct _parent) {
             this(_io, _parent, null);
         }
 
-        public StructEntry(KaitaiStream _io, Gff.StructArray _parent, Gff _root) {
+        public StructEntry(KaitaiStream _io, KaitaiStruct _parent, Gff _root) {
             super(_io);
             this._parent = _parent;
             this._root = _root;
@@ -831,7 +1382,7 @@ public class Gff extends KaitaiStruct {
         private long dataOrOffset;
         private long fieldCount;
         private Gff _root;
-        private Gff.StructArray _parent;
+        private KaitaiStruct _parent;
 
         /**
          * Structure type identifier. Often 0xFFFFFFFF (-1) for generic structs.
@@ -853,7 +1404,7 @@ public class Gff extends KaitaiStruct {
          */
         public long fieldCount() { return fieldCount; }
         public Gff _root() { return _root; }
-        public Gff.StructArray _parent() { return _parent; }
+        public KaitaiStruct _parent() { return _parent; }
     }
     private FieldArray fieldArray;
 
@@ -934,6 +1485,19 @@ public class Gff extends KaitaiStruct {
             this._io.seek(_pos);
         }
         return this.listIndicesArray;
+    }
+    private ResolvedStruct rootStructResolved;
+
+    /**
+     * Convenience "decoded" view of the root struct (struct_array[0]).
+     * This resolves field indices to field entries, resolves labels to strings,
+     * and decodes field values (including nested structs and lists) into typed instances.
+     */
+    public ResolvedStruct rootStructResolved() {
+        if (this.rootStructResolved != null)
+            return this.rootStructResolved;
+        this.rootStructResolved = new ResolvedStruct(this._io, this, _root, 0);
+        return this.rootStructResolved;
     }
     private StructArray structArray;
 

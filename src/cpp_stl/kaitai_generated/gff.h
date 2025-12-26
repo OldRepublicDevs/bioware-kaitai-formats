@@ -7,6 +7,7 @@ class gff_t;
 
 #include "kaitai/kaitaistruct.h"
 #include <stdint.h>
+#include "bioware_common.h"
 #include <set>
 #include <vector>
 
@@ -72,8 +73,11 @@ public:
     class gff_header_t;
     class label_array_t;
     class label_entry_t;
+    class label_entry_terminated_t;
     class list_entry_t;
     class list_indices_array_t;
+    class resolved_field_t;
+    class resolved_struct_t;
     class struct_array_t;
     class struct_entry_t;
 
@@ -183,7 +187,7 @@ public:
 
     public:
 
-        field_entry_t(kaitai::kstream* p__io, gff_t::field_array_t* p__parent = 0, gff_t* p__root = 0);
+        field_entry_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, gff_t* p__root = 0);
 
     private:
         void _read();
@@ -292,7 +296,7 @@ public:
         uint32_t m_label_index;
         uint32_t m_data_or_offset;
         gff_t* m__root;
-        gff_t::field_array_t* m__parent;
+        kaitai::kstruct* m__parent;
 
     public:
 
@@ -319,7 +323,7 @@ public:
          */
         uint32_t data_or_offset() const { return m_data_or_offset; }
         gff_t* _root() const { return m__root; }
-        gff_t::field_array_t* _parent() const { return m__parent; }
+        kaitai::kstruct* _parent() const { return m__parent; }
     };
 
     class field_indices_array_t : public kaitai::kstruct {
@@ -519,11 +523,40 @@ public:
         gff_t::label_array_t* _parent() const { return m__parent; }
     };
 
+    /**
+     * Label entry as a null-terminated ASCII string within a fixed 16-byte field.
+     * This avoids leaking trailing `\0` bytes into generated-code consumers.
+     */
+
+    class label_entry_terminated_t : public kaitai::kstruct {
+
+    public:
+
+        label_entry_terminated_t(kaitai::kstream* p__io, gff_t::resolved_field_t* p__parent = 0, gff_t* p__root = 0);
+
+    private:
+        void _read();
+        void _clean_up();
+
+    public:
+        ~label_entry_terminated_t();
+
+    private:
+        std::string m_name;
+        gff_t* m__root;
+        gff_t::resolved_field_t* m__parent;
+
+    public:
+        std::string name() const { return m_name; }
+        gff_t* _root() const { return m__root; }
+        gff_t::resolved_field_t* _parent() const { return m__parent; }
+    };
+
     class list_entry_t : public kaitai::kstruct {
 
     public:
 
-        list_entry_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, gff_t* p__root = 0);
+        list_entry_t(kaitai::kstream* p__io, gff_t::resolved_field_t* p__parent = 0, gff_t* p__root = 0);
 
     private:
         void _read();
@@ -536,7 +569,7 @@ public:
         uint32_t m_num_struct_indices;
         std::vector<uint32_t>* m_struct_indices;
         gff_t* m__root;
-        kaitai::kstruct* m__parent;
+        gff_t::resolved_field_t* m__parent;
 
     public:
 
@@ -550,7 +583,7 @@ public:
          */
         std::vector<uint32_t>* struct_indices() const { return m_struct_indices; }
         gff_t* _root() const { return m__root; }
-        kaitai::kstruct* _parent() const { return m__parent; }
+        gff_t::resolved_field_t* _parent() const { return m__parent; }
     };
 
     class list_indices_array_t : public kaitai::kstruct {
@@ -587,6 +620,427 @@ public:
         gff_t* _parent() const { return m__parent; }
     };
 
+    /**
+     * A decoded field: includes resolved label string and decoded typed value.
+     * Exactly one `value_*` instance (or one of `value_struct` / `list_*`) will be non-null.
+     */
+
+    class resolved_field_t : public kaitai::kstruct {
+
+    public:
+
+        resolved_field_t(uint32_t p_field_index, kaitai::kstream* p__io, gff_t::resolved_struct_t* p__parent = 0, gff_t* p__root = 0);
+
+    private:
+        void _read();
+        void _clean_up();
+
+    public:
+        ~resolved_field_t();
+
+    private:
+        bool f_entry;
+        field_entry_t* m_entry;
+
+    public:
+
+        /**
+         * Raw field entry at field_index
+         */
+        field_entry_t* entry();
+
+    private:
+        bool f_field_entry_pos;
+        int32_t m_field_entry_pos;
+
+    public:
+
+        /**
+         * Absolute file offset of this field entry (start of 12-byte record)
+         */
+        int32_t field_entry_pos();
+
+    private:
+        bool f_label;
+        label_entry_terminated_t* m_label;
+
+    public:
+
+        /**
+         * Resolved field label string
+         */
+        label_entry_terminated_t* label();
+
+    private:
+        bool f_list_entry;
+        list_entry_t* m_list_entry;
+        bool n_list_entry;
+
+    public:
+        bool _is_null_list_entry() { list_entry(); return n_list_entry; };
+
+    private:
+
+    public:
+
+        /**
+         * Parsed list entry at offset (list indices)
+         */
+        list_entry_t* list_entry();
+
+    private:
+        bool f_list_structs;
+        std::vector<resolved_struct_t*>* m_list_structs;
+        bool n_list_structs;
+
+    public:
+        bool _is_null_list_structs() { list_structs(); return n_list_structs; };
+
+    private:
+
+    public:
+
+        /**
+         * Resolved structs referenced by this list
+         */
+        std::vector<resolved_struct_t*>* list_structs();
+
+    private:
+        bool f_value_binary;
+        bioware_common_t::bioware_binary_data_t* m_value_binary;
+        bool n_value_binary;
+
+    public:
+        bool _is_null_value_binary() { value_binary(); return n_value_binary; };
+
+    private:
+
+    public:
+        bioware_common_t::bioware_binary_data_t* value_binary();
+
+    private:
+        bool f_value_double;
+        double m_value_double;
+        bool n_value_double;
+
+    public:
+        bool _is_null_value_double() { value_double(); return n_value_double; };
+
+    private:
+
+    public:
+        double value_double();
+
+    private:
+        bool f_value_int16;
+        int16_t m_value_int16;
+        bool n_value_int16;
+
+    public:
+        bool _is_null_value_int16() { value_int16(); return n_value_int16; };
+
+    private:
+
+    public:
+        int16_t value_int16();
+
+    private:
+        bool f_value_int32;
+        int32_t m_value_int32;
+        bool n_value_int32;
+
+    public:
+        bool _is_null_value_int32() { value_int32(); return n_value_int32; };
+
+    private:
+
+    public:
+        int32_t value_int32();
+
+    private:
+        bool f_value_int64;
+        int64_t m_value_int64;
+        bool n_value_int64;
+
+    public:
+        bool _is_null_value_int64() { value_int64(); return n_value_int64; };
+
+    private:
+
+    public:
+        int64_t value_int64();
+
+    private:
+        bool f_value_int8;
+        int8_t m_value_int8;
+        bool n_value_int8;
+
+    public:
+        bool _is_null_value_int8() { value_int8(); return n_value_int8; };
+
+    private:
+
+    public:
+        int8_t value_int8();
+
+    private:
+        bool f_value_localized_string;
+        bioware_common_t::bioware_locstring_t* m_value_localized_string;
+        bool n_value_localized_string;
+
+    public:
+        bool _is_null_value_localized_string() { value_localized_string(); return n_value_localized_string; };
+
+    private:
+
+    public:
+        bioware_common_t::bioware_locstring_t* value_localized_string();
+
+    private:
+        bool f_value_resref;
+        bioware_common_t::bioware_resref_t* m_value_resref;
+        bool n_value_resref;
+
+    public:
+        bool _is_null_value_resref() { value_resref(); return n_value_resref; };
+
+    private:
+
+    public:
+        bioware_common_t::bioware_resref_t* value_resref();
+
+    private:
+        bool f_value_single;
+        float m_value_single;
+        bool n_value_single;
+
+    public:
+        bool _is_null_value_single() { value_single(); return n_value_single; };
+
+    private:
+
+    public:
+        float value_single();
+
+    private:
+        bool f_value_string;
+        bioware_common_t::bioware_cexo_string_t* m_value_string;
+        bool n_value_string;
+
+    public:
+        bool _is_null_value_string() { value_string(); return n_value_string; };
+
+    private:
+
+    public:
+        bioware_common_t::bioware_cexo_string_t* value_string();
+
+    private:
+        bool f_value_struct;
+        resolved_struct_t* m_value_struct;
+        bool n_value_struct;
+
+    public:
+        bool _is_null_value_struct() { value_struct(); return n_value_struct; };
+
+    private:
+
+    public:
+
+        /**
+         * Nested struct (struct index = entry.data_or_offset)
+         */
+        resolved_struct_t* value_struct();
+
+    private:
+        bool f_value_uint16;
+        uint16_t m_value_uint16;
+        bool n_value_uint16;
+
+    public:
+        bool _is_null_value_uint16() { value_uint16(); return n_value_uint16; };
+
+    private:
+
+    public:
+        uint16_t value_uint16();
+
+    private:
+        bool f_value_uint32;
+        uint32_t m_value_uint32;
+        bool n_value_uint32;
+
+    public:
+        bool _is_null_value_uint32() { value_uint32(); return n_value_uint32; };
+
+    private:
+
+    public:
+        uint32_t value_uint32();
+
+    private:
+        bool f_value_uint64;
+        uint64_t m_value_uint64;
+        bool n_value_uint64;
+
+    public:
+        bool _is_null_value_uint64() { value_uint64(); return n_value_uint64; };
+
+    private:
+
+    public:
+        uint64_t value_uint64();
+
+    private:
+        bool f_value_uint8;
+        uint8_t m_value_uint8;
+        bool n_value_uint8;
+
+    public:
+        bool _is_null_value_uint8() { value_uint8(); return n_value_uint8; };
+
+    private:
+
+    public:
+        uint8_t value_uint8();
+
+    private:
+        bool f_value_vector3;
+        bioware_common_t::bioware_vector3_t* m_value_vector3;
+        bool n_value_vector3;
+
+    public:
+        bool _is_null_value_vector3() { value_vector3(); return n_value_vector3; };
+
+    private:
+
+    public:
+        bioware_common_t::bioware_vector3_t* value_vector3();
+
+    private:
+        bool f_value_vector4;
+        bioware_common_t::bioware_vector4_t* m_value_vector4;
+        bool n_value_vector4;
+
+    public:
+        bool _is_null_value_vector4() { value_vector4(); return n_value_vector4; };
+
+    private:
+
+    public:
+        bioware_common_t::bioware_vector4_t* value_vector4();
+
+    private:
+        uint32_t m_field_index;
+        gff_t* m__root;
+        gff_t::resolved_struct_t* m__parent;
+
+    public:
+
+        /**
+         * Index into field_array
+         */
+        uint32_t field_index() const { return m_field_index; }
+        gff_t* _root() const { return m__root; }
+        gff_t::resolved_struct_t* _parent() const { return m__parent; }
+    };
+
+    /**
+     * A decoded struct node: resolves field indices -> field entries -> typed values,
+     * and recursively resolves nested structs and lists.
+     */
+
+    class resolved_struct_t : public kaitai::kstruct {
+
+    public:
+
+        resolved_struct_t(uint32_t p_struct_index, kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, gff_t* p__root = 0);
+
+    private:
+        void _read();
+        void _clean_up();
+
+    public:
+        ~resolved_struct_t();
+
+    private:
+        bool f_entry;
+        struct_entry_t* m_entry;
+
+    public:
+
+        /**
+         * Raw struct entry at struct_index
+         */
+        struct_entry_t* entry();
+
+    private:
+        bool f_field_indices;
+        std::vector<uint32_t>* m_field_indices;
+        bool n_field_indices;
+
+    public:
+        bool _is_null_field_indices() { field_indices(); return n_field_indices; };
+
+    private:
+
+    public:
+
+        /**
+         * Field indices for this struct (only present when field_count > 1).
+         * When field_count == 1, the single field index is stored directly in entry.data_or_offset.
+         */
+        std::vector<uint32_t>* field_indices();
+
+    private:
+        bool f_fields;
+        std::vector<resolved_field_t*>* m_fields;
+        bool n_fields;
+
+    public:
+        bool _is_null_fields() { fields(); return n_fields; };
+
+    private:
+
+    public:
+
+        /**
+         * Resolved fields (multi-field struct)
+         */
+        std::vector<resolved_field_t*>* fields();
+
+    private:
+        bool f_single_field;
+        resolved_field_t* m_single_field;
+        bool n_single_field;
+
+    public:
+        bool _is_null_single_field() { single_field(); return n_single_field; };
+
+    private:
+
+    public:
+
+        /**
+         * Resolved field (single-field struct)
+         */
+        resolved_field_t* single_field();
+
+    private:
+        uint32_t m_struct_index;
+        gff_t* m__root;
+        kaitai::kstruct* m__parent;
+
+    public:
+
+        /**
+         * Index into struct_array
+         */
+        uint32_t struct_index() const { return m_struct_index; }
+        gff_t* _root() const { return m__root; }
+        kaitai::kstruct* _parent() const { return m__parent; }
+    };
+
     class struct_array_t : public kaitai::kstruct {
 
     public:
@@ -619,7 +1073,7 @@ public:
 
     public:
 
-        struct_entry_t(kaitai::kstream* p__io, gff_t::struct_array_t* p__parent = 0, gff_t* p__root = 0);
+        struct_entry_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, gff_t* p__root = 0);
 
     private:
         void _read();
@@ -689,7 +1143,7 @@ public:
         uint32_t m_data_or_offset;
         uint32_t m_field_count;
         gff_t* m__root;
-        gff_t::struct_array_t* m__parent;
+        kaitai::kstruct* m__parent;
 
     public:
 
@@ -713,7 +1167,7 @@ public:
          */
         uint32_t field_count() const { return m_field_count; }
         gff_t* _root() const { return m__root; }
-        gff_t::struct_array_t* _parent() const { return m__parent; }
+        kaitai::kstruct* _parent() const { return m__parent; }
     };
 
 private:
@@ -800,6 +1254,19 @@ public:
      * Array of list entry structures (count + struct indices)
      */
     list_indices_array_t* list_indices_array();
+
+private:
+    bool f_root_struct_resolved;
+    resolved_struct_t* m_root_struct_resolved;
+
+public:
+
+    /**
+     * Convenience "decoded" view of the root struct (struct_array[0]).
+     * This resolves field indices to field entries, resolves labels to strings,
+     * and decodes field values (including nested structs and lists) into typed instances.
+     */
+    resolved_struct_t* root_struct_resolved();
 
 private:
     bool f_struct_array;

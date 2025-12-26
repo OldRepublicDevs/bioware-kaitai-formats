@@ -71,6 +71,19 @@ public class Are extends KaitaiStruct {
         this.fileTypeValid = gffData().header().fileType().equals("ARE ");
         return this.fileTypeValid;
     }
+    private ResolvedStruct rootStructResolved;
+
+    /**
+     * Convenience access to the decoded GFF root struct (struct_array[0]).
+     * Use this to iterate all resolved fields (label + typed value), including:
+     * "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+     */
+    public ResolvedStruct rootStructResolved() {
+        if (this.rootStructResolved != null)
+            return this.rootStructResolved;
+        this.rootStructResolved = gffData().rootStructResolved();
+        return this.rootStructResolved;
+    }
     private Boolean versionValid;
 
     /**

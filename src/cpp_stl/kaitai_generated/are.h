@@ -67,6 +67,19 @@ public:
     bool file_type_valid();
 
 private:
+    bool f_root_struct_resolved;
+    resolved_struct_t* m_root_struct_resolved;
+
+public:
+
+    /**
+     * Convenience access to the decoded GFF root struct (struct_array[0]).
+     * Use this to iterate all resolved fields (label + typed value), including:
+     * "Tag", "Name", "AlphaTest", "Map" (struct), "Rooms" (list), and all KotOR2/deprecated keys.
+     */
+    resolved_struct_t* root_struct_resolved();
+
+private:
     bool f_version_valid;
     bool m_version_valid;
 
