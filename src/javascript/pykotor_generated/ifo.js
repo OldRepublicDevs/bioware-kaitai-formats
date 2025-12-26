@@ -1,1 +1,0 @@
-// TODO: Implement IFO for javascript
