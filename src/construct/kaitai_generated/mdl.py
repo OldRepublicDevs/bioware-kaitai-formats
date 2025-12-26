@@ -168,34 +168,32 @@ mdl__lightsaber_header = Struct(
 )
 
 mdl__model_header = Struct(
-	'classification' / Int8ub,
-	'subclassification' / Int8ub,
-	'unknown' / Int8ub,
-	'affected_by_fog' / Int8ub,
-	'child_model_count' / Int32ul,
-	'animation_array_offset' / Int32ul,
+	'geometry' / LazyBound(lambda: mdl__geometry_header),
+	'model_type' / Int8ub,
+	'unknown0' / Int8ub,
+	'padding0' / Int8ub,
+	'fog' / Int8ub,
+	'unknown1' / Int32ul,
+	'offset_to_animations' / Int32ul,
 	'animation_count' / Int32ul,
-	'animation_count_duplicate' / Int32ul,
-	'parent_model_pointer' / Int32ul,
+	'animation_count2' / Int32ul,
+	'unknown2' / Int32ul,
 	'bounding_box_min' / LazyBound(lambda: mdl__vec3f),
 	'bounding_box_max' / LazyBound(lambda: mdl__vec3f),
 	'radius' / Float32l,
 	'animation_scale' / Float32l,
 	'supermodel_name' / FixedSized(32, NullTerminated(GreedyString(encoding='ASCII'), term=b"\x00", include=False)),
+	'offset_to_super_root' / Int32ul,
+	'unknown3' / Int32ul,
+	'mdx_data_size' / Int32ul,
+	'mdx_data_offset' / Int32ul,
+	'offset_to_name_offsets' / Int32ul,
+	'name_offsets_count' / Int32ul,
+	'name_offsets_count2' / Int32ul,
 )
 
 mdl__name_strings = Struct(
 	'strings' / GreedyRange(NullTerminated(GreedyString(encoding='ASCII'), term=b"\x00", include=False, consume=True)),
-)
-
-mdl__names_header = Struct(
-	'root_node_offset' / Int32ul,
-	'unknown_padding' / Int32ul,
-	'mdx_data_size' / Int32ul,
-	'mdx_data_offset' / Int32ul,
-	'names_array_offset' / Int32ul,
-	'name_count' / Int32ul,
-	'name_count_duplicate' / Int32ul,
 )
 
 mdl__node = Struct(
@@ -328,8 +326,8 @@ mdl__trimesh_header = Struct(
 	'padding' / Int8ub,
 	'total_area' / Float32l,
 	'unknown2' / Int32ul,
-	'k2_unknown_1' / If(this._root.geometry_header.is_kotor2, Int32ul),
-	'k2_unknown_2' / If(this._root.geometry_header.is_kotor2, Int32ul),
+	'k2_unknown_1' / If(this._root.model_header.geometry.is_kotor2, Int32ul),
+	'k2_unknown_2' / If(this._root.model_header.geometry.is_kotor2, Int32ul),
 	'mdx_data_offset' / Int32ul,
 	'mdl_vertices_offset' / Int32ul,
 )
@@ -342,14 +340,13 @@ mdl__vec3f = Struct(
 
 mdl = Struct(
 	'file_header' / LazyBound(lambda: mdl__file_header),
-	'geometry_header' / LazyBound(lambda: mdl__geometry_header),
 	'model_header' / LazyBound(lambda: mdl__model_header),
-	'names_header' / LazyBound(lambda: mdl__names_header),
-	'animations' / Pointer(this.data_start + this.model_header.animation_array_offset, If(this.model_header.animation_count > 0, Array(this.model_header.animation_count, LazyBound(lambda: mdl__animation_header)))),
+	'animation_offsets' / Pointer(this.data_start + this.model_header.offset_to_animations, If(this.model_header.animation_count > 0, Array(this.model_header.animation_count, Int32ul))),
+	'animations' / Pointer(this.data_start + this.animation_offsets[i], If(this.model_header.animation_count > 0, Array(this.model_header.animation_count, LazyBound(lambda: mdl__animation_header)))),
 	'data_start' / Computed(lambda this: 12),
-	'name_indexes' / Pointer(this.data_start + this.names_header.names_array_offset, If(this.names_header.name_count > 0, Array(this.names_header.name_count, Int32ul))),
-	'names_data' / Pointer((this.data_start + this.names_header.names_array_offset) + 4 * this.names_header.name_count, If(this.names_header.name_count > 0, FixedSized((this.data_start + this.model_header.animation_array_offset) - ((this.data_start + this.names_header.names_array_offset) + 4 * this.names_header.name_count), LazyBound(lambda: mdl__name_strings)))),
-	'root_node' / Pointer(this.data_start + this.geometry_header.root_node_offset, If(this.geometry_header.root_node_offset > 0, LazyBound(lambda: mdl__node))),
+	'name_offsets' / Pointer(this.data_start + this.model_header.offset_to_name_offsets, If(this.model_header.name_offsets_count > 0, Array(this.model_header.name_offsets_count, Int32ul))),
+	'names_data' / Pointer((this.data_start + this.model_header.offset_to_name_offsets) + 4 * this.model_header.name_offsets_count, If(this.model_header.name_offsets_count > 0, FixedSized((this.data_start + this.model_header.offset_to_animations) - ((this.data_start + this.model_header.offset_to_name_offsets) + 4 * this.model_header.name_offsets_count), LazyBound(lambda: mdl__name_strings)))),
+	'root_node' / Pointer(this.data_start + this.model_header.geometry.root_node_offset, If(this.model_header.geometry.root_node_offset > 0, LazyBound(lambda: mdl__node))),
 )
 
 _schema = mdl
