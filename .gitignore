@@ -87,3 +87,4 @@ build/
 
 .history/
 src/**/pykotor_generated/
+!*.php

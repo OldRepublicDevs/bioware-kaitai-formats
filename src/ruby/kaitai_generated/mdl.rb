@@ -12,15 +12,13 @@ end
 # 
 # The MDL file contains:
 # - File header (12 bytes)
-# - Geometry header (80 bytes)
-# - Model header (92 bytes)
-# - Names header (28 bytes)
-# - Node name arrays
-# - Animation headers and nodes
+# - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+# - Name offset array + name strings
+# - Animation offset array + animation headers + animation nodes
 # - Node hierarchy with geometry data
 # 
 # Reference implementations:
-# - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+# - https://github.com/th3w1zard1/MDLOpsM.pm
 # - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
 # @see https://github.com/th3w1zard1/PyKotor/wiki/MDL-MDX-File-Format.md Source
 class Mdl < Kaitai::Struct::Struct
@@ -70,9 +68,7 @@ class Mdl < Kaitai::Struct::Struct
 
   def _read
     @file_header = FileHeader.new(@_io, self, @_root)
-    @geometry_header = GeometryHeader.new(@_io, self, @_root)
     @model_header = ModelHeader.new(@_io, self, @_root)
-    @names_header = NamesHeader.new(@_io, self, @_root)
     self
   end
 
@@ -810,7 +806,9 @@ class Mdl < Kaitai::Struct::Struct
   end
 
   ##
-  # Model header (92 bytes) - Located at offset 92
+  # Model header (196 bytes) starting at offset 12 (data_start).
+  # This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+  # model-wide metadata, offsets, and counts.
   class ModelHeader < Kaitai::Struct::Struct
     def initialize(_io, _parent = nil, _root = nil)
       super(_io, _parent, _root)
@@ -818,66 +816,70 @@ class Mdl < Kaitai::Struct::Struct
     end
 
     def _read
-      @classification = @_io.read_u1
-      @subclassification = @_io.read_u1
-      @unknown = @_io.read_u1
-      @affected_by_fog = @_io.read_u1
-      @child_model_count = @_io.read_u4le
-      @animation_array_offset = @_io.read_u4le
+      @geometry = GeometryHeader.new(@_io, self, @_root)
+      @model_type = @_io.read_u1
+      @unknown0 = @_io.read_u1
+      @padding0 = @_io.read_u1
+      @fog = @_io.read_u1
+      @unknown1 = @_io.read_u4le
+      @offset_to_animations = @_io.read_u4le
       @animation_count = @_io.read_u4le
-      @animation_count_duplicate = @_io.read_u4le
-      @parent_model_pointer = @_io.read_u4le
+      @animation_count2 = @_io.read_u4le
+      @unknown2 = @_io.read_u4le
       @bounding_box_min = Vec3f.new(@_io, self, @_root)
       @bounding_box_max = Vec3f.new(@_io, self, @_root)
       @radius = @_io.read_f4le
       @animation_scale = @_io.read_f4le
       @supermodel_name = (Kaitai::Struct::Stream::bytes_terminate(@_io.read_bytes(32), 0, false)).force_encoding("ASCII").encode('UTF-8')
+      @offset_to_super_root = @_io.read_u4le
+      @unknown3 = @_io.read_u4le
+      @mdx_data_size = @_io.read_u4le
+      @mdx_data_offset = @_io.read_u4le
+      @offset_to_name_offsets = @_io.read_u4le
+      @name_offsets_count = @_io.read_u4le
+      @name_offsets_count2 = @_io.read_u4le
       self
     end
 
     ##
-    # Model classification:
-    # - 0x00: Other
-    # - 0x01: Effect
-    # - 0x02: Tile
-    # - 0x04: Character
-    # - 0x08: Door
-    # - 0x10: Lightsaber
-    # - 0x20: Placeable
-    # - 0x40: Flyer
-    attr_reader :classification
+    # Geometry header (80 bytes)
+    attr_reader :geometry
 
     ##
-    # Model subclassification value
-    attr_reader :subclassification
+    # Model classification byte
+    attr_reader :model_type
 
     ##
-    # Purpose unknown (possibly smoothing-related)
-    attr_reader :unknown
+    # TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
+    attr_reader :unknown0
 
     ##
-    # 0 = Not affected by fog, 1 = Affected by fog
-    attr_reader :affected_by_fog
+    # Padding byte
+    attr_reader :padding0
 
     ##
-    # Number of child models
-    attr_reader :child_model_count
+    # Fog interaction (1 = affected, 0 = ignore fog)
+    attr_reader :fog
 
     ##
-    # Offset to animation array (relative to MDL data start, offset 12)
-    attr_reader :animation_array_offset
+    # TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
+    attr_reader :unknown1
+
+    ##
+    # Offset to animation offset array (relative to data_start)
+    attr_reader :offset_to_animations
 
     ##
     # Number of animations
     attr_reader :animation_count
 
     ##
-    # Duplicate value of animation count
-    attr_reader :animation_count_duplicate
+    # Duplicate animation count / allocated count
+    attr_reader :animation_count2
 
     ##
-    # Pointer to parent model (context-dependent)
-    attr_reader :parent_model_pointer
+    # TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
+    attr_reader :unknown2
 
     ##
     # Minimum coordinates of bounding box (X, Y, Z)
@@ -898,6 +900,34 @@ class Mdl < Kaitai::Struct::Struct
     ##
     # Name of supermodel (null-terminated string, "null" if empty)
     attr_reader :supermodel_name
+
+    ##
+    # TODO: VERIFY - offset to super-root node (relative to data_start)
+    attr_reader :offset_to_super_root
+
+    ##
+    # TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+    attr_reader :unknown3
+
+    ##
+    # Size of MDX file data in bytes
+    attr_reader :mdx_data_size
+
+    ##
+    # Offset to MDX data (typically 0)
+    attr_reader :mdx_data_offset
+
+    ##
+    # Offset to name offset array (relative to data_start)
+    attr_reader :offset_to_name_offsets
+
+    ##
+    # Count of name offsets / partnames
+    attr_reader :name_offsets_count
+
+    ##
+    # Duplicate name offsets count / allocated count
+    attr_reader :name_offsets_count2
   end
 
   ##
@@ -918,54 +948,6 @@ class Mdl < Kaitai::Struct::Struct
       self
     end
     attr_reader :strings
-  end
-
-  ##
-  # Names header (28 bytes) - Located at offset 180
-  class NamesHeader < Kaitai::Struct::Struct
-    def initialize(_io, _parent = nil, _root = nil)
-      super(_io, _parent, _root)
-      _read
-    end
-
-    def _read
-      @root_node_offset = @_io.read_u4le
-      @unknown_padding = @_io.read_u4le
-      @mdx_data_size = @_io.read_u4le
-      @mdx_data_offset = @_io.read_u4le
-      @names_array_offset = @_io.read_u4le
-      @name_count = @_io.read_u4le
-      @name_count_duplicate = @_io.read_u4le
-      self
-    end
-
-    ##
-    # Offset to root node (often duplicate of geometry header value)
-    attr_reader :root_node_offset
-
-    ##
-    # Unknown field, typically unused or padding
-    attr_reader :unknown_padding
-
-    ##
-    # Size of MDX file data in bytes
-    attr_reader :mdx_data_size
-
-    ##
-    # Offset to MDX data within MDX file (typically 0)
-    attr_reader :mdx_data_offset
-
-    ##
-    # Offset to array of name string offsets
-    attr_reader :names_array_offset
-
-    ##
-    # Number of node names in array
-    attr_reader :name_count
-
-    ##
-    # Duplicate value of name count
-    attr_reader :name_count_duplicate
   end
 
   ##
@@ -1387,10 +1369,10 @@ class Mdl < Kaitai::Struct::Struct
       @padding = @_io.read_u1
       @total_area = @_io.read_f4le
       @unknown2 = @_io.read_u4le
-      if _root.geometry_header.is_kotor2
+      if _root.model_header.geometry.is_kotor2
         @k2_unknown_1 = @_io.read_u4le
       end
-      if _root.geometry_header.is_kotor2
+      if _root.model_header.geometry.is_kotor2
         @k2_unknown_2 = @_io.read_u4le
       end
       @mdx_data_offset = @_io.read_u4le
@@ -1667,12 +1649,28 @@ class Mdl < Kaitai::Struct::Struct
   end
 
   ##
-  # Animation header array
+  # Animation header offsets (relative to data_start)
+  def animation_offsets
+    return @animation_offsets unless @animation_offsets.nil?
+    if model_header.animation_count > 0
+      _pos = @_io.pos
+      @_io.seek(data_start + model_header.offset_to_animations)
+      @animation_offsets = []
+      (model_header.animation_count).times { |i|
+        @animation_offsets << @_io.read_u4le
+      }
+      @_io.seek(_pos)
+    end
+    @animation_offsets
+  end
+
+  ##
+  # Animation headers (resolved via animation_offsets)
   def animations
     return @animations unless @animations.nil?
     if model_header.animation_count > 0
       _pos = @_io.pos
-      @_io.seek(data_start + model_header.animation_array_offset)
+      @_io.seek(data_start + animation_offsets[i])
       @animations = []
       (model_header.animation_count).times { |i|
         @animations << AnimationHeader.new(@_io, self, @_root)
@@ -1692,30 +1690,30 @@ class Mdl < Kaitai::Struct::Struct
   end
 
   ##
-  # Array of name string offsets (relative to data_start)
-  def name_indexes
-    return @name_indexes unless @name_indexes.nil?
-    if names_header.name_count > 0
+  # Name string offsets (relative to data_start)
+  def name_offsets
+    return @name_offsets unless @name_offsets.nil?
+    if model_header.name_offsets_count > 0
       _pos = @_io.pos
-      @_io.seek(data_start + names_header.names_array_offset)
-      @name_indexes = []
-      (names_header.name_count).times { |i|
-        @name_indexes << @_io.read_u4le
+      @_io.seek(data_start + model_header.offset_to_name_offsets)
+      @name_offsets = []
+      (model_header.name_offsets_count).times { |i|
+        @name_offsets << @_io.read_u4le
       }
       @_io.seek(_pos)
     end
-    @name_indexes
+    @name_offsets
   end
 
   ##
-  # Name string blob (substream). This follows the name index array and continues up to the animation array.
+  # Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
   # Parsed as null-terminated ASCII strings in `name_strings`.
   def names_data
     return @names_data unless @names_data.nil?
-    if names_header.name_count > 0
+    if model_header.name_offsets_count > 0
       _pos = @_io.pos
-      @_io.seek((data_start + names_header.names_array_offset) + 4 * names_header.name_count)
-      _io_names_data = @_io.substream((data_start + model_header.animation_array_offset) - ((data_start + names_header.names_array_offset) + 4 * names_header.name_count))
+      @_io.seek((data_start + model_header.offset_to_name_offsets) + 4 * model_header.name_offsets_count)
+      _io_names_data = @_io.substream((data_start + model_header.offset_to_animations) - ((data_start + model_header.offset_to_name_offsets) + 4 * model_header.name_offsets_count))
       @names_data = NameStrings.new(_io_names_data, self, @_root)
       @_io.seek(_pos)
     end
@@ -1723,17 +1721,15 @@ class Mdl < Kaitai::Struct::Struct
   end
   def root_node
     return @root_node unless @root_node.nil?
-    if geometry_header.root_node_offset > 0
+    if model_header.geometry.root_node_offset > 0
       _pos = @_io.pos
-      @_io.seek(data_start + geometry_header.root_node_offset)
+      @_io.seek(data_start + model_header.geometry.root_node_offset)
       @root_node = Node.new(@_io, self, @_root)
       @_io.seek(_pos)
     end
     @root_node
   end
   attr_reader :file_header
-  attr_reader :geometry_header
   attr_reader :model_header
-  attr_reader :names_header
   attr_reader :_raw_names_data
 end
