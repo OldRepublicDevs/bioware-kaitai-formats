@@ -31,7 +31,8 @@ seq:
     size: 4
     doc: |
       File signature. Must be "DAS " for Dragon Age: Origins save files.
-    valid: "DAS "
+    valid:
+      eq: '"DAS "'
   
   - id: version
     type: s4
@@ -108,9 +109,13 @@ types:
         type: str
         encoding: UTF-8
         size: length
+        terminator: 0
+        include: false
         doc: String value (UTF-8 encoded)
     instances:
       value_trimmed:
-        value: value.rstrip('\x00')
-        doc: "String value with trailing nulls removed (if any)"
+        value: value
+        doc: |
+          String value.
+          Note: trailing null bytes are already excluded via `terminator: 0` and `include: false`.
 
