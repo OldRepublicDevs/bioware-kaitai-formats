@@ -86,3 +86,4 @@ build/
 *.egg-info/
 
 .history/
+src/**/pykotor_generated/
