@@ -167,6 +167,14 @@ def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path
         assert out_ascii.exists() and out_ascii.stat().st_size > 0
         ascii_round = out_ascii.read_bytes()
 
+        # Component equality check: parse the roundtrip ASCII and compare with original parsed model
+        mdl_obj_round = read_mdl(out_ascii, file_format=ResourceType.MDL_ASCII)
+        assert mdl_obj_round is not None
+        assert mdl_obj == mdl_obj_round, (
+            f"Model component mismatch after roundtrip for {mdl_path.name}.\n"
+            f"Original model parsed from MDLOps ASCII differs from model parsed from PyKotor-written binary."
+        )
+
         # Strongest check: compare MDLOps decompiles of (original binary) vs (PyKotor-written binary).
         # If PyKotor writing is truly compatible/idempotent under MDLOps, MDLOps should emit identical ASCII.
         diff = _first_diff(ascii_orig, ascii_round)
@@ -250,6 +258,13 @@ def test_pykotor_can_read_binary_and_write_binary_mdlops_idempotent(mdl_path: Pa
         # 4) PyKotor: ensure we can re-parse the MDLOps output (roundtrip interop signal)
         mdl_obj_2 = read_mdl(ascii_1, file_format=ResourceType.MDL_ASCII)
         assert mdl_obj_2 is not None
+        
+        # Component equality check: compare normalized model with re-parsed model from MDLOps output
+        assert mdl_obj_norm == mdl_obj_2, (
+            f"Model component mismatch after binary roundtrip for {mdl_path.name}.\n"
+            f"Normalized model (Binary -> ASCII -> Model) differs from model re-parsed from MDLOps output."
+        )
+        
         # Sanity-check some stable invariants in MDLOps ASCII.
         text_1 = ascii_1.decode("utf-8", errors="ignore").lower()
         assert "newmodel" in text_1
