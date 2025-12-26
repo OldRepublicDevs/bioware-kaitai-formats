@@ -6,15 +6,13 @@
  * 
  * The MDL file contains:
  * - File header (12 bytes)
- * - Geometry header (80 bytes)
- * - Model header (92 bytes)
- * - Names header (28 bytes)
- * - Node name arrays
- * - Animation headers and nodes
+ * - Model header (196 bytes) which begins with a Geometry header (80 bytes)
+ * - Name offset array + name strings
+ * - Animation offset array + animation headers + animation nodes
  * - Node hierarchy with geometry data
  * 
  * Reference implementations:
- * - https://github.com/OldRepublicDevs/PyKotor/blob/master/vendor/MDLOps/MDLOpsM.pm
+ * - https://github.com/th3w1zard1/MDLOpsM.pm
  * - https://github.com/OldRepublicDevs/PyKotor/wiki/MDL-MDX-File-Format.md
  */
 
@@ -27,21 +25,39 @@ namespace {
 
         private function _read() {
             $this->_m_fileHeader = new \Mdl\FileHeader($this->_io, $this, $this->_root);
-            $this->_m_geometryHeader = new \Mdl\GeometryHeader($this->_io, $this, $this->_root);
             $this->_m_modelHeader = new \Mdl\ModelHeader($this->_io, $this, $this->_root);
-            $this->_m_namesHeader = new \Mdl\NamesHeader($this->_io, $this, $this->_root);
+        }
+        protected $_m_animationOffsets;
+
+        /**
+         * Animation header offsets (relative to data_start)
+         */
+        public function animationOffsets() {
+            if ($this->_m_animationOffsets !== null)
+                return $this->_m_animationOffsets;
+            if ($this->modelHeader()->animationCount() > 0) {
+                $_pos = $this->_io->pos();
+                $this->_io->seek($this->dataStart() + $this->modelHeader()->offsetToAnimations());
+                $this->_m_animationOffsets = [];
+                $n = $this->modelHeader()->animationCount();
+                for ($i = 0; $i < $n; $i++) {
+                    $this->_m_animationOffsets[] = $this->_io->readU4le();
+                }
+                $this->_io->seek($_pos);
+            }
+            return $this->_m_animationOffsets;
         }
         protected $_m_animations;
 
         /**
-         * Animation header array
+         * Animation headers (resolved via animation_offsets)
          */
         public function animations() {
             if ($this->_m_animations !== null)
                 return $this->_m_animations;
             if ($this->modelHeader()->animationCount() > 0) {
                 $_pos = $this->_io->pos();
-                $this->_io->seek($this->dataStart() + $this->modelHeader()->animationArrayOffset());
+                $this->_io->seek($this->dataStart() + $this->animationOffsets()[$i]);
                 $this->_m_animations = [];
                 $n = $this->modelHeader()->animationCount();
                 for ($i = 0; $i < $n; $i++) {
@@ -63,39 +79,39 @@ namespace {
             $this->_m_dataStart = 12;
             return $this->_m_dataStart;
         }
-        protected $_m_nameIndexes;
+        protected $_m_nameOffsets;
 
         /**
-         * Array of name string offsets (relative to data_start)
+         * Name string offsets (relative to data_start)
          */
-        public function nameIndexes() {
-            if ($this->_m_nameIndexes !== null)
-                return $this->_m_nameIndexes;
-            if ($this->namesHeader()->nameCount() > 0) {
+        public function nameOffsets() {
+            if ($this->_m_nameOffsets !== null)
+                return $this->_m_nameOffsets;
+            if ($this->modelHeader()->nameOffsetsCount() > 0) {
                 $_pos = $this->_io->pos();
-                $this->_io->seek($this->dataStart() + $this->namesHeader()->namesArrayOffset());
-                $this->_m_nameIndexes = [];
-                $n = $this->namesHeader()->nameCount();
+                $this->_io->seek($this->dataStart() + $this->modelHeader()->offsetToNameOffsets());
+                $this->_m_nameOffsets = [];
+                $n = $this->modelHeader()->nameOffsetsCount();
                 for ($i = 0; $i < $n; $i++) {
-                    $this->_m_nameIndexes[] = $this->_io->readU4le();
+                    $this->_m_nameOffsets[] = $this->_io->readU4le();
                 }
                 $this->_io->seek($_pos);
             }
-            return $this->_m_nameIndexes;
+            return $this->_m_nameOffsets;
         }
         protected $_m_namesData;
 
         /**
-         * Name string blob (substream). This follows the name index array and continues up to the animation array.
+         * Name string blob (substream). This follows the name offset array and continues up to the animation offset array.
          * Parsed as null-terminated ASCII strings in `name_strings`.
          */
         public function namesData() {
             if ($this->_m_namesData !== null)
                 return $this->_m_namesData;
-            if ($this->namesHeader()->nameCount() > 0) {
+            if ($this->modelHeader()->nameOffsetsCount() > 0) {
                 $_pos = $this->_io->pos();
-                $this->_io->seek(($this->dataStart() + $this->namesHeader()->namesArrayOffset()) + 4 * $this->namesHeader()->nameCount());
-                $this->_m__raw_namesData = $this->_io->readBytes(($this->dataStart() + $this->modelHeader()->animationArrayOffset()) - (($this->dataStart() + $this->namesHeader()->namesArrayOffset()) + 4 * $this->namesHeader()->nameCount()));
+                $this->_io->seek(($this->dataStart() + $this->modelHeader()->offsetToNameOffsets()) + 4 * $this->modelHeader()->nameOffsetsCount());
+                $this->_m__raw_namesData = $this->_io->readBytes(($this->dataStart() + $this->modelHeader()->offsetToAnimations()) - (($this->dataStart() + $this->modelHeader()->offsetToNameOffsets()) + 4 * $this->modelHeader()->nameOffsetsCount()));
                 $_io__raw_namesData = new \Kaitai\Struct\Stream($this->_m__raw_namesData);
                 $this->_m_namesData = new \Mdl\NameStrings($_io__raw_namesData, $this, $this->_root);
                 $this->_io->seek($_pos);
@@ -106,23 +122,19 @@ namespace {
         public function rootNode() {
             if ($this->_m_rootNode !== null)
                 return $this->_m_rootNode;
-            if ($this->geometryHeader()->rootNodeOffset() > 0) {
+            if ($this->modelHeader()->geometry()->rootNodeOffset() > 0) {
                 $_pos = $this->_io->pos();
-                $this->_io->seek($this->dataStart() + $this->geometryHeader()->rootNodeOffset());
+                $this->_io->seek($this->dataStart() + $this->modelHeader()->geometry()->rootNodeOffset());
                 $this->_m_rootNode = new \Mdl\Node($this->_io, $this, $this->_root);
                 $this->_io->seek($_pos);
             }
             return $this->_m_rootNode;
         }
         protected $_m_fileHeader;
-        protected $_m_geometryHeader;
         protected $_m_modelHeader;
-        protected $_m_namesHeader;
         protected $_m__raw_namesData;
         public function fileHeader() { return $this->_m_fileHeader; }
-        public function geometryHeader() { return $this->_m_geometryHeader; }
         public function modelHeader() { return $this->_m_modelHeader; }
-        public function namesHeader() { return $this->_m_namesHeader; }
         public function _raw_namesData() { return $this->_m__raw_namesData; }
     }
 }
@@ -1095,7 +1107,9 @@ namespace Mdl {
 }
 
 /**
- * Model header (92 bytes) - Located at offset 92
+ * Model header (196 bytes) starting at offset 12 (data_start).
+ * This matches MDLOps / PyKotor's _ModelHeader layout: a geometry header followed by
+ * model-wide metadata, offsets, and counts.
  */
 
 namespace Mdl {
@@ -1106,73 +1120,86 @@ namespace Mdl {
         }
 
         private function _read() {
-            $this->_m_classification = $this->_io->readU1();
-            $this->_m_subclassification = $this->_io->readU1();
-            $this->_m_unknown = $this->_io->readU1();
-            $this->_m_affectedByFog = $this->_io->readU1();
-            $this->_m_childModelCount = $this->_io->readU4le();
-            $this->_m_animationArrayOffset = $this->_io->readU4le();
+            $this->_m_geometry = new \Mdl\GeometryHeader($this->_io, $this, $this->_root);
+            $this->_m_modelType = $this->_io->readU1();
+            $this->_m_unknown0 = $this->_io->readU1();
+            $this->_m_padding0 = $this->_io->readU1();
+            $this->_m_fog = $this->_io->readU1();
+            $this->_m_unknown1 = $this->_io->readU4le();
+            $this->_m_offsetToAnimations = $this->_io->readU4le();
             $this->_m_animationCount = $this->_io->readU4le();
-            $this->_m_animationCountDuplicate = $this->_io->readU4le();
-            $this->_m_parentModelPointer = $this->_io->readU4le();
+            $this->_m_animationCount2 = $this->_io->readU4le();
+            $this->_m_unknown2 = $this->_io->readU4le();
             $this->_m_boundingBoxMin = new \Mdl\Vec3f($this->_io, $this, $this->_root);
             $this->_m_boundingBoxMax = new \Mdl\Vec3f($this->_io, $this, $this->_root);
             $this->_m_radius = $this->_io->readF4le();
             $this->_m_animationScale = $this->_io->readF4le();
             $this->_m_supermodelName = \Kaitai\Struct\Stream::bytesToStr(\Kaitai\Struct\Stream::bytesTerminate($this->_io->readBytes(32), 0, false), "ASCII");
+            $this->_m_offsetToSuperRoot = $this->_io->readU4le();
+            $this->_m_unknown3 = $this->_io->readU4le();
+            $this->_m_mdxDataSize = $this->_io->readU4le();
+            $this->_m_mdxDataOffset = $this->_io->readU4le();
+            $this->_m_offsetToNameOffsets = $this->_io->readU4le();
+            $this->_m_nameOffsetsCount = $this->_io->readU4le();
+            $this->_m_nameOffsetsCount2 = $this->_io->readU4le();
         }
-        protected $_m_classification;
-        protected $_m_subclassification;
-        protected $_m_unknown;
-        protected $_m_affectedByFog;
-        protected $_m_childModelCount;
-        protected $_m_animationArrayOffset;
+        protected $_m_geometry;
+        protected $_m_modelType;
+        protected $_m_unknown0;
+        protected $_m_padding0;
+        protected $_m_fog;
+        protected $_m_unknown1;
+        protected $_m_offsetToAnimations;
         protected $_m_animationCount;
-        protected $_m_animationCountDuplicate;
-        protected $_m_parentModelPointer;
+        protected $_m_animationCount2;
+        protected $_m_unknown2;
         protected $_m_boundingBoxMin;
         protected $_m_boundingBoxMax;
         protected $_m_radius;
         protected $_m_animationScale;
         protected $_m_supermodelName;
+        protected $_m_offsetToSuperRoot;
+        protected $_m_unknown3;
+        protected $_m_mdxDataSize;
+        protected $_m_mdxDataOffset;
+        protected $_m_offsetToNameOffsets;
+        protected $_m_nameOffsetsCount;
+        protected $_m_nameOffsetsCount2;
 
         /**
-         * Model classification:
-         * - 0x00: Other
-         * - 0x01: Effect
-         * - 0x02: Tile
-         * - 0x04: Character
-         * - 0x08: Door
-         * - 0x10: Lightsaber
-         * - 0x20: Placeable
-         * - 0x40: Flyer
+         * Geometry header (80 bytes)
          */
-        public function classification() { return $this->_m_classification; }
+        public function geometry() { return $this->_m_geometry; }
 
         /**
-         * Model subclassification value
+         * Model classification byte
          */
-        public function subclassification() { return $this->_m_subclassification; }
+        public function modelType() { return $this->_m_modelType; }
 
         /**
-         * Purpose unknown (possibly smoothing-related)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        public function unknown() { return $this->_m_unknown; }
+        public function unknown0() { return $this->_m_unknown0; }
 
         /**
-         * 0 = Not affected by fog, 1 = Affected by fog
+         * Padding byte
          */
-        public function affectedByFog() { return $this->_m_affectedByFog; }
+        public function padding0() { return $this->_m_padding0; }
 
         /**
-         * Number of child models
+         * Fog interaction (1 = affected, 0 = ignore fog)
          */
-        public function childModelCount() { return $this->_m_childModelCount; }
+        public function fog() { return $this->_m_fog; }
 
         /**
-         * Offset to animation array (relative to MDL data start, offset 12)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        public function animationArrayOffset() { return $this->_m_animationArrayOffset; }
+        public function unknown1() { return $this->_m_unknown1; }
+
+        /**
+         * Offset to animation offset array (relative to data_start)
+         */
+        public function offsetToAnimations() { return $this->_m_offsetToAnimations; }
 
         /**
          * Number of animations
@@ -1180,14 +1207,14 @@ namespace Mdl {
         public function animationCount() { return $this->_m_animationCount; }
 
         /**
-         * Duplicate value of animation count
+         * Duplicate animation count / allocated count
          */
-        public function animationCountDuplicate() { return $this->_m_animationCountDuplicate; }
+        public function animationCount2() { return $this->_m_animationCount2; }
 
         /**
-         * Pointer to parent model (context-dependent)
+         * TODO: VERIFY - unknown field (MDLOps / PyKotor preserve)
          */
-        public function parentModelPointer() { return $this->_m_parentModelPointer; }
+        public function unknown2() { return $this->_m_unknown2; }
 
         /**
          * Minimum coordinates of bounding box (X, Y, Z)
@@ -1213,6 +1240,41 @@ namespace Mdl {
          * Name of supermodel (null-terminated string, "null" if empty)
          */
         public function supermodelName() { return $this->_m_supermodelName; }
+
+        /**
+         * TODO: VERIFY - offset to super-root node (relative to data_start)
+         */
+        public function offsetToSuperRoot() { return $this->_m_offsetToSuperRoot; }
+
+        /**
+         * TODO: VERIFY - unknown field after offset_to_super_root (MDLOps / PyKotor preserve)
+         */
+        public function unknown3() { return $this->_m_unknown3; }
+
+        /**
+         * Size of MDX file data in bytes
+         */
+        public function mdxDataSize() { return $this->_m_mdxDataSize; }
+
+        /**
+         * Offset to MDX data (typically 0)
+         */
+        public function mdxDataOffset() { return $this->_m_mdxDataOffset; }
+
+        /**
+         * Offset to name offset array (relative to data_start)
+         */
+        public function offsetToNameOffsets() { return $this->_m_offsetToNameOffsets; }
+
+        /**
+         * Count of name offsets / partnames
+         */
+        public function nameOffsetsCount() { return $this->_m_nameOffsetsCount; }
+
+        /**
+         * Duplicate name offsets count / allocated count
+         */
+        public function nameOffsetsCount2() { return $this->_m_nameOffsetsCount2; }
     }
 }
 
@@ -1237,71 +1299,6 @@ namespace Mdl {
         }
         protected $_m_strings;
         public function strings() { return $this->_m_strings; }
-    }
-}
-
-/**
- * Names header (28 bytes) - Located at offset 180
- */
-
-namespace Mdl {
-    class NamesHeader extends \Kaitai\Struct\Struct {
-        public function __construct(\Kaitai\Struct\Stream $_io, ?\Mdl $_parent = null, ?\Mdl $_root = null) {
-            parent::__construct($_io, $_parent, $_root);
-            $this->_read();
-        }
-
-        private function _read() {
-            $this->_m_rootNodeOffset = $this->_io->readU4le();
-            $this->_m_unknownPadding = $this->_io->readU4le();
-            $this->_m_mdxDataSize = $this->_io->readU4le();
-            $this->_m_mdxDataOffset = $this->_io->readU4le();
-            $this->_m_namesArrayOffset = $this->_io->readU4le();
-            $this->_m_nameCount = $this->_io->readU4le();
-            $this->_m_nameCountDuplicate = $this->_io->readU4le();
-        }
-        protected $_m_rootNodeOffset;
-        protected $_m_unknownPadding;
-        protected $_m_mdxDataSize;
-        protected $_m_mdxDataOffset;
-        protected $_m_namesArrayOffset;
-        protected $_m_nameCount;
-        protected $_m_nameCountDuplicate;
-
-        /**
-         * Offset to root node (often duplicate of geometry header value)
-         */
-        public function rootNodeOffset() { return $this->_m_rootNodeOffset; }
-
-        /**
-         * Unknown field, typically unused or padding
-         */
-        public function unknownPadding() { return $this->_m_unknownPadding; }
-
-        /**
-         * Size of MDX file data in bytes
-         */
-        public function mdxDataSize() { return $this->_m_mdxDataSize; }
-
-        /**
-         * Offset to MDX data within MDX file (typically 0)
-         */
-        public function mdxDataOffset() { return $this->_m_mdxDataOffset; }
-
-        /**
-         * Offset to array of name string offsets
-         */
-        public function namesArrayOffset() { return $this->_m_namesArrayOffset; }
-
-        /**
-         * Number of node names in array
-         */
-        public function nameCount() { return $this->_m_nameCount; }
-
-        /**
-         * Duplicate value of name count
-         */
-        public function nameCountDuplicate() { return $this->_m_nameCountDuplicate; }
     }
 }
 
@@ -1848,10 +1845,10 @@ namespace Mdl {
             $this->_m_padding = $this->_io->readU1();
             $this->_m_totalArea = $this->_io->readF4le();
             $this->_m_unknown2 = $this->_io->readU4le();
-            if ($this->_root()->geometryHeader()->isKotor2()) {
+            if ($this->_root()->modelHeader()->geometry()->isKotor2()) {
                 $this->_m_k2Unknown1 = $this->_io->readU4le();
             }
-            if ($this->_root()->geometryHeader()->isKotor2()) {
+            if ($this->_root()->modelHeader()->geometry()->isKotor2()) {
                 $this->_m_k2Unknown2 = $this->_io->readU4le();
             }
             $this->_m_mdxDataOffset = $this->_io->readU4le();
