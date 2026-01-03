@@ -327,3 +327,70 @@ seq:
 **Note**: Test files are typically not committed to repository (add to `.gitignore` if needed)
 
 **Validation**: Always test with actual game files to ensure format definitions are correct
+
+## 15. Debug Logging Best Practices
+
+**CRITICAL**: Never remove debug logging. Always implement debug logging with environment variable controls.
+
+**Pattern**: All debug logging MUST be controlled by environment variables, never hardcoded or removed.
+
+**Implementation Pattern**:
+
+```python
+import os
+
+# Debug logging: Enable via environment variable PYKOTOR_DEBUG_<MODULE>=1
+_DEBUG_<MODULE> = os.environ.get("PYKOTOR_DEBUG_<MODULE>", "").strip() in ("1", "true", "True", "TRUE", "yes", "Yes", "YES")
+
+# In code:
+if _DEBUG_<MODULE>:
+    print(f"DEBUG <function>: <message>")
+```
+
+**Environment Variable Naming**:
+- Format: `PYKOTOR_DEBUG_<MODULE>` (e.g., `PYKOTOR_DEBUG_MDL`, `PYKOTOR_DEBUG_GFF`)
+- Accepts: `1`, `true`, `True`, `TRUE`, `yes`, `Yes`, `YES` (case-insensitive)
+- Default: Disabled (empty string or unset)
+
+**Why This Pattern**:
+- Debug logging is valuable for troubleshooting and should be preserved
+- Environment variable control allows enabling/disabling without code changes
+- Production-ready: zero overhead when disabled
+- Industry standard: follows common practice for debug logging
+- Future-proof: logging remains available when issues resurface
+
+**Usage Examples**:
+
+```powershell
+# Windows PowerShell
+$env:PYKOTOR_DEBUG_MDL="1"; python script.py
+
+# Windows CMD
+set PYKOTOR_DEBUG_MDL=1 && python script.py
+
+# Linux/Mac
+PYKOTOR_DEBUG_MDL=1 python script.py
+
+# Or export for session
+export PYKOTOR_DEBUG_MDL=1
+python script.py
+```
+
+**When to Add Debug Logging**:
+- When debugging complex parsing/writing logic
+- When investigating format compatibility issues
+- When tracing data flow through transformations
+- When validating binary structure correctness
+- When comparing toolchain outputs (e.g., MDLOps vs PyKotor)
+
+**Debug Message Format**:
+- Prefix: `DEBUG <function_name>:`
+- Include relevant context (node names, offsets, flags, values)
+- Use hexadecimal for bitmaps/flags: `0x{value:08X}`
+- Include boolean interpretations: `TEXTURE1={bool(bitmap & flag)}`
+
+**Never**:
+- Remove debug logging after fixing issues
+- Use hardcoded `if True:` or `if False:` for debug prints
+- Comment out debug prints (use env var instead)
+- Add debug prints without environment variable control

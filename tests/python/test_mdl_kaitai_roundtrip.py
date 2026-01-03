@@ -25,11 +25,29 @@ def _pykotor_src_dir() -> Path:
 
 
 def _fixture_dir() -> Path:
-    return _repo_root() / "vendor" / "PyKotor" / "Libraries" / "PyKotor" / "tests" / "test_files" / "mdl"
+    return (
+        _repo_root()
+        / "vendor"
+        / "PyKotor"
+        / "Libraries"
+        / "PyKotor"
+        / "tests"
+        / "test_files"
+        / "mdl"
+    )
 
 
 def _generated_kit_dir() -> Path:
-    return _repo_root() / "vendor" / "PyKotor" / "Libraries" / "PyKotor" / "tests" / "test_files" / "generated_kit"
+    return (
+        _repo_root()
+        / "vendor"
+        / "PyKotor"
+        / "Libraries"
+        / "PyKotor"
+        / "tests"
+        / "test_files"
+        / "generated_kit"
+    )
 
 
 def _fixtures() -> list[tuple[Path, Path]]:
@@ -42,7 +60,13 @@ def _fixtures() -> list[tuple[Path, Path]]:
         if mdx_path.exists():
             out.append((mdl_path, mdx_path))
 
-    if os.environ.get("BIOWARE_MDLOPS_FULL", "").strip() in {"1", "true", "TRUE", "yes", "YES"}:
+    if os.environ.get("BIOWARE_MDLOPS_FULL", "").strip() in {
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+    }:
         gd = _generated_kit_dir()
         if gd.exists():
             for mdl_path in sorted(gd.rglob("*.mdl")):
@@ -56,7 +80,9 @@ def _fixtures() -> list[tuple[Path, Path]]:
     return list(dedup.values())
 
 
-def _run(cmd: list[str], *, cwd: Path, timeout_s: int = 120) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str], *, cwd: Path, timeout_s: int = 120
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=str(cwd),
@@ -79,7 +105,9 @@ def _import_kaitai_module(name: str):
 
 
 @pytest.mark.parametrize("mdl_path,mdx_path", _fixtures(), ids=lambda p: Path(p).name)
-def test_kaitai_parses_mdlops_ascii_from_fixture(mdl_path: Path, mdx_path: Path) -> None:
+def test_kaitai_parses_mdlops_ascii_from_fixture(
+    mdl_path: Path, mdx_path: Path
+) -> None:
     """
     "Roundtrip" (compat loop) for the Kaitai ASCII parser:
 
@@ -114,7 +142,9 @@ def test_kaitai_parses_mdlops_ascii_from_fixture(mdl_path: Path, mdx_path: Path)
 
 
 @pytest.mark.parametrize("mdl_path,mdx_path", _fixtures(), ids=lambda p: Path(p).name)
-def test_kaitai_parses_pykotor_binary_written_from_mdlops_ascii(mdl_path: Path, mdx_path: Path) -> None:
+def test_kaitai_parses_pykotor_binary_written_from_mdlops_ascii(
+    mdl_path: Path, mdx_path: Path
+) -> None:
     """
     "Roundtrip" (compat loop) spanning MDLOps + PyKotor + Kaitai:
 
@@ -163,5 +193,3 @@ def test_kaitai_parses_pykotor_binary_written_from_mdlops_ascii(mdl_path: Path, 
         assert parsed.file_header.mdl_size > 0
         assert parsed.model_header.geometry.node_count >= 0
         assert parsed.model_header.geometry.model_name != ""
-
-

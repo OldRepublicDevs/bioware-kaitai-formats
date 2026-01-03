@@ -23,11 +23,29 @@ def _pykotor_src_dir() -> Path:
 
 
 def _fixture_dir() -> Path:
-    return _repo_root() / "vendor" / "PyKotor" / "Libraries" / "PyKotor" / "tests" / "test_files" / "mdl"
+    return (
+        _repo_root()
+        / "vendor"
+        / "PyKotor"
+        / "Libraries"
+        / "PyKotor"
+        / "tests"
+        / "test_files"
+        / "mdl"
+    )
 
 
 def _generated_kit_dir() -> Path:
-    return _repo_root() / "vendor" / "PyKotor" / "Libraries" / "PyKotor" / "tests" / "test_files" / "generated_kit"
+    return (
+        _repo_root()
+        / "vendor"
+        / "PyKotor"
+        / "Libraries"
+        / "PyKotor"
+        / "tests"
+        / "test_files"
+        / "generated_kit"
+    )
 
 
 def _fixtures() -> list[tuple[Path, Path]]:
@@ -40,7 +58,13 @@ def _fixtures() -> list[tuple[Path, Path]]:
         if mdx_path.exists():
             out.append((mdl_path, mdx_path))
 
-    if os.environ.get("BIOWARE_MDLOPS_FULL", "").strip() in {"1", "true", "TRUE", "yes", "YES"}:
+    if os.environ.get("BIOWARE_MDLOPS_FULL", "").strip() in (
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+    ):
         gd = _generated_kit_dir()
         if gd.exists():
             # Keep deterministic ordering.
@@ -56,7 +80,12 @@ def _fixtures() -> list[tuple[Path, Path]]:
     return list(dedup.values())
 
 
-def _run(cmd: list[str], *, cwd: Path, timeout_s: int = 120) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    timeout_s: int = 120,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=str(cwd),
@@ -84,12 +113,17 @@ def _bytes_context(blob: bytes, offset: int, window: int = 64) -> str:
     return blob[lo:hi].decode("utf-8", errors="replace")
 
 
-def _find_mdlops_ascii_output(*, cwd: Path, stem: str, extra_dirs: list[Path] | None = None) -> Path | None:
+def _find_mdlops_ascii_output(
+    *,
+    cwd: Path,
+    stem: str,
+    extra_dirs: list[Path] | None = None,
+) -> Path | None:
     """
     MDLOps output location can vary (some builds emit into CWD, others alongside the input path).
     Find the expected '<stem>-ascii.mdl' in either location, with a small fallback glob.
     """
-    search_dirs = [cwd, *(extra_dirs or [])]
+    search_dirs: list[Path] = [cwd, *(extra_dirs or [])]
 
     # Preferred: exact expected filename in any candidate directory.
     for d in search_dirs:
@@ -107,7 +141,10 @@ def _find_mdlops_ascii_output(*, cwd: Path, stem: str, extra_dirs: list[Path] | 
 
 
 @pytest.mark.parametrize("mdl_path,mdx_path", _fixtures(), ids=lambda p: Path(p).name)
-def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path: Path) -> None:
+def test_pykotor_can_read_mdlops_ascii_and_write_binary(
+    mdl_path: Path,
+    mdx_path: Path,
+) -> None:
     """
     MDLOps is treated as a compatibility target ("source of truth") for practical interchange:
 
@@ -123,7 +160,7 @@ def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path
     # Import PyKotor from vendored source tree.
     sys.path.insert(0, str(_pykotor_src_dir()))
     try:
-        from pykotor.resource.formats.mdl.mdl_auto import read_mdl, write_mdl
+        from pykotor.resource.formats.mdl import read_mdl, write_mdl
         from pykotor.resource.type import ResourceType
     finally:
         sys.path.pop(0)
@@ -140,12 +177,12 @@ def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path
         assert r1.returncode == 0, f"MDLOps failed decompiling fixture: {r1.stdout}"
 
         ascii_path = td / f"{src_mdl.stem}-ascii.mdl"
-        assert ascii_path.exists() and ascii_path.stat().st_size > 0
+        assert ascii_path.exists() and ascii_path.stat().st_size > 0, f"MDLOps did not emit expected ASCII output for {src_mdl.stem}: {ascii_path}"
         ascii_orig = ascii_path.read_bytes()
 
         # 2) PyKotor: parse MDLOps ASCII
         mdl_obj = read_mdl(ascii_path, file_format=ResourceType.MDL_ASCII)
-        assert mdl_obj is not None
+        assert mdl_obj is not None, f"Failed to parse MDLOps ASCII as model: {ascii_path}"
 
         # 3) PyKotor: write binary
         # IMPORTANT: MDLOps ASCII includes filename-derived metadata (e.g. filedependancy line).
@@ -155,25 +192,22 @@ def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path
         out_mdl = out_dir / src_mdl.name
         out_mdx = out_dir / src_mdx.name
         write_mdl(mdl_obj, out_mdl, ResourceType.MDL, target_ext=out_mdx)
-        assert out_mdl.exists() and out_mdl.stat().st_size > 0
+        assert out_mdl.exists() and out_mdl.stat().st_size > 0, f"Failed to write PyKotor binary: {out_mdl}"
         # Some models (e.g. camera-only) can legitimately produce empty MDX output.
-        assert out_mdx.exists()
+        assert out_mdx.exists(), f"Failed to write PyKotor binary: {out_mdx}"
 
         # 4) MDLOps: binary -> ascii (ensure MDLOps accepts PyKotor output)
         r2 = _run([str(mdlops), str(out_mdl)], cwd=td, timeout_s=120)
         assert r2.returncode == 0, f"MDLOps failed decompiling PyKotor binary: {r2.stdout}"
 
         out_ascii = td / f"{out_mdl.stem}-ascii.mdl"
-        assert out_ascii.exists() and out_ascii.stat().st_size > 0
+        assert out_ascii.exists() and out_ascii.stat().st_size > 0, f"Failed to write PyKotor binary: {out_ascii}"
         ascii_round = out_ascii.read_bytes()
 
         # Component equality check: parse the roundtrip ASCII and compare with original parsed model
         mdl_obj_round = read_mdl(out_ascii, file_format=ResourceType.MDL_ASCII)
-        assert mdl_obj_round is not None
-        assert mdl_obj == mdl_obj_round, (
-            f"Model component mismatch after roundtrip for {mdl_path.name}.\n"
-            f"Original model parsed from MDLOps ASCII differs from model parsed from PyKotor-written binary."
-        )
+        assert mdl_obj_round is not None, f"Failed to parse PyKotor-written binary as ASCII: {out_ascii}"
+        assert mdl_obj == mdl_obj_round, f"Model component mismatch after roundtrip for {mdl_path.name}.\nOriginal model parsed from MDLOps ASCII differs from model parsed from PyKotor-written binary."
 
         # Strongest check: compare MDLOps decompiles of (original binary) vs (PyKotor-written binary).
         # If PyKotor writing is truly compatible/idempotent under MDLOps, MDLOps should emit identical ASCII.
@@ -190,7 +224,10 @@ def test_pykotor_can_read_mdlops_ascii_and_write_binary(mdl_path: Path, mdx_path
 
 
 @pytest.mark.parametrize("mdl_path,mdx_path", _fixtures(), ids=lambda p: Path(p).name)
-def test_pykotor_can_read_binary_and_write_binary_mdlops_idempotent(mdl_path: Path, mdx_path: Path) -> None:
+def test_pykotor_can_read_binary_and_write_binary_mdlops_idempotent(
+    mdl_path: Path,
+    mdx_path: Path,
+) -> None:
     """
     Complement the MDLOps-ASCII ingestion test by validating PyKotor's *binary* reader/writer pair
     against the same MDLOps "source of truth".
@@ -213,7 +250,7 @@ def test_pykotor_can_read_binary_and_write_binary_mdlops_idempotent(mdl_path: Pa
     # Import PyKotor from vendored source tree.
     sys.path.insert(0, str(_pykotor_src_dir()))
     try:
-        from pykotor.resource.formats.mdl.mdl_auto import bytes_mdl, read_mdl, write_mdl
+        from pykotor.resource.formats.mdl import bytes_mdl, read_mdl, write_mdl
         from pykotor.resource.type import ResourceType
     finally:
         sys.path.pop(0)
@@ -226,47 +263,55 @@ def test_pykotor_can_read_binary_and_write_binary_mdlops_idempotent(mdl_path: Pa
         shutil.copyfile(mdx_path, src_mdx)
 
         # 1) PyKotor: parse original binary (MDL+MDX)
-        mdl_obj_bin = read_mdl(src_mdl, source_ext=src_mdx, file_format=ResourceType.MDL)
-        assert mdl_obj_bin is not None
+        mdl_obj_bin = read_mdl(
+            src_mdl,
+            source_ext=src_mdx,
+            file_format=ResourceType.MDL,
+        )
+        assert mdl_obj_bin is not None, f"Failed to parse original binary as model: {src_mdl}"
 
         # 2) Normalize through PyKotor ASCII and write binary (under identical stem/name)
         ascii_norm = bytes_mdl(mdl_obj_bin, ResourceType.MDL_ASCII)
         mdl_obj_norm = read_mdl(ascii_norm, file_format=ResourceType.MDL_ASCII)
-        assert mdl_obj_norm is not None
+        assert mdl_obj_norm is not None, f"Failed to parse PyKotor ASCII as model: {ascii_norm}"
 
         out_dir = td / "pykotor_out"
         out_dir.mkdir(parents=True, exist_ok=True)
         out_mdl = out_dir / src_mdl.name
         out_mdx = out_dir / src_mdx.name
         write_mdl(mdl_obj_norm, out_mdl, ResourceType.MDL, target_ext=out_mdx)
-        assert out_mdl.exists() and out_mdl.stat().st_size > 0
+        assert out_mdl.exists() and out_mdl.stat().st_size > 0, f"Failed to write PyKotor binary: {out_mdl}"
         # Some models (e.g. camera-only) can legitimately produce empty MDX output.
-        assert out_mdx.exists()
+        assert out_mdx.exists(), f"Failed to write PyKotor binary: {out_mdx}"
 
         # 3) MDLOps: decompile PyKotor-written binary -> ascii_1
         # Defensive: remove any stale output from earlier steps.
         for d in (td, out_dir):
             p = d / f"{out_mdl.stem}-ascii.mdl"
             if p.exists():
-                p.unlink()
+                p.unlink(missing_ok=True)
         r1 = _run([str(mdlops), str(out_mdl)], cwd=td, timeout_s=120)
         assert r1.returncode == 0, f"MDLOps failed decompiling PyKotor binary: {r1.stdout}"
-        ascii_1_path = _find_mdlops_ascii_output(cwd=td, stem=out_mdl.stem, extra_dirs=[out_dir])
+        ascii_1_path = _find_mdlops_ascii_output(
+            cwd=td,
+            stem=out_mdl.stem,
+            extra_dirs=[out_dir],
+        )
         assert ascii_1_path is not None, f"MDLOps did not emit expected ASCII output for {out_mdl.stem}. stdout:\n{r1.stdout}"
         ascii_1 = ascii_1_path.read_bytes()
 
         # 4) PyKotor: ensure we can re-parse the MDLOps output (roundtrip interop signal)
         mdl_obj_2 = read_mdl(ascii_1, file_format=ResourceType.MDL_ASCII)
-        assert mdl_obj_2 is not None
-        
+        assert mdl_obj_2 is not None, f"Failed to parse MDLOps ASCII as model: {ascii_1}"
+
         # Component equality check: compare normalized model with re-parsed model from MDLOps output
+        # DO NOT remove this for any reason whatsoever. This assertion is the entire point of this test.
         assert mdl_obj_norm == mdl_obj_2, (
             f"Model component mismatch after binary roundtrip for {mdl_path.name}.\n"
             f"Normalized model (Binary -> ASCII -> Model) differs from model re-parsed from MDLOps output."
         )
-        
+
         # Sanity-check some stable invariants in MDLOps ASCII.
         text_1 = ascii_1.decode("utf-8", errors="ignore").lower()
-        assert "newmodel" in text_1
-        assert "beginmodelgeom" in text_1
-
+        assert "newmodel" in text_1, f"MDLOps ASCII does not contain 'newmodel': {text_1}"
+        assert "beginmodelgeom" in text_1, f"MDLOps ASCII does not contain 'beginmodelgeom': {text_1}"
