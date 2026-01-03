@@ -1,0 +1,153 @@
+"""Test MDL/MDX models from actual game installations for both K1 and TSL."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+from pykotor.common.misc import ResRef
+
+# Add PyKotor to path
+sys.path.insert(0, "vendor/PyKotor/Libraries/PyKotor/src")
+
+try:
+    from pykotor.common.misc import Game
+    from pykotor.extract.file import FileResource
+    from pykotor.extract.installation import Installation
+    from pykotor.resource.type import ResourceType
+    from pykotor.tools.path import find_kotor_paths_from_default
+except ImportError as e:
+    print(f"Failed to import PyKotor: {e}")
+    sys.exit(1)
+
+
+def find_test_models(
+    game: Game,
+    max_models: int = 5,
+) -> list[tuple[FileResource, FileResource]]:
+    """Find MDL/MDX pairs from game installation. Improved for performance and memory."""
+    paths = find_kotor_paths_from_default()
+    game_paths = paths.get(game, [])
+    if not game_paths:
+        print(f"No {game} installation found")
+        return []
+
+    mdl_dict: dict[ResRef, FileResource] = {}
+    mdx_dict: dict[ResRef, FileResource] = {}
+
+    for game_path in game_paths:
+        installation = Installation(game_path)
+        # Use generator and type filtering for speed, avoid repeated mapping/creation
+        for res in installation:
+            restype = res.restype()
+            if restype == ResourceType.MDL:
+                mdl_dict[res.resref()] = res
+            elif restype == ResourceType.MDX:
+                mdx_dict[res.resref()] = res
+
+    mdl_mdx_pairs: list[tuple[FileResource, FileResource]] = []
+    # Only return pairs where both MDL and MDX exist
+    for resref, mdl_res in mdl_dict.items():
+        mdx_res = mdx_dict.get(resref)
+        if mdx_res:
+            mdl_mdx_pairs.append((mdl_res, mdx_res))
+            if len(mdl_mdx_pairs) >= max_models:
+                break
+
+    return mdl_mdx_pairs
+
+
+def test_model(
+    mdl_res: FileResource,
+    mdx_res: FileResource,
+    mdlops_exe: Path,
+) -> tuple[bool, str]:
+    """Test a single model with MDLOps."""
+    with tempfile.TemporaryDirectory(prefix="mdl_test_") as td:
+        td_path = Path(td)
+        # Construct filenames from resname and extension
+        mdl_filename = f"{mdl_res.resname()}.{mdl_res.restype().extension}"
+        mdx_filename = f"{mdx_res.resname()}.{mdx_res.restype().extension}"
+        test_mdl = td_path / mdl_filename
+        test_mdx = td_path / mdx_filename
+
+        # Write byte data from FileResource to temporary files
+        # This works for both archive-based and file-based resources
+        test_mdl.write_bytes(mdl_res.data())
+        test_mdx.write_bytes(mdx_res.data())
+
+        # Try to decompile with MDLOps
+        try:
+            result = subprocess.run(
+                [str(mdlops_exe), str(test_mdl)],
+                cwd=str(td_path),
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if result.returncode == 0:
+                ascii_path = td_path / f"{test_mdl.stem}-ascii.mdl"
+                if ascii_path.exists():
+                    return True, "OK"
+                else:
+                    return False, "MDLOps succeeded but no ASCII output"
+            else:
+                return False, f"MDLOps failed: {result.stdout[:200]}"
+        except subprocess.TimeoutExpired:
+            return False, "MDLOps timeout"
+        except Exception as e:
+            return False, f"Error: {e}"
+
+
+def main():
+    mdlops_exe = Path("vendor/MDLOps/mdlops.exe")
+    if not mdlops_exe.exists():
+        print(f"MDLOps not found at {mdlops_exe}")
+        return
+
+    print("Finding models from game installations...\n")
+
+    # Test K1 models
+    print("=" * 60)
+    print("K1 (Knights of the Old Republic) Models")
+    print("=" * 60)
+    k1_models = find_test_models(Game.K1, max_models=10)
+    if k1_models:
+        print(f"Found {len(k1_models)} K1 models")
+        for mdl_res, mdx_res in k1_models[:5]:  # Test first 5
+            model_name = f"{mdl_res.resname()}.{mdl_res.restype().extension}"
+            print(f"\nTesting: {model_name}")
+            success, msg = test_model(mdl_res, mdx_res, mdlops_exe)
+            status = "✓ PASS" if success else f"✗ FAIL: {msg}"
+            print(f"  {status}")
+    else:
+        print("No K1 models found")
+
+    # Test TSL (K2) models
+    print("\n" + "=" * 60)
+    print("TSL (Knights of the Old Republic II) Models")
+    print("=" * 60)
+    k2_models = find_test_models(Game.K2, max_models=10)
+    if k2_models:
+        print(f"Found {len(k2_models)} TSL models")
+        for mdl_res, mdx_res in k2_models[:5]:  # Test first 5
+            model_name = f"{mdl_res.resname()}.{mdl_res.restype().extension}"
+            print(f"\nTesting: {model_name}")
+            success, msg = test_model(mdl_res, mdx_res, mdlops_exe)
+            status = "✓ PASS" if success else f"✗ FAIL: {msg}"
+            print(f"  {status}")
+    else:
+        print("No TSL models found")
+
+    print("\n" + "=" * 60)
+    print("Summary")
+    print("=" * 60)
+    print(f"K1 models found: {len(k1_models)}")
+    print(f"TSL models found: {len(k2_models)}")
+
+
+if __name__ == "__main__":
+    main()
