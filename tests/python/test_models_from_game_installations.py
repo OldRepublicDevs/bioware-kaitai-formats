@@ -8,8 +8,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Add PyKotor to path
-sys.path.insert(0, "vendor/PyKotor/Libraries/PyKotor/src")
+# Add PyKotor to path (relative to tests/python/)
+sys.path.insert(0, "../../vendor/PyKotor/Libraries/PyKotor/src")
 
 try:
     from pykotor.common.misc import Game
@@ -100,7 +100,8 @@ def test_model(
 
 
 def main():
-    mdlops_exe = Path("vendor/MDLOps/mdlops.exe")
+    # Path relative to tests/python/
+    mdlops_exe = Path("../../vendor/MDLOps/mdlops.exe")
     if not mdlops_exe.exists():
         print(f"MDLOps not found at {mdlops_exe}")
         return
@@ -156,3 +157,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
