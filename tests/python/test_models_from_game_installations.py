@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import random
 import subprocess
 import sys
@@ -15,6 +16,7 @@ try:
     from pykotor.common.misc import Game
     from pykotor.extract.file import FileResource
     from pykotor.extract.installation import Installation
+    from pykotor.resource.formats.mdl import read_mdl, write_mdl
     from pykotor.resource.type import ResourceType
     from pykotor.tools.path import find_kotor_paths_from_default
 except ImportError as e:
@@ -61,7 +63,7 @@ def test_model(
     mdx_res: FileResource,
     mdlops_exe: Path,
 ) -> tuple[bool, str]:
-    """Test a single model with MDLOps."""
+    """Test a single model with MDLOps and compare with PyKotor output."""
     with tempfile.TemporaryDirectory(prefix="mdl_test_") as td:
         td_path = Path(td)
         # Construct filenames from resname and extension
@@ -75,7 +77,7 @@ def test_model(
         test_mdl.write_bytes(mdl_res.data())
         test_mdx.write_bytes(mdx_res.data())
 
-        # Try to decompile with MDLOps
+        # Step 1: Decompile with MDLOps
         try:
             result = subprocess.run(
                 [str(mdlops_exe), str(test_mdl)],
@@ -85,23 +87,93 @@ def test_model(
                 timeout=30,
             )
 
-            if result.returncode == 0:
-                ascii_path = td_path / f"{test_mdl.stem}-ascii.mdl"
-                if ascii_path.exists():
-                    return True, "OK"
-                else:
-                    return False, "MDLOps succeeded but no ASCII output"
-            else:
+            if result.returncode != 0:
                 return False, f"MDLOps failed: {result.stdout[:200]}"
+
+            mdlops_ascii_path = td_path / f"{test_mdl.stem}-ascii.mdl"
+            if not mdlops_ascii_path.exists():
+                return False, "MDLOps succeeded but no ASCII output"
+
         except subprocess.TimeoutExpired:
             return False, "MDLOps timeout"
         except Exception as e:
-            return False, f"Error: {e}"
+            return False, f"MDLOps error: {e}"
+
+        # Step 2: Read MDL with PyKotor and write back to binary
+        try:
+            # Read the original binary MDL/MDX
+            mdl_obj = read_mdl(test_mdl, source_ext=test_mdx, file_format=ResourceType.MDL)
+            if mdl_obj is None:
+                return False, "PyKotor failed to read MDL"
+
+            # Write PyKotor binary output
+            pykotor_mdl = td_path / f"{test_mdl.stem}-pykotor.mdl"
+            pykotor_mdx = td_path / f"{test_mdl.stem}-pykotor.mdx"
+            write_mdl(mdl_obj, pykotor_mdl, ResourceType.MDL, target_ext=pykotor_mdx)
+
+            if not pykotor_mdl.exists():
+                return False, "PyKotor failed to write MDL"
+
+        except Exception as e:
+            return False, f"PyKotor error: {e}"
+
+        # Step 3: Decompile PyKotor output with MDLOps
+        try:
+            result = subprocess.run(
+                [str(mdlops_exe), str(pykotor_mdl)],
+                cwd=str(td_path),
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if result.returncode != 0:
+                return False, f"MDLOps failed on PyKotor output: {result.stdout[:200]}"
+
+            pykotor_ascii_path = td_path / f"{pykotor_mdl.stem}-ascii.mdl"
+            if not pykotor_ascii_path.exists():
+                return False, "MDLOps succeeded but no ASCII output for PyKotor binary"
+
+        except subprocess.TimeoutExpired:
+            return False, "MDLOps timeout on PyKotor output"
+        except Exception as e:
+            return False, f"MDLOps error on PyKotor output: {e}"
+
+        # Step 4: Compare MDLOps ASCII outputs using unified diff
+        try:
+            mdlops_ascii = mdlops_ascii_path.read_text(encoding="utf-8", errors="replace")
+            pykotor_ascii = pykotor_ascii_path.read_text(encoding="utf-8", errors="replace")
+
+            if mdlops_ascii == pykotor_ascii:
+                return True, "OK"
+
+            # Generate unified diff
+            diff_lines = list(
+                difflib.unified_diff(
+                    mdlops_ascii.splitlines(keepends=True),
+                    pykotor_ascii.splitlines(keepends=True),
+                    fromfile="MDLOps (original)",
+                    tofile="MDLOps (PyKotor binary)",
+                    lineterm="",
+                )
+            )
+
+            if diff_lines:
+                # Limit diff output to first 50 lines to avoid huge error messages
+                diff_preview = "".join(diff_lines[:50])
+                if len(diff_lines) > 50:
+                    diff_preview += f"\n... ({len(diff_lines) - 50} more lines)"
+                return False, f"Mismatch detected:\n{diff_preview}"
+
+            return False, "Files differ but no diff generated"
+
+        except Exception as e:
+            return False, f"Comparison error: {e}"
 
 
 def main():
     # Path relative to tests/python/
-    mdlops_exe = Path("../../vendor/MDLOps/mdlops.exe")
+    mdlops_exe = Path("vendor/PyKotor/Libraries/PyKotor/src").resolve().parents[3].joinpath("MDLOps/mdlops.exe")
     if not mdlops_exe.exists():
         print(f"MDLOps not found at {mdlops_exe}")
         return
