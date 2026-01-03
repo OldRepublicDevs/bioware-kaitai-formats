@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import subprocess
 import sys
 import tempfile
@@ -51,8 +52,6 @@ def find_test_models(
         mdx_res = mdx_dict.get(resname)
         if mdx_res:
             mdl_mdx_pairs.append((mdl_res, mdx_res))
-            if len(mdl_mdx_pairs) >= max_models:
-                break
 
     return mdl_mdx_pairs
 
@@ -112,10 +111,14 @@ def main():
     print("=" * 60)
     print("K1 (Knights of the Old Republic) Models")
     print("=" * 60)
-    k1_models = find_test_models(Game.K1, max_models=10)
+    k1_models = find_test_models(Game.K1, max_models=50)
     if k1_models:
         print(f"Found {len(k1_models)} K1 models")
-        for mdl_res, mdx_res in k1_models[:5]:  # Test first 5
+        # Randomly sample up to 50 models
+        test_count = min(50, len(k1_models))
+        random_models = random.sample(k1_models, test_count)
+        print(f"Testing {test_count} random models...")
+        for mdl_res, mdx_res in random_models:
             model_name = f"{mdl_res.resname()}.{mdl_res.restype().extension}"
             print(f"\nTesting: {model_name}")
             success, msg = test_model(mdl_res, mdx_res, mdlops_exe)
@@ -128,10 +131,14 @@ def main():
     print("\n" + "=" * 60)
     print("TSL (Knights of the Old Republic II) Models")
     print("=" * 60)
-    k2_models = find_test_models(Game.K2, max_models=10)
+    k2_models = find_test_models(Game.K2, max_models=50)
     if k2_models:
         print(f"Found {len(k2_models)} TSL models")
-        for mdl_res, mdx_res in k2_models[:5]:  # Test first 5
+        # Randomly sample up to 50 models
+        test_count = min(50, len(k2_models))
+        random_models = random.sample(k2_models, test_count)
+        print(f"Testing {test_count} random models...")
+        for mdl_res, mdx_res in random_models:
             model_name = f"{mdl_res.resname()}.{mdl_res.restype().extension}"
             print(f"\nTesting: {model_name}")
             success, msg = test_model(mdl_res, mdx_res, mdlops_exe)
