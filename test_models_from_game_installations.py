@@ -7,8 +7,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-from pykotor.common.misc import ResRef
-
 # Add PyKotor to path
 sys.path.insert(0, "vendor/PyKotor/Libraries/PyKotor/src")
 
@@ -34,8 +32,8 @@ def find_test_models(
         print(f"No {game} installation found")
         return []
 
-    mdl_dict: dict[ResRef, FileResource] = {}
-    mdx_dict: dict[ResRef, FileResource] = {}
+    mdl_dict: dict[str, FileResource] = {}
+    mdx_dict: dict[str, FileResource] = {}
 
     for game_path in game_paths:
         installation = Installation(game_path)
@@ -43,14 +41,14 @@ def find_test_models(
         for res in installation:
             restype = res.restype()
             if restype == ResourceType.MDL:
-                mdl_dict[res.resref()] = res
+                mdl_dict[res.resname()] = res
             elif restype == ResourceType.MDX:
-                mdx_dict[res.resref()] = res
+                mdx_dict[res.resname()] = res
 
     mdl_mdx_pairs: list[tuple[FileResource, FileResource]] = []
     # Only return pairs where both MDL and MDX exist
-    for resref, mdl_res in mdl_dict.items():
-        mdx_res = mdx_dict.get(resref)
+    for resname, mdl_res in mdl_dict.items():
+        mdx_res = mdx_dict.get(resname)
         if mdx_res:
             mdl_mdx_pairs.append((mdl_res, mdx_res))
             if len(mdl_mdx_pairs) >= max_models:
