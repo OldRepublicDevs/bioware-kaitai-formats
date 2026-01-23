@@ -26,6 +26,7 @@ This repository provides Kaitai Struct (`.ksy`) format definitions for all major
 ### Game-Specific Formats
 
 - **DLG** - Dialogue files
+- **CNV** - Conversation files
 - **UTC** - Creature templates
 - **UTI** - Item definitions
 - **ARE** - Area definitions
@@ -147,7 +148,7 @@ gem install bioware-kaitai-formats
 These formats are used across multiple BioWare engine families:
 
 - **Odyssey Engine**: Knights of the Old Republic (KOTOR), KOTOR II: The Sith Lords, Jade Empire
-- **Aurora Engine**: Neverwinter Nights, Neverwinter Nights 2
+- **Aurora Engine**: Neverwinter Nights, Neverwinter Nights 2, Neverwinter Nights: Extended Edition
 - **Eclipse Engine**: Dragon Age: Origins, Dragon Age II, Mass Effect, Mass Effect 2
 - **Infinity Engine**: Baldur's Gate, Icewind Dale, Planescape: Torment (some formats)
 
@@ -174,10 +175,6 @@ formats/
 ### Requirements
 
 - [Kaitai Struct Compiler](https://kaitai.io/#download) 0.11 or later
-- Python 3.7+ (for Python runtime)
-- Node.js 12+ (for JavaScript runtime)
-- Java 8+ (for Java runtime)
-- And runtime dependencies for your target language
 
 ### Generate Code for Your Language
 
@@ -235,9 +232,10 @@ Format definitions include inline documentation explaining:
 ## References
 
 - [Kaitai Struct Documentation](https://doc.kaitai.io/)
-- [PyKotor Documentation](https://github.com/NickHugi/PyKotor) - C# implementation reference
-- [Xoreos Documentation](https://xoreos.org/) - C++ implementation reference
-- [Reone Project](https://github.com/ribbonwang/reone) - Additional format references
+- [PyKotor](https://github.com/OldRepublicDevs/PyKotor) - Python implementation reference
+- [Andastra](https://github.com/OldRepublicDevs/Andastra) - C# implementation reference
+- [Xoreos Main Website](https://xoreos.org/) - C/C++ implementation reference
+- [Reone Project](https://github.com/seedhartha/reone) - Additional C/C++ references
 
 ## License
 
