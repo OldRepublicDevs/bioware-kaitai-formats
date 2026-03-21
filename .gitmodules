@@ -16,3 +16,9 @@
 [submodule "vendor/Kotor.NET"]
 	path = vendor/Kotor.NET
 	url = https://github.com/NickHugi/Kotor.NET.git
+[submodule "vendor/kaitai_struct_compiler"]
+	path = vendor/kaitai_struct_compiler
+	url = https://github.com/kaitai-io/kaitai_struct_compiler.git
+[submodule "vendor/MDLOps"]
+	path = vendor/MDLOps
+	url = https://github.com/ndixur/mdlops.git
