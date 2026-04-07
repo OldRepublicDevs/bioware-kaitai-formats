@@ -58,23 +58,15 @@ $failCount = 0
 
 foreach ($ksyFile in $ksyFiles) {
     $relativePath = $ksyFile.FullName.Substring((Resolve-Path $FormatsDir).Path.Length + 1)
-    $relativeDir = Split-Path -Parent $relativePath
 
-    # Calculate output path maintaining directory structure
-    if ($relativeDir) {
-        $targetDir = Join-Path $OutputDir $relativeDir
-    } else {
-        $targetDir = $OutputDir
-    }
-
-    if (-not (Test-Path $targetDir)) {
-        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    if (-not (Test-Path $OutputDir)) {
+        New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
     }
 
     Write-Host "  Processing: $relativePath" -ForegroundColor Gray
 
     try {
-        & kaitai-struct-compiler -t $Language -d $targetDir $ksyFile.FullName
+        & kaitai-struct-compiler -t $Language --outdir $OutputDir -I $FormatsDir $ksyFile.FullName
         if ($LASTEXITCODE -eq 0) {
             $successCount++
         } else {

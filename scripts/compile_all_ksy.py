@@ -16,9 +16,13 @@ def compile_ksy(ksy_file: Path, output_dir: Path) -> Tuple[bool, str]:
     """
     cmd = [
         "kaitai-struct-compiler",
-        "-t", "python",
-        "-d", str(output_dir),
-        str(ksy_file)
+        "-t",
+        "python",
+        "--outdir",
+        str(output_dir),
+        "-I",
+        "formats",
+        str(ksy_file),
     ]
     
     try:
