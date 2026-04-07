@@ -17,24 +17,27 @@ fi
 
 echo "Generating $LANGUAGE code from Kaitai Struct definitions..." >&2
 
-# Check if kaitai-struct-compiler is installed
-if ! command -v ksc &> /dev/null; then
-    echo "Installing Kaitai Struct compiler $KSC_VERSION..." >&2
+# Prefer kaitai-struct-compiler (e.g. .deb on Linux). KSC 0.11 on Unix-like shells
+# requires --outdir instead of -d unless arguments are separated with -- (see ksc --help).
+KSC_BIN=""
+if command -v kaitai-struct-compiler &> /dev/null; then
+    KSC_BIN="kaitai-struct-compiler"
+elif command -v ksc &> /dev/null; then
+    KSC_BIN="ksc"
+fi
+
+if [ -z "$KSC_BIN" ]; then
+    echo "Installing Kaitai Struct compiler $KSC_VERSION via pip..." >&2
     pip install "kaitai-struct-compiler==$KSC_VERSION" || {
-        echo "Failed to install kaitai-struct-compiler" >&2
+        echo "Failed to install kaitai-struct-compiler (pip has no wheel for this platform; install the .deb/.zip from https://kaitai.io/#download )" >&2
         exit 1
     }
-else
-    INSTALLED_VERSION=$(ksc --version 2>&1 | head -n1 || echo "")
-    if [[ "$INSTALLED_VERSION" == *"$KSC_VERSION"* ]]; then
-        echo "Kaitai Struct compiler $KSC_VERSION is already installed" >&2
-    else
-        echo "Installing Kaitai Struct compiler $KSC_VERSION..." >&2
-        pip install "kaitai-struct-compiler==$KSC_VERSION" || {
-            echo "Failed to install kaitai-struct-compiler" >&2
-            exit 1
-        }
-    fi
+    KSC_BIN="kaitai-struct-compiler"
+fi
+
+INSTALLED_VERSION=$("$KSC_BIN" --version 2>&1 | head -n1 || echo "")
+if [[ "$INSTALLED_VERSION" != *"$KSC_VERSION"* ]]; then
+    echo "Warning: expected Kaitai Struct compiler $KSC_VERSION, found: $INSTALLED_VERSION" >&2
 fi
 
 # Find all .ksy files
@@ -59,24 +62,17 @@ FORMATS_BASE=$(cd "$FORMATS_DIR" && pwd)
 while IFS= read -r ksy_file; do
     # Calculate relative path from formats directory
     RELATIVE_PATH="${ksy_file#$FORMATS_BASE/}"
-    RELATIVE_DIR=$(dirname "$RELATIVE_PATH")
 
-    # Calculate output path maintaining directory structure
-    if [ "$RELATIVE_DIR" != "." ]; then
-        TARGET_DIR="$OUTPUT_DIR/$RELATIVE_DIR"
-    else
-        TARGET_DIR="$OUTPUT_DIR"
-    fi
-
-    mkdir -p "$TARGET_DIR"
+    mkdir -p "$OUTPUT_DIR"
 
     echo "  Processing: $RELATIVE_PATH" >&2
 
-    if ksc -t "$LANGUAGE" -d "$TARGET_DIR" "$ksy_file"; then
-        ((SUCCESS_COUNT++))
+    # -I formats: resolve imports (e.g. gff -> bioware_common) from repo root
+    if "$KSC_BIN" -t "$LANGUAGE" --outdir "$OUTPUT_DIR" -I "$FORMATS_DIR" "$ksy_file"; then
+        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
     else
         echo "  Warning: Failed to generate code for $RELATIVE_PATH" >&2
-        ((FAIL_COUNT++))
+        FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
 done <<< "$KSY_FILES"
 
